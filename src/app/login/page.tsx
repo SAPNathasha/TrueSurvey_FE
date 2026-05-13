@@ -1,3 +1,8 @@
+"use client";
+import IconBox from "@/components/common/IconBox";
+import { IoPeople } from "react-icons/io5";
+import { MdOutlineSecurity } from "react-icons/md";
+import { CiGift } from "react-icons/ci";
 import {
   Flex,
   Container,
@@ -45,79 +50,33 @@ export default function LoginPage() {
               height="380px"
               width="100%"
               objectFit="contain"
-              src="/LoginImage.png"
+              src="/loginImage.png"
               alt="Login image"
             />
-            <Grid templateColumns="repeat(3, 1fr)" gap="6">
-              <Flex gap="4" direction="row">
-                <Image height="60px" src="/lg1.png" alt="Login icon 1" />
-                <Flex gap="4" direction="column">
-                  <Heading
-                    fontSize="15px"
-                    fontWeight="bold"
-                    color="black"
-                    letterSpacing="tight"
-                    lineHeight="1.1"
-                  >
-                    For Everyone
-                  </Heading>
-                  <Text
-                    fontSize="12px"
-                    fontWeight="regular"
-                    color="#A0A0A0"
-                    letterSpacing="tight"
-                    lineHeight="1.1"
-                  >
-                    Whether you want to build surveys, we have got you.
-                  </Text>
-                </Flex>
-              </Flex>
-              <Flex gap="4" direction="row">
-                <Image height="60px" src="/lg1.png" alt="Login icon 1" />
-                <Flex gap="4" direction="column">
-                  <Heading
-                    fontSize="15px"
-                    fontWeight="bold"
-                    color="black"
-                    letterSpacing="tight"
-                    lineHeight="1.1"
-                  >
-                    For Everyone
-                  </Heading>
-                  <Text
-                    fontSize="12px"
-                    fontWeight="regular"
-                    color="#A0A0A0"
-                    letterSpacing="tight"
-                    lineHeight="1.1"
-                  >
-                    Whether you want to build surveys, we have got you.
-                  </Text>
-                </Flex>
-              </Flex>
-              <Flex gap="4" direction="row">
-                <Image height="60px" src="/lg1.png" alt="Login icon 1" />
-                <Flex gap="4" direction="column">
-                  <Heading
-                    fontSize="15px"
-                    fontWeight="bold"
-                    color="black"
-                    letterSpacing="tight"
-                    lineHeight="1.1"
-                  >
-                    For Everyone
-                  </Heading>
-                  <Text
-                    fontSize="12px"
-                    fontWeight="regular"
-                    color="#A0A0A0"
-                    letterSpacing="tight"
-                    lineHeight="1.1"
-                  >
-                    Whether you want to build surveys, we have got you.
-                  </Text>
-                </Flex>
-              </Flex>
+            <Grid templateColumns="repeat(3, 1fr)" gap="5">
+              <IconBox
+                title="For Everyone"
+                description="Whether you want to build surveys, we've got you."
+                iconBg="#DDE8FE"
+                icon={IoPeople}
+                iconColor="#0015D6"
+              />
+              <IconBox
+                title="Secure & Private"
+                description="Your data is encrypted
+ and always protected."
+                iconBg="#D7F7F0"
+                icon={MdOutlineSecurity}
+                iconColor="#0AB188"
+              />
+              <IconBox
+                title="For Everyone"
+                description="Earn rewards and grow your
+insights on TrueSurvey."
+                iconBg="#EEE7FA"
+                icon={CiGift}
+                iconColor="#6537ED"
+              />
             </Grid>
           </Flex>
 
@@ -164,13 +123,28 @@ export default function LoginPage() {
                 <Field.Label fontSize="12px" color="black">
                   Email <Field.RequiredIndicator />
                 </Field.Label>
-                <Input color="#000000" padding={5} borderRadius={10} placeholder="you@example.com" />
+                <Input
+                  color="#000000"
+                  padding={5}
+                  borderRadius={10}
+                  placeholder="you@example.com"
+                  value={""}
+                  onChange={() => {}}
+                />
               </Field.Root>
               <Field.Root required width="100%" maxW="360px">
                 <Field.Label fontSize="12px" color="black">
                   Password <Field.RequiredIndicator />
                 </Field.Label>
-                <Input color="#000000" padding={5} borderRadius={10} type="password" placeholder="********" />
+                <Input
+                  color="#000000"
+                  padding={5}
+                  borderRadius={10}
+                  type="password"
+                  placeholder="********"
+                  value={""}
+                  onChange={() => {}}
+                />
               </Field.Root>
               <Flex
                 width="100%"
@@ -197,6 +171,7 @@ export default function LoginPage() {
                 color="white"
                 _hover={{ bg: "#000957" }}
                 borderRadius={10}
+                onClick={() => {}}
               >
                 Sign in
               </Button>
@@ -209,6 +184,7 @@ export default function LoginPage() {
                 color="#0015D6"
                 _hover={{ bg: "#F4F4F4" }}
                 borderRadius={10}
+                onClick={() => {}}
               >
                 Create an account
               </Button>
