@@ -16,10 +16,9 @@ import {
   Field,
   Input,
   Button,
-  Center,
 } from "@chakra-ui/react";
 
-export default function RegisterPage() {
+export default function RegisterStepOnePage() {
   return (
     <Box bg="white" minH="100vh" padding={20}>
       <Container maxW="1200px" marginX={"auto"}>
@@ -95,7 +94,7 @@ insights on TrueSurvey."
               height="700px"
               bg="white"
               boxShadow="2px 4px 25px 4px rgba(0, 0, 0, 0.15)"
-              borderRadius="md"
+              borderRadius="lg"
               p="6"
               display="flex"
               flexDirection="column"
@@ -103,7 +102,7 @@ insights on TrueSurvey."
               gap="4"
             >
               <Flex gap="12" justify="center" direction="row">
-                <Box color={"#577BC1"} height="10" order="1">
+                <Box color={"#0015D6"} height="10" order="1">
                   Step 1
                 </Box>
                 <Box color={"#A0A0A0"} height="10" order="2">
