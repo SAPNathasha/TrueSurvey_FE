@@ -33,7 +33,7 @@ export default function RegisterStepOnePage() {
             >
               Join TrueSurvey
               <br />
-              <Text as="span" color="#0015D6">
+              <Text as="span" color="brand.solid">
                 in a few simple steps
               </Text>
             </Heading>
@@ -41,7 +41,7 @@ export default function RegisterStepOnePage() {
             <Text
               fontSize="17px"
               fontWeight="regular"
-              color="#A0A0A0"
+              color="brand.fg"
               letterSpacing="tight"
               lineHeight="1.1"
             >
@@ -62,7 +62,7 @@ export default function RegisterStepOnePage() {
                 description="Whether you want to build surveys, we've got you."
                 iconBg="#DDE8FE"
                 icon={IoPeople}
-                iconColor="#0015D6"
+                iconColor="brand.solid"
               />
               <IconBox
                 title="Secure & Private"
@@ -102,13 +102,13 @@ insights on TrueSurvey."
               gap="4"
             >
               <Flex gap="12" justify="center" direction="row">
-                <Box color={"#0015D6"} height="10" order="1">
+                <Box color={"brand.solid"} height="10" order="1">
                   Step 1
                 </Box>
-                <Box color={"#A0A0A0"} height="10" order="2">
+                <Box color={"brand.fg"} height="10" order="2">
                   Step 2
                 </Box>
-                <Box color={"#A0A0A0"} height="10" order="2">
+                <Box color={"brand.fg"} height="10" order="2">
                   Step 3
                 </Box>
               </Flex>
@@ -125,7 +125,7 @@ insights on TrueSurvey."
               <Text
                 fontSize="12px"
                 fontWeight="regular"
-                color="#a0a0a0"
+                color="brand.fg"
                 letterSpacing="tight"
                 lineHeight="1.1"
                 textAlign="center"
@@ -137,7 +137,7 @@ insights on TrueSurvey."
                   Username <Field.RequiredIndicator />
                 </Field.Label>
                 <Input
-                  color="#000000"
+                  color="black"
                   padding={5}
                   borderRadius={10}
                   type="password"
@@ -154,7 +154,7 @@ insights on TrueSurvey."
                   Email <Field.RequiredIndicator />
                 </Field.Label>
                 <Input
-                  color="#000000"
+                  color="black"
                   padding={5}
                   borderRadius={10}
                   placeholder="you@example.com"
@@ -170,7 +170,7 @@ insights on TrueSurvey."
                   Password <Field.RequiredIndicator />
                 </Field.Label>
                 <Input
-                  color="#000000"
+                  color="black"
                   padding={5}
                   borderRadius={10}
                   type="password"
@@ -187,9 +187,9 @@ insights on TrueSurvey."
               <Button
                 width="100%"
                 maxW="360px"
-                bg="#0015D6"
+                bg="brand.solid"
                 color="white"
-                _hover={{ bg: "#000957" }}
+                _hover={{ bg: "brand.subtle" }}
                 borderRadius={10}
                 onClick={() => {}}
               >
@@ -198,7 +198,7 @@ insights on TrueSurvey."
 
               <Text
                 fontSize="12px"
-                color="#A0A0A0"
+                color="brand.fg"
                 textAlign="center"
                 maxW="360px"
               >

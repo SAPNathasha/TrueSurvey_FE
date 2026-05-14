@@ -23,27 +23,15 @@ export default function LoginPage() {
       <Container maxW="1200px" marginX={"auto"}>
         <Flex gap="4" direction="row">
           <Flex gap="4" direction="column" alignItems="left">
-            <Heading
-              fontSize="50px"
-              fontWeight="bold"
-              color="black"
-              letterSpacing="tight"
-              lineHeight="1.1"
-            >
+            <Heading textStyle="h1" color="black">
               Welcome back to
               <br />
-              <Text as="span" color="#0015D6">
+              <Text as="span" color="brand.solid">
                 TrueSurvey
               </Text>
             </Heading>
 
-            <Text
-              fontSize="17px"
-              fontWeight="regular"
-              color="#A0A0A0"
-              letterSpacing="tight"
-              lineHeight="1.1"
-            >
+            <Text textStyle="text">
               Sign in to create surveys, participate and earn rewards.
             </Text>
             <Image
@@ -59,7 +47,7 @@ export default function LoginPage() {
                 description="Whether you want to build surveys, we've got you."
                 iconBg="#DDE8FE"
                 icon={IoPeople}
-                iconColor="#0015D6"
+                iconColor="brand.solid"
               />
               <IconBox
                 title="Secure & Private"
@@ -112,7 +100,7 @@ insights on TrueSurvey."
               <Text
                 fontSize="12px"
                 fontWeight="regular"
-                color="#a0a0a0"
+                color="brand.fg"
                 letterSpacing="tight"
                 lineHeight="1.1"
                 textAlign="center"
@@ -124,7 +112,7 @@ insights on TrueSurvey."
                   Email <Field.RequiredIndicator />
                 </Field.Label>
                 <Input
-                  color="#000000"
+                  color="black"
                   padding={5}
                   borderRadius={10}
                   placeholder="you@example.com"
@@ -137,7 +125,7 @@ insights on TrueSurvey."
                   Password <Field.RequiredIndicator />
                 </Field.Label>
                 <Input
-                  color="#000000"
+                  color="black"
                   padding={5}
                   borderRadius={10}
                   type="password"
@@ -160,14 +148,14 @@ insights on TrueSurvey."
                   </Checkbox.Label>
                 </Checkbox.Root>
 
-                <Text fontSize="13px" color="#0015D6" cursor="pointer">
+                <Text fontSize="13px" color="brand.solid" cursor="pointer">
                   Forgot password?
                 </Text>
               </Flex>
               <Button
                 width="100%"
                 maxW="360px"
-                bg="#0015D6"
+                bg="brand.solid"
                 color="white"
                 _hover={{ bg: "#000957" }}
                 borderRadius={10}
@@ -181,7 +169,7 @@ insights on TrueSurvey."
                 maxW="360px"
                 variant="outline"
                 bg="#0015d600"
-                color="#0015D6"
+                color="brand.solid"
                 _hover={{ bg: "#F4F4F4" }}
                 borderRadius={10}
                 onClick={() => {}}
@@ -191,7 +179,7 @@ insights on TrueSurvey."
 
               <Text
                 fontSize="12px"
-                color="#A0A0A0"
+                color="brand.fg"
                 textAlign="center"
                 maxW="360px"
               >
