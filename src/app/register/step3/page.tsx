@@ -1,255 +1,435 @@
 "use client";
-import IconBox from "@/components/common/IconBox";
+
+import {
+  Box,
+  Button,
+  Container,
+  Flex,
+  Grid,
+  Heading,
+  Icon,
+  Image,
+  Text,
+  FileUpload,
+  VStack,
+  HStack,
+  Badge,
+} from "@chakra-ui/react";
+
 import { IoPeople } from "react-icons/io5";
 import { MdOutlineSecurity } from "react-icons/md";
 import { CiGift } from "react-icons/ci";
-import { RiErrorWarningFill } from "react-icons/ri";
 import { HiUpload } from "react-icons/hi";
-import {
-  Flex,
-  Container,
-  Heading,
-  Text,
-  Image,
-  Grid,
-  Icon,
-  Box,
-  FileUpload,
-  Button,
-} from "@chakra-ui/react";
+import { FaCamera, FaCheck, FaIdCard, FaShieldAlt } from "react-icons/fa";
+import { BsInfoCircle } from "react-icons/bs";
+import { MdGroups } from "react-icons/md";
+
+function FeatureBox({
+  title,
+  description,
+  icon,
+  iconBg,
+  iconColor,
+}: {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+}) {
+  return (
+    <HStack align="flex-start" gap="3">
+      <Flex
+        w="48px"
+        h="48px"
+        borderRadius="full"
+        bg={iconBg}
+        align="center"
+        justify="center"
+        flexShrink={0}
+      >
+        <Icon as={icon} color={iconColor} fontSize="24px" />
+      </Flex>
+
+      <Box>
+        <Text fontSize="13px" fontWeight="700" color="#000957">
+          {title}
+        </Text>
+        <Text fontSize="11px" color="#9CA3AF" lineHeight="1.5" mt="1">
+          {description}
+        </Text>
+      </Box>
+    </HStack>
+  );
+}
+
+function StepItem({
+  number,
+  label,
+  active = false,
+}: {
+  number: number;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <VStack gap="2" flex="1">
+      <HStack gap="2">
+        <Flex
+          w="22px"
+          h="22px"
+          borderRadius="full"
+          bg="#0015D6"
+          color="white"
+          align="center"
+          justify="center"
+          fontSize="12px"
+          fontWeight="700"
+        >
+          {number}
+        </Flex>
+
+        <Text fontSize="13px" color="#0015D6" fontWeight="600">
+          {label}
+        </Text>
+      </HStack>
+
+      <Box
+        w="100%"
+        h="3px"
+        bg={active ? "#0015D6" : "#0015D6"}
+        borderRadius="full"
+      />
+    </VStack>
+  );
+}
+
+function UploadBox({
+  title,
+  icon,
+  helper,
+}: {
+  title: string;
+  icon: React.ElementType;
+  helper: string;
+}) {
+  return (
+    <Box w="full">
+      <HStack mb="2" gap="3">
+        <Flex
+          w="27px"
+          h="22px"
+          bg="white"
+          borderRadius="4px"
+          border="1px solid #D9E4FF"
+          align="center"
+          justify="center"
+          boxShadow="sm"
+        >
+          <Icon as={icon} color="#1D4DFF" fontSize="14px" />
+        </Flex>
+
+        <Text fontSize="13px" fontWeight="700" color="#666">
+          {title}
+        </Text>
+      </HStack>
+
+      <FileUpload.Root w="full">
+        <FileUpload.HiddenInput />
+
+        <FileUpload.Trigger asChild>
+          <Button
+            w="full"
+            h="86px"
+            bg="#EEF4FF"
+            border="1.5px dashed #9DB5E8"
+            borderRadius="10px"
+            color="#0015D6"
+            _hover={{
+              bg: "#E5EEFF",
+              borderColor: "#0015D6",
+            }}
+          >
+            <VStack gap="2">
+              <Icon as={HiUpload} fontSize="24px" color="#1D4DFF" />
+
+              <Text fontSize="12px" color="#8B95A7" fontWeight="500">
+                Drag and drop your file here, or click to browse
+              </Text>
+
+              <Text fontSize="11px" color="#A7AFBF" fontWeight="400">
+                {helper}
+              </Text>
+            </VStack>
+          </Button>
+        </FileUpload.Trigger>
+
+        <FileUpload.List />
+      </FileUpload.Root>
+    </Box>
+  );
+}
 
 export default function RegisterStepThreePage() {
   return (
-    <Box bg="white" minH="100vh" padding={20}>
-      <Container maxW="1200px" marginX={"auto"}>
-        <Flex gap="4" direction="row">
-          <Flex gap="4" direction="column" alignItems="left">
+    <Box bg="#FFFFFF" minH="100vh" display="flex" alignItems="center">
+      <Container maxW="1200px" mx="auto" px="6" py="10">
+        <Grid
+          templateColumns={{
+            base: "1fr",
+            lg: "1.1fr 0.9fr",
+          }}
+          gap="10"
+          alignItems="center"
+        >
+          {/* Left Side */}
+          <Box>
             <Heading
-              fontSize="50px"
-              fontWeight="bold"
-              color="black"
-              letterSpacing="tight"
-              lineHeight="1.1"
+              fontSize={{
+                base: "38px",
+                lg: "48px",
+              }}
+              lineHeight="1.12"
+              letterSpacing="-1.5px"
+              fontWeight="800"
+              color="#111A44"
+              mb="4"
             >
-              Join TrueSurvey
+              Verify to unlock
               <br />
               <Text as="span" color="#0015D6">
-                in a few simple steps
+                more surveys
               </Text>
             </Heading>
 
             <Text
-              fontSize="17px"
-              fontWeight="regular"
-              color="#A0A0A0"
-              letterSpacing="tight"
-              lineHeight="1.1"
+              fontSize="16px"
+              color="#A0AEC0"
+              lineHeight="1.5"
+              maxW="470px"
+              mb="5"
             >
-              Create your account to participate in surveys, share your
-              opinions,
-              <br /> earn rewards, or build surveys that matter.
+              This optional step helps you access more surveys and earn more
+              rewards
             </Text>
+
+            <HStack gap="3" mb="2">
+              <Icon as={BsInfoCircle} color="#3B82F6" fontSize="24px" />
+              <Text fontSize="13px" color="#9CA3AF" lineHeight="1.5">
+                This step is only for Participants or users
+                <br />
+                who chose Both roles.
+              </Text>
+            </HStack>
+
             <Image
-              height="380px"
-              width="100%"
-              objectFit="contain"
               src="/signInImage.png"
-              alt="Login image"
+              alt="TrueSurvey verification illustration"
+              w="100%"
+              maxW="520px"
+              h="330px"
+              objectFit="contain"
+              mt="1"
+              mb="6"
             />
-            <Grid templateColumns="repeat(3, 1fr)" gap="5">
-              <IconBox
+
+            <Grid templateColumns="repeat(3, 1fr)" gap="7" maxW="560px">
+              <FeatureBox
                 title="For Everyone"
                 description="Whether you want to build surveys, we've got you."
+                icon={MdGroups}
                 iconBg="#DDE8FE"
-                icon={IoPeople}
                 iconColor="#0015D6"
               />
-              <IconBox
+
+              <FeatureBox
                 title="Secure & Private"
-                description="Your data is encrypted
- and always protected."
-                iconBg="#D7F7F0"
+                description="Your data is encrypted and always protected."
                 icon={MdOutlineSecurity}
+                iconBg="#D7F7F0"
                 iconColor="#0AB188"
               />
-              <IconBox
-                title="For Everyone"
-                description="Earn rewards and grow your
-insights on TrueSurvey."
-                iconBg="#EEE7FA"
+
+              <FeatureBox
+                title="Earn & Grow"
+                description="Earn rewards and grow your insights on TrueSurvey."
                 icon={CiGift}
+                iconBg="#EEE7FA"
                 iconColor="#6537ED"
               />
             </Grid>
-          </Flex>
+          </Box>
 
-          <Flex
-            gap="4"
-            direction="column"
-            alignItems="center"
-            justifyContent="center"
-          >
+          {/* Right Card */}
+          <Flex justify="center">
             <Box
-              width="450px"
-              height="700px"
+              w="100%"
+              maxW="480px"
               bg="white"
-              boxShadow="2px 4px 25px 4px rgba(0, 0, 0, 0.15)"
-              borderRadius="lg"
-              p="6"
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              gap="4"
+              borderRadius="24px"
+              boxShadow="0px 18px 45px rgba(0, 0, 0, 0.18)"
+              px="9"
+              py="8"
             >
-              <Flex gap="12" justify="center" direction="row">
-                <Box color={"#0015D6"} height="10" order="1">
-                  Step 1
-                </Box>
-                <Box color={"#0015D6"} height="10" order="2">
-                  Step 2
-                </Box>
-                <Box color={"#0015D6"} height="10" order="2">
-                  Step 3
-                </Box>
-              </Flex>
+              <VStack gap="6" align="stretch">
+                {/* Steps */}
+                <HStack gap="5">
+                  <StepItem number={1} label="Step 1 of 3" />
+                  <StepItem number={2} label="Step 2 of 3" />
+                  <StepItem number={3} label="Step 3 of 3" active />
+                </HStack>
 
-              <Heading
-                fontSize="30px"
-                fontWeight="bold"
-                color="black"
-                letterSpacing="tight"
-                lineHeight="1.1"
-                textAlign="center"
-              >
-                Optional identity verification
-              </Heading>
-              <Text
-                fontSize="12px"
-                fontWeight="regular"
-                color="brand.contrast"
-                letterSpacing="tight"
-                lineHeight="1.1"
-                textAlign="center"
-              >
-                Verify your account to access more surveys and increase your
-                earning opportunities
-              </Text>
-
-              <Box background="white" width="full" padding="2" color="black">
-                <FileUpload.Root w="full">
-                  <FileUpload.HiddenInput />
-                  <FileUpload.Trigger asChild>
-                    <Button
-                      variant="outline"
-                      w="full"
-                      h="75px"
-                      justifyContent="center"
-                      bg="#577ac145"
-                      border="1px solid #5c5c5c"
-                      color="black"
-                      _hover={{ bg: "#0015D6" }}
-                      borderRadius={10}
-                      onClick={() => {}}
+                <Box>
+                  <HStack align="center" gap="2" mb="2">
+                    <Heading
+                      fontSize="24px"
+                      color="#111111"
+                      fontWeight="800"
+                      lineHeight="1.2"
                     >
-                      <Flex gap="4" direction="column" >
-                        <Flex gap="4" direction="row" justifyContent="center">
-                          <HiUpload /> Upload file
-                        </Flex>
+                      Optional identity verification
+                    </Heading>
 
-                        <Text
-                          fontSize="12px"
-                          fontWeight="regular"
-                          color="#a0a0a0"
-                          letterSpacing="tight"
-                          lineHeight="1.4"
-                          textAlign="center"
-                        >
-                          Drag and drop your file here, or click to browse{" "}
-                          <br></br> JPG,PNG or PDF
+                    <Badge
+                      bg="#0015D6"
+                      color="white"
+                      borderRadius="full"
+                      px="3"
+                      py="1"
+                      fontSize="11px"
+                    >
+                      Optional
+                    </Badge>
+                  </HStack>
+
+                  <Text fontSize="14px" color="#A0A0A0" lineHeight="1.5">
+                    Verify your account to access more surveys and increase your
+                    earning opportunities
+                  </Text>
+                </Box>
+
+                <VStack gap="4" align="stretch">
+                  <UploadBox
+                    title="Upload NIC / Driving Licence (Front)"
+                    icon={FaIdCard}
+                    helper="JPG, PNG or PDF"
+                  />
+
+                  <UploadBox
+                    title="Upload a Selfie"
+                    icon={FaCamera}
+                    helper="Make sure your face is clearly visible"
+                  />
+                </VStack>
+
+                <HStack
+                  align="center"
+                  gap="5"
+                  bg="#EEF8FF"
+                  borderRadius="10px"
+                  px="5"
+                  py="5"
+                >
+                  <Flex
+                    w="56px"
+                    h="56px"
+                    borderRadius="full"
+                    bg="white"
+                    align="center"
+                    justify="center"
+                    flexShrink={0}
+                  >
+                    <Icon as={FaShieldAlt} color="brand.primary" fontSize="25px" />
+                  </Flex>
+
+                  <VStack align="start" gap="1">
+                    {[
+                      "This step is optional.",
+                      "Verified users can access more surveys and earn more.",
+                      "Files are used only to confirm you are a real person.",
+                      "Responses remain anonymous.",
+                      "No one can see who voted or filled a survey.",
+                      "Survey results are shown anonymously.",
+                      "You can also complete this later in Settings.",
+                      "Your private details and pictures are not stored after verification and are not kept as personal survey data.",
+                    ].map((item) => (
+                      <HStack key={item} gap="2" align="flex-start">
+                        <Icon
+                          as={FaCheck}
+                          color="#1D4DFF"
+                          fontSize="9px"
+                          mt="3px"
+                          flexShrink={0}
+                        />
+                        <Text fontSize="11px" color="#1F2937" lineHeight="1.4">
+                          {item}
                         </Text>
-                      </Flex>
-                    </Button>
-                  </FileUpload.Trigger>
-                  <FileUpload.List />
-                </FileUpload.Root>
-              </Box>
-              <Box background="white" width="full" padding="2" color="black">
-                <FileUpload.Root w="full">
-                  <FileUpload.HiddenInput />
-                  <FileUpload.Trigger asChild>
-                    <Button
-                      variant="outline"
-                      w="full"
-                      h="75px"
-                      justifyContent="center"
-                      bg="#577ac145"
-                      border="1px solid #5c5c5c"
-                      color="black"
-                      _hover={{ bg: "#0015D6" }}
-                      borderRadius={10}
-                      onClick={() => {}}
-                    >
-                      <HiUpload /> Upload file
-                    </Button>
-                  </FileUpload.Trigger>
-                  <FileUpload.List />
-                </FileUpload.Root>
-              </Box>
+                      </HStack>
+                    ))}
+                  </VStack>
+                </HStack>
 
-              <Flex pt="20px" gap="4" justify="center" direction="row">
-                <Icon size="md" color="rgb(143, 143, 143)">
-                  <RiErrorWarningFill />
-                </Icon>
-                <Text
-                  fontSize="12px"
-                  color="#A0A0A0"
-                  textAlign="left"
-                  maxW="360px"
-                >
-                  If you choose Participant or Both, the next step lets you
-                  optionally verify your identity.
+                <HStack gap="3">
+                  <Button
+                    flex="1"
+                    h="42px"
+                    bg="white"
+                    color="#000957"
+                    border="1px solid #CBD5E1"
+                    borderRadius="9px"
+                    fontWeight="700"
+                    _hover={{
+                      bg: "#F8FAFC",
+                    }}
+                  >
+                    Back
+                  </Button>
+
+                  <Button
+                    flex="1"
+                    h="42px"
+                    bg="white"
+                    color="#0015D6"
+                    border="1px solid #CBD5E1"
+                    borderRadius="9px"
+                    fontWeight="700"
+                    _hover={{
+                      bg: "#EEF4FF",
+                    }}
+                  >
+                    Skip for now
+                  </Button>
+
+                  <Button
+                    flex="1.25"
+                    h="42px"
+                    bg="#0015D6"
+                    color="white"
+                    borderRadius="9px"
+                    fontWeight="700"
+                    _hover={{
+                      bg: "#000957",
+                    }}
+                  >
+                    Create account
+                  </Button>
+                </HStack>
+
+                <Text textAlign="center" fontSize="13px" color="#A0A0A0">
+                  Already have an account?{" "}
+                  <Text
+                    as="span"
+                    color="#0015D6"
+                    fontWeight="700"
+                    cursor="pointer"
+                  >
+                    Sign in
+                  </Text>
                 </Text>
-              </Flex>
-
-              <Flex w="full" gap="4" direction="row">
-                <Button
-                  flex="1"
-                  bg="#ffffff"
-                  border="1px solid #5c5c5c"
-                  color="black"
-                  _hover={{ bg: "#b4b4b487" }}
-                  borderRadius={10}
-                  onClick={() => {}}
-                >
-                  Back
-                </Button>
-
-                <Button
-                  flex="1"
-                  bg="#0015D6"
-                  color="white"
-                  _hover={{ bg: "#000957" }}
-                  borderRadius={10}
-                  onClick={() => {}}
-                >
-                  Next
-                </Button>
-              </Flex>
-
-              <Text
-                fontSize="12px"
-                color="#A0A0A0"
-                textAlign="center"
-                maxW="360px"
-              >
-                Already have an account?{" "}
-                <Text as="span" color="#0015D6">
-                  Sign in
-                </Text>
-              </Text>
+              </VStack>
             </Box>
           </Flex>
-        </Flex>
+        </Grid>
       </Container>
     </Box>
   );
