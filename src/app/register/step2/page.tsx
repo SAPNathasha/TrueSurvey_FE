@@ -1,10 +1,11 @@
 "use client";
+
 import IconBox from "@/components/common/IconBox";
-import { IoPeople } from "react-icons/io5";
+import { IoPeople, IoPerson } from "react-icons/io5";
 import { MdOutlineSecurity } from "react-icons/md";
 import { CiGift } from "react-icons/ci";
-import { IoPerson } from "react-icons/io5";
 import { RiErrorWarningFill } from "react-icons/ri";
+
 import {
   Flex,
   Container,
@@ -21,62 +22,53 @@ import {
 
 export default function RegisterStepTwoPage() {
   return (
-    <Box bg="white" minH="100vh" padding={20}>
-      <Container maxW="1200px" marginX={"auto"}>
-        <Flex gap="4" direction="row">
-          <Flex gap="4" direction="column" alignItems="left">
-            <Heading
-              fontSize="50px"
-              fontWeight="bold"
-              color="black"
-              letterSpacing="tight"
-              lineHeight="1.1"
-            >
+    <Box bg="white" minH="100vh" py="20">
+      <Container maxW="1200px" mx="auto">
+        <Flex gap="10" direction="row" alignItems="center">
+          {/* Left Section */}
+          <Flex flex="1" gap="4" direction="column" alignItems="flex-start">
+            <Heading textStyle="h1" color="black">
               Join TrueSurvey
               <br />
-              <Text as="span" color="#0015D6">
+              <Text as="span" color="brand.primary">
                 in a few simple steps
               </Text>
             </Heading>
 
-            <Text
-              fontSize="17px"
-              fontWeight="regular"
-              color="#A0A0A0"
-              letterSpacing="tight"
-              lineHeight="1.1"
-            >
+            <Text textStyle="bodyText" fontSize="17px">
               Create your account to participate in surveys, share your
               opinions,
               <br /> earn rewards, or build surveys that matter.
             </Text>
+
             <Image
               height="380px"
               width="100%"
               objectFit="contain"
               src="/signInImage.png"
-              alt="Login image"
+              alt="Sign up image"
             />
+
             <Grid templateColumns="repeat(3, 1fr)" gap="5">
               <IconBox
                 title="For Everyone"
                 description="Whether you want to build surveys, we've got you."
                 iconBg="#DDE8FE"
                 icon={IoPeople}
-                iconColor="#0015D6"
+                iconColor="brand.primary"
               />
+
               <IconBox
                 title="Secure & Private"
-                description="Your data is encrypted
- and always protected."
+                description="Your data is encrypted and always protected."
                 iconBg="#D7F7F0"
                 icon={MdOutlineSecurity}
                 iconColor="#0AB188"
               />
+
               <IconBox
-                title="For Everyone"
-                description="Earn rewards and grow your
-insights on TrueSurvey."
+                title="Earn Rewards"
+                description="Earn rewards and grow your insights on TrueSurvey."
                 iconBg="#EEE7FA"
                 icon={CiGift}
                 iconColor="#6537ED"
@@ -84,58 +76,27 @@ insights on TrueSurvey."
             </Grid>
           </Flex>
 
-          <Flex
-            gap="4"
-            direction="column"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Box
-              width="450px"
-              height="600px"
-              bg="white"
-              boxShadow="2px 4px 25px 4px rgba(0, 0, 0, 0.15)"
-              borderRadius="lg"
-              p="6"
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              gap="4"
-            >
+          {/* Right Form Section */}
+          <Flex flex="1" alignItems="center" justifyContent="center">
+            <Box layerStyle="formCard">
+            
               <Flex gap="12" justify="center" direction="row">
-                <Box color={"#0015D6"} height="10" order="1">
-                  Step 1
-                </Box>
-                <Box color={"#0015D6"} height="10" order="2">
-                  Step 2
-                </Box>
-                <Box color={"#A0A0A0"} height="10" order="2">
-                  Step 3
-                </Box>
+                <Text textStyle="stepText">Step 1</Text>
+                <Text textStyle="stepText">Step 2</Text>
+                <Text textStyle="smallText">Step 3</Text>
               </Flex>
-              <Heading
-                fontSize="30px"
-                fontWeight="bold"
-                color="black"
-                letterSpacing="tight"
-                lineHeight="1.1"
-                textAlign="center"
-              >
+
+              <Heading textStyle="h2" color="black" textAlign="center">
                 Select your role
               </Heading>
-              <Text
-                fontSize="12px"
-                fontWeight="regular"
-                color="#a0a0a0"
-                letterSpacing="tight"
-                lineHeight="1.1"
-                textAlign="center"
-              >
+
+              <Text textStyle="smallText" textAlign="center" maxW="360px">
                 Choose the option that best describes how you want to use the
-                platform
+                platform.
               </Text>
 
               <Stack w="full" maxW="366px" gap="15px">
+              
                 <CheckboxCard.Root value="participant" w="full">
                   <CheckboxCard.HiddenInput />
 
@@ -146,13 +107,23 @@ insights on TrueSurvey."
                     px="20px"
                     py="10px"
                     h="64px"
-                    border="1px solid #5c5c5c00"
-                    borderRadius="10px"
+                    borderWidth="1px"
+                    borderColor="brand.border"
+                    borderRadius="input"
                     bg="white"
                     cursor="pointer"
+                    transition="all 0.2s ease"
+                    _hover={{
+                      bg: "brand.cardHover",
+                      borderColor: "brand.primary",
+                    }}
+                    _checked={{
+                      bg: "brand.cardSelected",
+                      borderColor: "brand.primary",
+                    }}
                   >
                     <Flex
-                      bg="#DDE8FE"
+                      bg="brand.lightBlue"
                       w="38px"
                       h="38px"
                       minW="38px"
@@ -160,26 +131,19 @@ insights on TrueSurvey."
                       alignItems="center"
                       justifyContent="center"
                     >
-                      <Icon size="sm" color="#0015D6">
+                      <Icon size="sm" color="brand.primary">
                         <IoPerson />
                       </Icon>
                     </Flex>
 
                     <CheckboxCard.Content flex="1">
-                      <CheckboxCard.Label
-                        fontSize="15px"
-                        fontWeight="600"
-                        lineHeight="1.1"
-                        color={"#000000"}
-                      >
+                      <CheckboxCard.Label textStyle="roleTitle">
                         Participant
                       </CheckboxCard.Label>
 
                       <CheckboxCard.Description
-                        fontSize="13px"
-                        color="#969696"
+                        textStyle="helperText"
                         mt="3px"
-                        lineHeight="1.2"
                       >
                         Fill surveys and earn rewards.
                       </CheckboxCard.Description>
@@ -189,7 +153,8 @@ insights on TrueSurvey."
                   </CheckboxCard.Control>
                 </CheckboxCard.Root>
 
-                <CheckboxCard.Root value="participant" w="full">
+               
+                <CheckboxCard.Root value="creator" w="full">
                   <CheckboxCard.HiddenInput />
 
                   <CheckboxCard.Control
@@ -199,13 +164,23 @@ insights on TrueSurvey."
                     px="20px"
                     py="10px"
                     h="64px"
-                    border="1px solid #5c5c5c00"
-                    borderRadius="10px"
+                    borderWidth="1px"
+                    borderColor="brand.border"
+                    borderRadius="input"
                     bg="white"
                     cursor="pointer"
+                    transition="all 0.2s ease"
+                    _hover={{
+                      bg: "brand.cardHover",
+                      borderColor: "brand.primary",
+                    }}
+                    _checked={{
+                      bg: "brand.cardSelected",
+                      borderColor: "brand.primary",
+                    }}
                   >
                     <Flex
-                      bg="#DDE8FE"
+                      bg="brand.lightBlue"
                       w="38px"
                       h="38px"
                       minW="38px"
@@ -213,28 +188,21 @@ insights on TrueSurvey."
                       alignItems="center"
                       justifyContent="center"
                     >
-                      <Icon size="sm" color="#0015D6">
+                      <Icon size="sm" color="brand.primary">
                         <IoPerson />
                       </Icon>
                     </Flex>
 
                     <CheckboxCard.Content flex="1">
-                      <CheckboxCard.Label
-                        fontSize="15px"
-                        fontWeight="600"
-                        lineHeight="1.1"
-                        color={"#000000"}
-                      >
-                        Participant
+                      <CheckboxCard.Label textStyle="roleTitle">
+                        Survey Creator
                       </CheckboxCard.Label>
 
                       <CheckboxCard.Description
-                        fontSize="13px"
-                        color="#969696"
+                        textStyle="helperText"
                         mt="3px"
-                        lineHeight="1.2"
                       >
-                        Fill surveys and earn rewards.
+                        Create surveys and collect responses.
                       </CheckboxCard.Description>
                     </CheckboxCard.Content>
 
@@ -242,7 +210,8 @@ insights on TrueSurvey."
                   </CheckboxCard.Control>
                 </CheckboxCard.Root>
 
-                <CheckboxCard.Root value="participant" w="full">
+               
+                <CheckboxCard.Root value="both" w="full">
                   <CheckboxCard.HiddenInput />
 
                   <CheckboxCard.Control
@@ -251,14 +220,24 @@ insights on TrueSurvey."
                     gap="12px"
                     px="20px"
                     py="10px"
-                    h="64px"
-                    border="1px solid #5c5c5c00"
-                    borderRadius="10px"
+                    h="70px"
+                    borderWidth="1px"
+                    borderColor="brand.border"
+                    borderRadius="input"
                     bg="white"
                     cursor="pointer"
+                    transition="all 0.2s ease"
+                    _hover={{
+                      bg: "brand.cardHover",
+                      borderColor: "brand.primary",
+                    }}
+                    _checked={{
+                      bg: "brand.cardSelected",
+                      borderColor: "brand.primary",
+                    }}
                   >
                     <Flex
-                      bg="#DDE8FE"
+                      bg="brand.lightBlue"
                       w="38px"
                       h="38px"
                       minW="38px"
@@ -266,28 +245,21 @@ insights on TrueSurvey."
                       alignItems="center"
                       justifyContent="center"
                     >
-                      <Icon size="sm" color="#0015D6">
-                        <IoPerson />
+                      <Icon size="sm" color="brand.primary">
+                        <IoPeople />
                       </Icon>
                     </Flex>
 
                     <CheckboxCard.Content flex="1">
-                      <CheckboxCard.Label
-                        fontSize="15px"
-                        fontWeight="600"
-                        lineHeight="1.1"
-                        color={"#000000"}
-                      >
-                        Participant
+                      <CheckboxCard.Label textStyle="roleTitle">
+                        Both
                       </CheckboxCard.Label>
 
                       <CheckboxCard.Description
-                        fontSize="13px"
-                        color="#969696"
+                        textStyle="helperText"
                         mt="3px"
-                        lineHeight="1.2"
                       >
-                        Fill surveys and earn rewards.
+                        Create surveys and participate in surveys.
                       </CheckboxCard.Description>
                     </CheckboxCard.Content>
 
@@ -297,53 +269,29 @@ insights on TrueSurvey."
               </Stack>
 
               <Flex pt="20px" gap="4" justify="center" direction="row">
-                <Icon size="md" color="rgb(143, 143, 143)">
+                <Icon size="md" color="brand.warning">
                   <RiErrorWarningFill />
                 </Icon>
-                <Text
-                  fontSize="12px"
-                  color="#A0A0A0"
-                  textAlign="left"
-                  maxW="360px"
-                >
+
+                <Text textStyle="smallText" textAlign="left" maxW="360px">
                   If you choose Participant or Both, the next step lets you
                   optionally verify your identity.
                 </Text>
               </Flex>
 
               <Flex w="full" gap="4" direction="row">
-                <Button
-                  flex="1"
-                  bg="#ffffff"
-                  border="1px solid #5c5c5c"
-                  color="black"
-                  _hover={{ bg: "#b4b4b487" }}
-                  borderRadius={10}
-                  onClick={() => {}}
-                >
+                <Button flex="1" variant="outline" onClick={() => {}}>
                   Back
                 </Button>
 
-                <Button
-                  flex="1"
-                  bg="#0015D6"
-                  color="white"
-                  _hover={{ bg: "#000957" }}
-                  borderRadius={10}
-                  onClick={() => {}}
-                >
+                <Button flex="1" variant="solid" onClick={() => {}}>
                   Next
                 </Button>
               </Flex>
 
-              <Text
-                fontSize="12px"
-                color="#A0A0A0"
-                textAlign="center"
-                maxW="360px"
-              >
+              <Text textStyle="smallText" textAlign="center" maxW="360px">
                 Already have an account?{" "}
-                <Text as="span" color="#0015D6">
+                <Text as="span" textStyle="link">
                   Sign in
                 </Text>
               </Text>

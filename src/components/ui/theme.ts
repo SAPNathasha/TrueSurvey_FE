@@ -130,22 +130,22 @@ const customConfig = defineConfig({
         },
       },
     },
-    layerStyles: {
-      formCard: {
-        value: {
-          width: "520px",
-          minHeight: "600px",
-          bg: "white",
-          boxShadow: "card",
-          borderRadius: "card",
-          p: "8",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "5",
-        },
+layerStyles: {
+    formCard: {
+      value: {
+        width: "520px",
+        minHeight: "600px",
+        bg: "white",
+        boxShadow: "card",
+        borderRadius: "card",
+        p: "8",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "5",
       },
     },
+},
     textStyles: {
       h1: {
         value: {

@@ -79,7 +79,7 @@ export default function RegisterStepOnePage() {
           {/* Right Form Section */}
           <Flex flex="1" alignItems="center" justifyContent="center">
             <Box layerStyle="formCard">
-              {/* Step Indicator */}
+              
               <Flex width="100%" maxW="360px" gap="12" justify="center">
                 <Text textStyle="stepText">Step 1</Text>
                 <Text textStyle="smallText">Step 2</Text>
