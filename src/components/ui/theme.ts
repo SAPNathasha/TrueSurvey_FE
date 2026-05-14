@@ -8,54 +8,48 @@ import {
 const buttonRecipe = defineRecipe({
   base: {
     fontWeight: "semibold",
-    borderRadius: "md",
+    borderRadius: "10px",
     transitionProperty: "common",
     transitionDuration: "fast",
+    height: "44px",
   },
 
   variants: {
     variant: {
-      primary: {
-        bg: "brand.primaryBlue",
+      solid: {
+        bg: "brand.primary",
         color: "white",
+        borderWidth: "1px",
+        borderColor: "brand.primary",
+
         _hover: {
-          bg: "brand.subtle",
+          bg: "brand.primaryHover",
+          borderColor: "brand.primaryHover",
         },
+
         _active: {
-          bg: "brand.muted",
+          bg: "brand.navy",
+          borderColor: "brand.navy",
         },
       },
 
-      secondary: {
-        bg: "transparent",
-        color: "black",
+      outline: {
+        bg: "white",
+        color: "brand.primary",
         borderWidth: "1px",
-        borderColor: "brand.solid",
+        borderColor: "brand.primary",
+
         _hover: {
-          bg: "brand.fg",
-          color: "black",
+          bg: "brand.lightBlue",
+          color: "brand.primaryHover",
+          borderColor: "brand.primaryHover",
         },
       },
     },
   },
 
   defaultVariants: {
-    variant: "primary",
-  },
-});
-
-const formCardRecipe = defineRecipe({
-  base: {
-    width: "450px",
-    height: "600px",
-    bg: "white",
-    boxShadow: "2px 4px 25px 4px rgba(0, 0, 0, 0.15)",
-    borderRadius: "lg",
-    p: "6",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "4",
+    variant: "solid",
   },
 });
 
@@ -64,30 +58,48 @@ const customConfig = defineConfig({
     tokens: {
       colors: {
         brand: {
-          50: { value: "#000957" },
-          100: { value: "#0015D6" },
-          200: { value: "#0011AD" },
-          300: { value: "#FFEB00" },
-          400: { value: "#A0A0A0" },
+          navy: { value: "#000957" },
+          blue: { value: "#0015D6" },
+          blueHover: { value: "#0011AD" },
+          yellow: { value: "#FFEB00" },
+          grayText: { value: "#A0A0A0" },
+          lightBlue: { value: "#DDE8FE" },
+        },
+
+        gray: {
+          subtle: { value: "#F4F4F4" },
+          border: { value: "#E5E7EB" },
         },
       },
+
       fonts: {
         heading: { value: "var(--font-inter), sans-serif" },
         body: { value: "var(--font-inter), sans-serif" },
       },
+
+      shadows: {
+        card: { value: "2px 4px 25px 4px rgba(0, 0, 0, 0.15)" },
+      },
+
+      radii: {
+        card: { value: "12px" },
+        input: { value: "10px" },
+      },
     },
+
     semanticTokens: {
       colors: {
         brand: {
-          solid: { value: "{colors.brand.100}" },
-          contrast: { value: "white" },
-          fg: { value: "{colors.brand.400}" },
-          muted: { value: "{colors.brand.50}" },
-          subtle: { value: "{colors.brand.200}" },
-          focusRing: { value: "{colors.brand.300}" },
+          primary: { value: "{colors.brand.blue}" },
+          primaryHover: { value: "{colors.brand.blueHover}" },
+          dark: { value: "{colors.brand.navy}" },
+          accent: { value: "{colors.brand.yellow}" },
+          mutedText: { value: "{colors.brand.grayText}" },
+          lightBlue: { value: "{colors.brand.lightBlue}" },
         },
       },
     },
+
     textStyles: {
       h1: {
         value: {
@@ -109,15 +121,42 @@ const customConfig = defineConfig({
         },
       },
 
-      text: {
+      bodyText: {
+        value: {
+          fontFamily: "body",
+          fontSize: "14px",
+          fontWeight: "normal",
+          lineHeight: "1.5",
+          color: "brand.mutedText",
+        },
+      },
+
+      smallText: {
         value: {
           fontFamily: "body",
           fontSize: "12px",
-          fontWeight: "regular",
-          color: "brand.fg",
-          letterSpacing: "tight",
-          lineHeight: "1.1",
-          textAlign: "center",
+          fontWeight: "normal",
+          lineHeight: "1.3",
+          color: "brand.mutedText",
+        },
+      },
+
+      label: {
+        value: {
+          fontFamily: "body",
+          fontSize: "12px",
+          fontWeight: "medium",
+          color: "black",
+        },
+      },
+
+      link: {
+        value: {
+          fontFamily: "body",
+          fontSize: "13px",
+          fontWeight: "medium",
+          color: "brand.primary",
+          cursor: "pointer",
         },
       },
     },
@@ -127,4 +166,5 @@ const customConfig = defineConfig({
     },
   },
 });
+
 export const system = createSystem(defaultConfig, customConfig);

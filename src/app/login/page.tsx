@@ -1,8 +1,10 @@
 "use client";
+
 import IconBox from "@/components/common/IconBox";
 import { IoPeople } from "react-icons/io5";
 import { MdOutlineSecurity } from "react-icons/md";
 import { CiGift } from "react-icons/ci";
+
 import {
   Flex,
   Container,
@@ -19,21 +21,23 @@ import {
 
 export default function LoginPage() {
   return (
-    <Box bg="white" minH="100vh" padding={20}>
-      <Container maxW="1200px" marginX={"auto"}>
-        <Flex gap="4" direction="row">
-          <Flex gap="4" direction="column" alignItems="left">
+    <Box bg="white" minH="100vh" py="20">
+      <Container maxW="1200px" mx="auto">
+        <Flex gap="10" alignItems="center" justifyContent="space-between">
+          {/* Left section */}
+          <Flex flex="1" gap="5" direction="column" alignItems="flex-start">
             <Heading textStyle="h1" color="black">
               Welcome back to
               <br />
-              <Text as="span" color="brand.solid">
+              <Text as="span" color="brand.primary">
                 TrueSurvey
               </Text>
             </Heading>
 
-            <Text textStyle="text">
+            <Text textStyle="bodyText">
               Sign in to create surveys, participate and earn rewards.
             </Text>
+
             <Image
               height="380px"
               width="100%"
@@ -41,26 +45,27 @@ export default function LoginPage() {
               src="/loginImage.png"
               alt="Login image"
             />
+
             <Grid templateColumns="repeat(3, 1fr)" gap="5">
               <IconBox
                 title="For Everyone"
-                description="Whether you want to build surveys, we've got you."
+                description="Create surveys or participate in surveys easily."
                 iconBg="#DDE8FE"
                 icon={IoPeople}
-                iconColor="brand.solid"
+                iconColor="brand.primary"
               />
+
               <IconBox
                 title="Secure & Private"
-                description="Your data is encrypted
- and always protected."
+                description="Your data is encrypted and always protected."
                 iconBg="#D7F7F0"
                 icon={MdOutlineSecurity}
                 iconColor="#0AB188"
               />
+
               <IconBox
-                title="For Everyone"
-                description="Earn rewards and grow your
-insights on TrueSurvey."
+                title="Earn Rewards"
+                description="Earn rewards by completing published surveys."
                 iconBg="#EEE7FA"
                 icon={CiGift}
                 iconColor="#6537ED"
@@ -68,72 +73,61 @@ insights on TrueSurvey."
             </Grid>
           </Flex>
 
-          <Flex
-            gap="4"
-            direction="row"
-            alignItems="center"
-            justifyContent="center"
-          >
+          {/* Right login card */}
+          <Flex flex="1" alignItems="center" justifyContent="center">
             <Box
               width="450px"
               height="600px"
               bg="white"
-              boxShadow="2px 4px 25px 4px rgba(0, 0, 0, 0.15)"
-              borderRadius="lg"
+              boxShadow="card"
+              borderRadius="card"
               p="6"
               display="flex"
               flexDirection="column"
               alignItems="center"
               gap="4"
             >
-              <Image height="50px" src="/Logo.png" alt="Login icon 1" />
-              <Heading
-                fontSize="30px"
-                fontWeight="bold"
-                color="black"
-                letterSpacing="tight"
-                lineHeight="1.1"
-                textAlign="center"
-              >
+              <Image height="50px" src="/Logo.png" alt="TrueSurvey logo" />
+
+              <Heading textStyle="h2" color="black" textAlign="center">
                 Login
               </Heading>
-              <Text
-                fontSize="12px"
-                fontWeight="regular"
-                color="brand.fg"
-                letterSpacing="tight"
-                lineHeight="1.1"
-                textAlign="center"
-              >
+
+              <Text textStyle="smallText" textAlign="center">
                 Access your creator or participant account
               </Text>
+
               <Field.Root required width="100%" maxW="360px">
-                <Field.Label fontSize="12px" color="black">
+                <Field.Label textStyle="label">
                   Email <Field.RequiredIndicator />
                 </Field.Label>
+
                 <Input
                   color="black"
-                  padding={5}
-                  borderRadius={10}
+                  px="5"
+                  borderRadius="input"
                   placeholder="you@example.com"
-                  value={""}
+                  value=""
                   onChange={() => {}}
                 />
               </Field.Root>
+
               <Field.Root required width="100%" maxW="360px">
-                <Field.Label fontSize="12px" color="black">
+                <Field.Label textStyle="label">
                   Password <Field.RequiredIndicator />
                 </Field.Label>
+
                 <Input
                   color="black"
-                  padding={5}
-                  borderRadius={10}
+                  px="5"
+                  borderRadius="input"
                   type="password"
                   placeholder="********"
-                  value={""}
+                  value=""
                   onChange={() => {}}
                 />
               </Field.Root>
+
               <Flex
                 width="100%"
                 maxW="360px"
@@ -143,47 +137,24 @@ insights on TrueSurvey."
                 <Checkbox.Root>
                   <Checkbox.HiddenInput />
                   <Checkbox.Control />
-                  <Checkbox.Label fontSize="12px" color="#A0A0A0">
+                  <Checkbox.Label textStyle="smallText">
                     Remember me
                   </Checkbox.Label>
                 </Checkbox.Root>
 
-                <Text fontSize="13px" color="brand.solid" cursor="pointer">
-                  Forgot password?
-                </Text>
+                <Text textStyle="link">Forgot password?</Text>
               </Flex>
-              <Button
-                width="100%"
-                maxW="360px"
-                bg="brand.solid"
-                color="white"
-                _hover={{ bg: "#000957" }}
-                borderRadius={10}
-                onClick={() => {}}
-              >
-                Sign in
+
+              <Button width="100%" maxW="360px" variant="solid">
+                Login
               </Button>
 
-              <Button
-                width="100%"
-                maxW="360px"
-                variant="outline"
-                bg="#0015d600"
-                color="brand.solid"
-                _hover={{ bg: "#F4F4F4" }}
-                borderRadius={10}
-                onClick={() => {}}
-              >
+              <Button width="100%" maxW="360px" variant="outline">
                 Create an account
               </Button>
 
-              <Text
-                fontSize="12px"
-                color="brand.fg"
-                textAlign="center"
-                maxW="360px"
-              >
-                TrueSurvey is for both survey creators and participants.By
+              <Text textStyle="smallText" textAlign="center" maxW="360px">
+                TrueSurvey is for both survey creators and participants. By
                 signing in, you agree to our Terms of Service and Privacy
                 Policy.
               </Text>
