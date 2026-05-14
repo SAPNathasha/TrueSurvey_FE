@@ -73,20 +73,8 @@ export default function LoginPage() {
             </Grid>
           </Flex>
 
-          {/* Right login card */}
           <Flex flex="1" alignItems="center" justifyContent="center">
-            <Box
-              width="450px"
-              height="600px"
-              bg="white"
-              boxShadow="card"
-              borderRadius="card"
-              p="6"
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              gap="4"
-            >
+            <Box layerStyle="formCard">
               <Image height="50px" src="/Logo.png" alt="TrueSurvey logo" />
 
               <Heading textStyle="h2" color="black" textAlign="center">

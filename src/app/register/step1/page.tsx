@@ -1,9 +1,11 @@
 "use client";
+
 import IconBox from "@/components/common/IconBox";
 import { IoPeople } from "react-icons/io5";
 import { MdOutlineSecurity } from "react-icons/md";
 import { CiGift } from "react-icons/ci";
 import { SiSpringsecurity } from "react-icons/si";
+
 import {
   Flex,
   Container,
@@ -20,62 +22,53 @@ import {
 
 export default function RegisterStepOnePage() {
   return (
-    <Box bg="white" minH="100vh" padding={20}>
-      <Container maxW="1200px" marginX={"auto"}>
-        <Flex gap="4" direction="row">
-          <Flex gap="4" direction="column" alignItems="left">
-            <Heading
-              fontSize="50px"
-              fontWeight="bold"
-              color="black"
-              letterSpacing="tight"
-              lineHeight="1.1"
-            >
+    <Box bg="white" minH="100vh" py="20">
+      <Container maxW="1200px" mx="auto">
+        <Flex gap="10" direction="row" alignItems="center">
+          {/* Left Section */}
+          <Flex flex="1" gap="4" direction="column" alignItems="flex-start">
+            <Heading textStyle="h1" color="black">
               Join TrueSurvey
               <br />
-              <Text as="span" color="brand.solid">
+              <Text as="span" color="brand.primary">
                 in a few simple steps
               </Text>
             </Heading>
 
-            <Text
-              fontSize="17px"
-              fontWeight="regular"
-              color="brand.fg"
-              letterSpacing="tight"
-              lineHeight="1.1"
-            >
+            <Text textStyle="bodyText" fontSize="17px">
               Create your account to participate in surveys, share your
               opinions,
               <br /> earn rewards, or build surveys that matter.
             </Text>
+
             <Image
               height="380px"
               width="100%"
               objectFit="contain"
               src="/signInImage.png"
-              alt="Login image"
+              alt="Sign up image"
             />
+
             <Grid templateColumns="repeat(3, 1fr)" gap="5">
               <IconBox
                 title="For Everyone"
                 description="Whether you want to build surveys, we've got you."
                 iconBg="#DDE8FE"
                 icon={IoPeople}
-                iconColor="brand.solid"
+                iconColor="brand.primary"
               />
+
               <IconBox
                 title="Secure & Private"
-                description="Your data is encrypted
- and always protected."
+                description="Your data is encrypted and always protected."
                 iconBg="#D7F7F0"
                 icon={MdOutlineSecurity}
                 iconColor="#0AB188"
               />
+
               <IconBox
-                title="For Everyone"
-                description="Earn rewards and grow your
-insights on TrueSurvey."
+                title="Earn Rewards"
+                description="Earn rewards and grow your insights on TrueSurvey."
                 iconBg="#EEE7FA"
                 icon={CiGift}
                 iconColor="#6537ED"
@@ -83,154 +76,120 @@ insights on TrueSurvey."
             </Grid>
           </Flex>
 
-          <Flex
-            gap="4"
-            direction="column"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Box
-              width="450px"
-              height="700px"
-              bg="white"
-              boxShadow="2px 4px 25px 4px rgba(0, 0, 0, 0.15)"
-              borderRadius="lg"
-              p="6"
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              gap="4"
-            >
-              <Flex gap="12" justify="center" direction="row">
-                <Box color={"brand.solid"} height="10" order="1">
-                  Step 1
-                </Box>
-                <Box color={"brand.fg"} height="10" order="2">
-                  Step 2
-                </Box>
-                <Box color={"brand.fg"} height="10" order="2">
-                  Step 3
-                </Box>
+          {/* Right Form Section */}
+          <Flex flex="1" alignItems="center" justifyContent="center">
+            <Box layerStyle="formCard">
+              {/* Step Indicator */}
+              <Flex width="100%" maxW="360px" gap="12" justify="center">
+                <Text textStyle="stepText">Step 1</Text>
+                <Text textStyle="smallText">Step 2</Text>
+                <Text textStyle="smallText">Step 3</Text>
               </Flex>
-              <Heading
-                fontSize="30px"
-                fontWeight="bold"
-                color="black"
-                letterSpacing="tight"
-                lineHeight="1.1"
-                textAlign="center"
-              >
+
+              <Heading textStyle="h2" color="black" textAlign="center">
                 Create your account
               </Heading>
-              <Text
-                fontSize="12px"
-                fontWeight="regular"
-                color="brand.fg"
-                letterSpacing="tight"
-                lineHeight="1.1"
-                textAlign="center"
-              >
+
+              <Text textStyle="smallText" textAlign="center">
                 Start as a survey creator, participant, or both.
               </Text>
+
               <Field.Root required width="100%" maxW="360px">
-                <Field.Label fontSize="12px" color="black">
+                <Field.Label textStyle="label">
                   Username <Field.RequiredIndicator />
                 </Field.Label>
+
                 <Input
                   color="black"
-                  padding={5}
-                  borderRadius={10}
-                  type="password"
+                  px="5"
+                  borderRadius="input"
+                  borderColor="gray.border"
+                  bg="gray.inputBg"
                   placeholder="Choose a username"
-                  value={""}
+                  value=""
                   onChange={() => {}}
                 />
-                <Field.HelperText>
+
+                <Field.HelperText textStyle="helperText">
                   This will be your public display name.
                 </Field.HelperText>
               </Field.Root>
+
               <Field.Root required width="100%" maxW="360px">
-                <Field.Label fontSize="12px" color="black">
+                <Field.Label textStyle="label">
                   Email <Field.RequiredIndicator />
                 </Field.Label>
+
                 <Input
                   color="black"
-                  padding={5}
-                  borderRadius={10}
+                  px="5"
+                  borderRadius="input"
+                  borderColor="gray.border"
+                  bg="gray.inputBg"
                   placeholder="you@example.com"
-                  value={""}
+                  value=""
                   onChange={() => {}}
                 />
-                <Field.HelperText>
-                  We wll send a verification link to this email.
+
+                <Field.HelperText textStyle="helperText">
+                  We will send a verification link to this email.
                 </Field.HelperText>
               </Field.Root>
+
               <Field.Root required width="100%" maxW="360px">
-                <Field.Label fontSize="12px" color="black">
+                <Field.Label textStyle="label">
                   Password <Field.RequiredIndicator />
                 </Field.Label>
+
                 <Input
                   color="black"
-                  padding={5}
-                  borderRadius={10}
+                  px="5"
+                  borderRadius="input"
+                  borderColor="gray.border"
+                  bg="gray.inputBg"
                   type="password"
                   placeholder="********"
-                  value={""}
+                  value=""
                   onChange={() => {}}
                 />
-                <Field.HelperText>
-                  Use at least 8 characters with a mix of letters, numbers &
+
+                <Field.HelperText textStyle="helperText">
+                  Use at least 8 characters with a mix of letters, numbers and
                   symbols.
                 </Field.HelperText>
               </Field.Root>
 
-              <Button
-                width="100%"
-                maxW="360px"
-                bg="brand.solid"
-                color="white"
-                _hover={{ bg: "brand.subtle" }}
-                borderRadius={10}
-                onClick={() => {}}
-              >
+              <Button width="100%" maxW="360px" variant="solid" onClick={() => {}}>
                 Next
               </Button>
 
-              <Text
-                fontSize="12px"
-                color="brand.fg"
-                textAlign="center"
-                maxW="360px"
-              >
+              <Text textStyle="smallText" textAlign="center" maxW="360px">
                 Already have an account?{" "}
-                <Text as="span" color="#0015D6">
+                <Text as="span" textStyle="link">
                   Sign in
                 </Text>
-                <Flex pt="20px" gap="4" justify="center" direction="row">
-                  <Flex
-                    bg="#A0A0A0"
-                    w="40px"
-                    h="40px"
-                    minW="40px"
-                    borderRadius="full"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Icon size="md" color="#ffffff">
-                      <SiSpringsecurity />
-                    </Icon>
-                  </Flex>
-                  <Text
-                    fontSize="12px"
-                    color="#A0A0A0"
-                    textAlign="left"
-                    maxW="360px"
-                  >
-                    Next, you wll choose your role(s) and can optionally verify
-                    your identity to unlock more features.
-                  </Text>
-                </Flex>
               </Text>
+
+              <Flex pt="2" gap="4" justify="center" alignItems="flex-start">
+                <Flex
+                  bg="brand.mutedText"
+                  w="40px"
+                  h="40px"
+                  minW="40px"
+                  borderRadius="pill"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Icon size="md" color="white">
+                    <SiSpringsecurity />
+                  </Icon>
+                </Flex>
+
+                <Text textStyle="smallText" textAlign="left" maxW="300px">
+                  Next, you will choose your role(s) and can optionally verify
+                  your identity to unlock more features.
+                </Text>
+              </Flex>
             </Box>
           </Flex>
         </Flex>

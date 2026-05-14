@@ -28,8 +28,8 @@ const buttonRecipe = defineRecipe({
         },
 
         _active: {
-          bg: "brand.navy",
-          borderColor: "brand.navy",
+          bg: "brand.dark",
+          borderColor: "brand.dark",
         },
       },
 
@@ -43,6 +43,15 @@ const buttonRecipe = defineRecipe({
           bg: "brand.lightBlue",
           color: "brand.primaryHover",
           borderColor: "brand.primaryHover",
+        },
+      },
+
+      ghost: {
+        bg: "transparent",
+        color: "brand.primary",
+
+        _hover: {
+          bg: "brand.lightBlue",
         },
       },
     },
@@ -64,11 +73,19 @@ const customConfig = defineConfig({
           yellow: { value: "#FFEB00" },
           grayText: { value: "#A0A0A0" },
           lightBlue: { value: "#DDE8FE" },
+          cardBorder: { value: "#E5E7EB" },
+          cardHover: { value: "#F3F7FF" },
+          cardSelected: { value: "#EEF4FF" },
+          pageBg: { value: "#F8FAFC" },
+          success: { value: "#0AB188" },
+          error: { value: "#E53E3E" },
+          warning: { value: "#FFB020" },
         },
 
         gray: {
           subtle: { value: "#F4F4F4" },
           border: { value: "#E5E7EB" },
+          inputBg: { value: "#FFFFFF" },
         },
       },
 
@@ -79,11 +96,15 @@ const customConfig = defineConfig({
 
       shadows: {
         card: { value: "2px 4px 25px 4px rgba(0, 0, 0, 0.15)" },
+        softCard: { value: "0px 8px 30px rgba(0, 0, 0, 0.08)" },
+        roleCard: { value: "0px 4px 16px rgba(0, 0, 0, 0.08)" },
       },
 
       radii: {
         card: { value: "12px" },
         input: { value: "10px" },
+        roleCard: { value: "14px" },
+        pill: { value: "999px" },
       },
     },
 
@@ -96,10 +117,35 @@ const customConfig = defineConfig({
           accent: { value: "{colors.brand.yellow}" },
           mutedText: { value: "{colors.brand.grayText}" },
           lightBlue: { value: "{colors.brand.lightBlue}" },
+
+          pageBg: { value: "{colors.brand.pageBg}" },
+
+          border: { value: "{colors.brand.cardBorder}" },
+          cardHover: { value: "{colors.brand.cardHover}" },
+          cardSelected: { value: "{colors.brand.cardSelected}" },
+
+          success: { value: "{colors.brand.success}" },
+          error: { value: "{colors.brand.error}" },
+          warning: { value: "{colors.brand.warning}" },
         },
       },
     },
-
+    layerStyles: {
+      formCard: {
+        value: {
+          width: "520px",
+          minHeight: "600px",
+          bg: "white",
+          boxShadow: "card",
+          borderRadius: "card",
+          p: "8",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "5",
+        },
+      },
+    },
     textStyles: {
       h1: {
         value: {
@@ -118,6 +164,37 @@ const customConfig = defineConfig({
           fontWeight: "bold",
           lineHeight: "1.1",
           letterSpacing: "tight",
+        },
+      },
+
+      pageTitle: {
+        value: {
+          fontFamily: "heading",
+          fontSize: "36px",
+          fontWeight: "bold",
+          lineHeight: "1.15",
+          letterSpacing: "tight",
+          color: "black",
+        },
+      },
+
+      sectionTitle: {
+        value: {
+          fontFamily: "heading",
+          fontSize: "22px",
+          fontWeight: "bold",
+          lineHeight: "1.2",
+          color: "black",
+        },
+      },
+
+      roleTitle: {
+        value: {
+          fontFamily: "heading",
+          fontSize: "16px",
+          fontWeight: "semibold",
+          lineHeight: "1.2",
+          color: "black",
         },
       },
 
@@ -141,6 +218,16 @@ const customConfig = defineConfig({
         },
       },
 
+      helperText: {
+        value: {
+          fontFamily: "body",
+          fontSize: "13px",
+          fontWeight: "normal",
+          lineHeight: "1.4",
+          color: "brand.mutedText",
+        },
+      },
+
       label: {
         value: {
           fontFamily: "body",
@@ -157,6 +244,24 @@ const customConfig = defineConfig({
           fontWeight: "medium",
           color: "brand.primary",
           cursor: "pointer",
+        },
+      },
+
+      stepText: {
+        value: {
+          fontFamily: "body",
+          fontSize: "13px",
+          fontWeight: "semibold",
+          color: "brand.primary",
+        },
+      },
+
+      errorText: {
+        value: {
+          fontFamily: "body",
+          fontSize: "12px",
+          fontWeight: "medium",
+          color: "brand.error",
         },
       },
     },
