@@ -272,7 +272,6 @@ export default function RegisterStepThreePage() {
               py="8"
             >
               <VStack gap="6" align="stretch">
-                {/* Steps */}
                 <HStack gap="5">
                   <StepItem number={1} label="Step 1 of 3" />
                   <StepItem number={2} label="Step 2 of 3" />
@@ -289,17 +288,6 @@ export default function RegisterStepThreePage() {
                     >
                       Optional identity verification
                     </Heading>
-
-                    <Badge
-                      bg="#0015D6"
-                      color="white"
-                      borderRadius="full"
-                      px="3"
-                      py="1"
-                      fontSize="11px"
-                    >
-                      Optional
-                    </Badge>
                   </HStack>
 
                   <Text fontSize="14px" color="#A0A0A0" lineHeight="1.5">
@@ -330,18 +318,6 @@ export default function RegisterStepThreePage() {
                   px="5"
                   py="5"
                 >
-                  <Flex
-                    w="56px"
-                    h="56px"
-                    borderRadius="full"
-                    bg="white"
-                    align="center"
-                    justify="center"
-                    flexShrink={0}
-                  >
-                    <Icon as={FaShieldAlt} color="brand.primary" fontSize="25px" />
-                  </Flex>
-
                   <VStack align="start" gap="1">
                     {[
                       "This step is optional.",
