@@ -13,10 +13,6 @@ import {
   Image,
   Grid,
   Box,
-  Field,
-  Input,
-  Checkbox,
-  Button,
 } from "@chakra-ui/react";
 import LoginForm from "@/components/pages/login/loginForm";
 
