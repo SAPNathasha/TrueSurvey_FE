@@ -13,14 +13,12 @@ import {
   FileUpload,
   VStack,
   HStack,
-  Badge,
 } from "@chakra-ui/react";
 
-import { IoPeople } from "react-icons/io5";
 import { MdOutlineSecurity } from "react-icons/md";
 import { CiGift } from "react-icons/ci";
 import { HiUpload } from "react-icons/hi";
-import { FaCamera, FaCheck, FaIdCard, FaShieldAlt } from "react-icons/fa";
+import { FaCamera, FaCheck, FaIdCard, } from "react-icons/fa";
 import { BsInfoCircle } from "react-icons/bs";
 import { MdGroups } from "react-icons/md";
 
