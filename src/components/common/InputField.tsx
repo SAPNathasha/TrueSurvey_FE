@@ -4,7 +4,7 @@ import { useState } from "react";
 interface InputField {
   title: string;
   placeholder: string;
-  type: "email" | "password";
+  type: "email" | "password" | "text";
 }
 export default function InputField({ title, placeholder, type }: InputField) {
   const [value, setValue] = useState("");

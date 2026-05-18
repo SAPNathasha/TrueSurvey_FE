@@ -70,7 +70,7 @@ export default function LoginPage() {
             </Grid>
           </Flex>
 
-<LoginForm />
+          <LoginForm />
         </Flex>
       </Container>
     </Box>

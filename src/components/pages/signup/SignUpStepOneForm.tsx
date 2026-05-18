@@ -15,6 +15,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import StepItem from "@/components/common/StepItem";
+import InputField from "@/components/common/InputField";
 
 export default function SignUpStepOneForm() {
   return (
@@ -36,63 +37,29 @@ export default function SignUpStepOneForm() {
           </Text>
 
           <Field.Root required width="100%" maxW="360px">
-            <Field.Label textStyle="label">
-              Username <Field.RequiredIndicator />
-            </Field.Label>
-
-            <Input
-              color="black"
-              px="5"
-              borderRadius="input"
-              borderColor="gray.border"
-              bg="gray.inputBg"
-              placeholder="Choose a username"
-              value=""
-              onChange={() => ({})}
-            />
-
+            <InputField title="Username" placeholder="John Doe" type="text" />
             <Field.HelperText textStyle="helperText">
               This will be your public display name.
             </Field.HelperText>
           </Field.Root>
 
           <Field.Root required width="100%" maxW="360px">
-            <Field.Label textStyle="label">
-              Email <Field.RequiredIndicator />
-            </Field.Label>
-
-            <Input
-              color="black"
-              px="5"
-              borderRadius="input"
-              borderColor="gray.border"
-              bg="gray.inputBg"
-              placeholder="Choose a username"
-              value=""
-              onChange={() => ({})}
+            <InputField
+              title="Email"
+              placeholder="you@gmail.com"
+              type="email"
             />
-
             <Field.HelperText textStyle="helperText">
               We will send a verification link to this email.
             </Field.HelperText>
           </Field.Root>
 
           <Field.Root required width="100%" maxW="360px">
-            <Field.Label textStyle="label">
-              Password <Field.RequiredIndicator />
-            </Field.Label>
-
-            <Input
-              color="black"
-              px="5"
-              borderRadius="input"
-              borderColor="gray.border"
-              bg="gray.inputBg"
-              placeholder="Choose a username"
-              value=""
-              onChange={() => ({})}
+            <InputField
+              title="Password"
+              placeholder="********"
+              type="password"
             />
-
             <Field.HelperText textStyle="helperText">
               Use at least 8 characters with a mix of letters, numbers and
               symbols.
