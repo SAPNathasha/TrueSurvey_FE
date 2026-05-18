@@ -5,7 +5,6 @@ import { IoPeople } from "react-icons/io5";
 import { MdOutlineSecurity } from "react-icons/md";
 import { CiGift } from "react-icons/ci";
 
-
 import {
   Flex,
   Container,
@@ -22,7 +21,6 @@ export default function RegisterStepOnePage() {
     <Box bg="white" minH="100vh" py="20">
       <Container maxW="1200px" mx="auto">
         <Flex gap="10" direction="row" alignItems="center">
-          {/* Left Section */}
           <Flex flex="1" gap="4" direction="column" alignItems="flex-start">
             <Heading textStyle="h1" color="black">
               Join TrueSurvey

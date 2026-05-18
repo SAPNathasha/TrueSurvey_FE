@@ -11,121 +11,126 @@ import {
   Field,
   Input,
   Button,
+  HStack,
+  VStack,
 } from "@chakra-ui/react";
+import StepItem from "@/components/common/StepItem";
 
 export default function SignUpStepOneForm() {
   return (
     <Flex flex="1" alignItems="center" justifyContent="center">
       <Box layerStyle="formCard">
-        <Flex width="100%" maxW="360px" gap="12" justify="center">
-          <Text textStyle="stepText">Step 1</Text>
-          <Text textStyle="smallText">Step 2</Text>
-          <Text textStyle="smallText">Step 3</Text>
-        </Flex>
-        <Heading textStyle="h2" color="black" textAlign="center">
-          Create your account
-        </Heading>
+        <VStack gap="6" align="stretch">
+          <HStack gap="5">
+            <StepItem number={1} label="Step 1 of 3" color="#0015D6" />
+            <StepItem number={2} label="Step 2 of 3" color="#9497A6" />
+            <StepItem number={3} label="Step 3 of 3" color="#9497A6" />
+          </HStack>
 
-        <Text textStyle="smallText" textAlign="center">
-          Start as a survey creator, participant, or both.
-        </Text>
+          <Heading textStyle="h2" color="black" textAlign="center">
+            Create your account
+          </Heading>
 
-        <Field.Root required width="100%" maxW="360px">
-          <Field.Label textStyle="label">
-            Username <Field.RequiredIndicator />
-          </Field.Label>
-
-          <Input
-            color="black"
-            px="5"
-            borderRadius="input"
-            borderColor="gray.border"
-            bg="gray.inputBg"
-            placeholder="Choose a username"
-            value=""
-            onChange={() => {}}
-          />
-
-          <Field.HelperText textStyle="helperText">
-            This will be your public display name.
-          </Field.HelperText>
-        </Field.Root>
-
-        <Field.Root required width="100%" maxW="360px">
-          <Field.Label textStyle="label">
-            Email <Field.RequiredIndicator />
-          </Field.Label>
-
-          <Input
-            color="black"
-            px="5"
-            borderRadius="input"
-            borderColor="gray.border"
-            bg="gray.inputBg"
-            placeholder="you@example.com"
-            value=""
-            onChange={() => {}}
-          />
-
-          <Field.HelperText textStyle="helperText">
-            We will send a verification link to this email.
-          </Field.HelperText>
-        </Field.Root>
-
-        <Field.Root required width="100%" maxW="360px">
-          <Field.Label textStyle="label">
-            Password <Field.RequiredIndicator />
-          </Field.Label>
-
-          <Input
-            color="black"
-            px="5"
-            borderRadius="input"
-            borderColor="gray.border"
-            bg="gray.inputBg"
-            type="password"
-            placeholder="********"
-            value=""
-            onChange={() => {}}
-          />
-
-          <Field.HelperText textStyle="helperText">
-            Use at least 8 characters with a mix of letters, numbers and
-            symbols.
-          </Field.HelperText>
-        </Field.Root>
-
-        <Button width="100%" maxW="360px" variant="solid" onClick={() => {}}>
-          Next
-        </Button>
-
-        <Text textStyle="smallText" textAlign="center" maxW="360px">
-          Already have an account?{" "}
-          <Text as="span" textStyle="link">
-            Sign in
+          <Text textStyle="smallText" textAlign="center">
+            Start as a survey creator, participant, or both.
           </Text>
-        </Text>
 
-        <Flex pt="2" gap="4" justify="center" alignItems="flex-start">
-          <Flex
-            bg="brand.mutedText"
-            w="40px"
-            h="40px"
-            minW="40px"
-            borderRadius="pill"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Icon size="md" color="white">
-              <SiSpringsecurity />
-            </Icon>
+          <Field.Root required width="100%" maxW="360px">
+            <Field.Label textStyle="label">
+              Username <Field.RequiredIndicator />
+            </Field.Label>
+
+            <Input
+              color="black"
+              px="5"
+              borderRadius="input"
+              borderColor="gray.border"
+              bg="gray.inputBg"
+              placeholder="Choose a username"
+              value=""
+              onChange={() => ({})}
+            />
+
+            <Field.HelperText textStyle="helperText">
+              This will be your public display name.
+            </Field.HelperText>
+          </Field.Root>
+
+          <Field.Root required width="100%" maxW="360px">
+            <Field.Label textStyle="label">
+              Email <Field.RequiredIndicator />
+            </Field.Label>
+
+            <Input
+              color="black"
+              px="5"
+              borderRadius="input"
+              borderColor="gray.border"
+              bg="gray.inputBg"
+              placeholder="Choose a username"
+              value=""
+              onChange={() => ({})}
+            />
+
+            <Field.HelperText textStyle="helperText">
+              We will send a verification link to this email.
+            </Field.HelperText>
+          </Field.Root>
+
+          <Field.Root required width="100%" maxW="360px">
+            <Field.Label textStyle="label">
+              Password <Field.RequiredIndicator />
+            </Field.Label>
+
+            <Input
+              color="black"
+              px="5"
+              borderRadius="input"
+              borderColor="gray.border"
+              bg="gray.inputBg"
+              placeholder="Choose a username"
+              value=""
+              onChange={() => ({})}
+            />
+
+            <Field.HelperText textStyle="helperText">
+              Use at least 8 characters with a mix of letters, numbers and
+              symbols.
+            </Field.HelperText>
+          </Field.Root>
+
+          <Button width="100%" maxW="360px" variant="solid">
+            Next
+          </Button>
+
+          <Text textStyle="smallText" textAlign="center" maxW="360px">
+            Already have an account?{" "}
+            <Text as="span" textStyle="link">
+              Sign in
+            </Text>
+          </Text>
+
+          <Flex pt="2" gap="4" justify="center" alignItems="flex-start">
+            <Flex
+              bg="brand.mutedText"
+              w="40px"
+              h="40px"
+              minW="40px"
+              borderRadius="pill"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Icon size="md" color="white">
+                <SiSpringsecurity />
+              </Icon>
+            </Flex>
+
+            <Text textStyle="smallText" textAlign="left" maxW="300px">
+              Next, you will choose your role(s) and can optionally verify your
+              identity to unlock more features.
+            </Text>
           </Flex>
-
-          <Text textStyle="smallText" textAlign="left" maxW="300px">
-            Next, you will choose your role(s) and can optionally verify your
-            identity to unlock more features.
-          </Text>
-        </Flex>
+        </VStack>
       </Box>
     </Flex>
   );
