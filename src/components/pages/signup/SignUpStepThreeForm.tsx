@@ -14,8 +14,10 @@ import {
 import { FaCamera, FaCheck, FaIdCard } from "react-icons/fa";
 import UploadBox from "@/components/common/UploadBox";
 import StepItem from "@/components/common/StepItem";
+import { useSignupStore } from "@/store/useSignupStore";
 
 export default function SignUprStepThreeForm() {
+  const prevStep = useSignupStore((state) => state.prevStep);
   return (
     <Flex justify="center">
       <Box layerStyle="formCard">
@@ -106,6 +108,7 @@ export default function SignUprStepThreeForm() {
               _hover={{
                 bg: "#F8FAFC",
               }}
+              onClick={prevStep}
             >
               Back
             </Button>

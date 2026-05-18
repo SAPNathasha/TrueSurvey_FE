@@ -21,7 +21,6 @@ export default function LoginPage() {
     <Box bg="white" minH="100vh" py="20">
       <Container maxW="1200px" mx="auto">
         <Flex gap="10" alignItems="center" justifyContent="space-between">
-          {/* Left section */}
           <Flex flex="1" gap="5" direction="column" alignItems="flex-start">
             <Heading textStyle="h1" color="black">
               Welcome back to

@@ -16,8 +16,11 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import StepItem from "@/components/common/StepItem";
+import { useSignupStore } from "@/store/useSignupStore";
 
 export default function SignUpStepTwoForm() {
+  const nextStep = useSignupStore((state) => state.nextStep);
+  const prevStep = useSignupStore((state) => state.prevStep);
   return (
     <Flex justify="center">
       <Box layerStyle="formCard">
@@ -210,11 +213,11 @@ export default function SignUpStepTwoForm() {
           </Flex>
 
           <Flex w="full" gap="4" direction="row">
-            <Button flex="1" variant="outline" onClick={() => {}}>
+            <Button flex="1" variant="outline" onClick={prevStep}>
               Back
             </Button>
 
-            <Button flex="1" variant="solid" onClick={() => {}}>
+            <Button flex="1" variant="solid" onClick={nextStep}>
               Next
             </Button>
           </Flex>

@@ -1,46 +1,75 @@
 import { create } from "zustand";
 
-export type UserRole = "participant" | "creator" | "both" | "";
+type UserRole = "participant" | "creator" | "both" | "";
 
-type SignupState = {
-  username: string;
+type SignupFormData = {
+  // Step 1 - basic account details
+  fullName: string;
   email: string;
   password: string;
-  role: UserRole;
-  nicFile: File | null;
-  selfieFile: File | null;
 
-  setUsername: (username: string) => void;
-  setEmail: (email: string) => void;
-  setPassword: (password: string) => void;
-  setRole: (role: UserRole) => void;
-  setNicFile: (file: File | null) => void;
-  setSelfieFile: (file: File | null) => void;
+  // Step 2 - role selection
+  role: UserRole;
+
+  // Step 3 - verification / extra details
+  nicOrLicenseImage: File | null;
+  selfieImage: File | null;
+};
+
+type SignupStore = {
+  currentStep: number;
+  formData: SignupFormData;
+
+  nextStep: () => void;
+  prevStep: () => void;
+  goToStep: (step: number) => void;
+
+  updateFormData: (data: Partial<SignupFormData>) => void;
   resetSignup: () => void;
 };
 
-export const useSignupStore = create<SignupState>((set) => ({
-  username: "",
+const initialFormData: SignupFormData = {
+  fullName: "",
   email: "",
   password: "",
-  role: "",
-  nicFile: null,
-  selfieFile: null,
 
-  setUsername: (username) => set({ username }),
-  setEmail: (email) => set({ email }),
-  setPassword: (password) => set({ password }),
-  setRole: (role) => set({ role }),
-  setNicFile: (file) => set({ nicFile: file }),
-  setSelfieFile: (file) => set({ selfieFile: file }),
+  role: "",
+
+  nicOrLicenseImage: null,
+  selfieImage: null,
+};
+
+export const useSignupStore = create<SignupStore>((set) => ({
+  currentStep: 1,
+
+  formData: initialFormData,
+
+  nextStep: () =>
+    set((state) => ({
+      currentStep: Math.min(state.currentStep + 1, 3),
+    })),
+
+  prevStep: () =>
+    set((state) => ({
+      currentStep: Math.max(state.currentStep - 1, 1),
+    })),
+
+  goToStep: (step) =>
+    set({
+      currentStep: step,
+    }),
+
+  updateFormData: (data) =>
+    set((state) => ({
+      formData: {
+        ...state.formData,
+        ...data,
+      },
+    })),
 
   resetSignup: () =>
     set({
-      username: "",
-      email: "",
-      password: "",
-      role: "",
-      nicFile: null,
-      selfieFile: null,
+      currentStep: 1,
+      formData: initialFormData,
     }),
 }));
