@@ -1,17 +1,17 @@
 import { create } from "zustand";
 
-type UserRole = "participant" | "creator" | "both" | "";
+type UserRole = "participant" | "creator" | "both" | "" ;
 
 type SignupFormData = {
-  // Step 1 - basic account details
+  // Step 1 data
   fullName: string;
   email: string;
   password: string;
 
-  // Step 2 - role selection
+  // Step 2 data
   role: UserRole;
 
-  // Step 3 - verification / extra details
+  // Step 3 data
   nicOrLicenseImage: File | null;
   selfieImage: File | null;
 };

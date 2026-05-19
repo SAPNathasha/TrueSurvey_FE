@@ -8,7 +8,6 @@ import {
   Text,
   Icon,
   Box,
-  Field,
   Button,
   HStack,
   VStack,
@@ -37,35 +36,27 @@ export default function SignUpStepOneForm() {
             Start as a survey creator, participant, or both.
           </Text>
 
-          <Field.Root required width="100%" maxW="360px">
-            <InputField title="Username" placeholder="John Doe" type="text" />
-            <Field.HelperText textStyle="helperText">
-              This will be your public display name.
-            </Field.HelperText>
-          </Field.Root>
+          <InputField
+            title="Username"
+            placeholder="John Doe"
+            type="text"
+            helperText="This will be your public display name."
+          />
 
-          <Field.Root required width="100%" maxW="360px">
-            <InputField
-              title="Email"
-              placeholder="you@gmail.com"
-              type="email"
-            />
-            <Field.HelperText textStyle="helperText">
-              We will send a verification link to this email.
-            </Field.HelperText>
-          </Field.Root>
+          <InputField
+            title="Email"
+            placeholder="you@gmail.com"
+            type="email"
+            helperText="We will send a verification link to this email."
+          />
 
-          <Field.Root required width="100%" maxW="360px">
-            <InputField
-              title="Password"
-              placeholder="********"
-              type="password"
-            />
-            <Field.HelperText textStyle="helperText">
-              Use at least 8 characters with a mix of letters, numbers and
-              symbols.
-            </Field.HelperText>
-          </Field.Root>
+          <InputField
+            title="Password"
+            placeholder="********"
+            type="password"
+            helperText="Use at least 8 characters with a mix of letters, numbers and
+              symbols."
+          />
 
           <Button width="100%" maxW="360px" variant="solid" onClick={nextStep}>
             Next
