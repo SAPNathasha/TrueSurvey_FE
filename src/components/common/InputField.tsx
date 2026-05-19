@@ -5,8 +5,14 @@ interface InputField {
   title: string;
   placeholder: string;
   type: "email" | "password" | "text";
+  helperText?: string;
 }
-export default function InputField({ title, placeholder, type }: InputField) {
+export default function InputField({
+  title,
+  placeholder,
+  type,
+  helperText,
+}: InputField) {
   const [value, setValue] = useState("");
   return (
     <Field.Root required width="100%" maxW="360px">
@@ -23,6 +29,9 @@ export default function InputField({ title, placeholder, type }: InputField) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
       />
+      {helperText && (
+        <Field.HelperText textStyle="helperText">{helperText}</Field.HelperText>
+      )}
     </Field.Root>
   );
 }
