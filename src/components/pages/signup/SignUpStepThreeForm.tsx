@@ -129,6 +129,8 @@ export default function SignUprStepThreeForm() {
             </Button>
 
             <Button
+              name="submit"
+              type="submit"
               flex="1.25"
               h="42px"
               bg="#0015D6"

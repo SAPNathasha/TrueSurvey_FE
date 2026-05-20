@@ -6,7 +6,7 @@ import { MdOutlineSecurity } from "react-icons/md";
 import { CiGift } from "react-icons/ci";
 
 import { Flex, Heading, Text, Grid } from "@chakra-ui/react";
-import SignupImage from "./signUpImg";
+import SignupImage from "./SignupImage";
 
 interface SignUpLeft {
   headindLineOne: string;

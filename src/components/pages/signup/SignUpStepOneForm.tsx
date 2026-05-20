@@ -37,6 +37,7 @@ export default function SignUpStepOneForm() {
           </Text>
 
           <InputField
+            name="username"
             title="Username"
             placeholder="John Doe"
             type="text"
@@ -44,6 +45,7 @@ export default function SignUpStepOneForm() {
           />
 
           <InputField
+            name="email"
             title="Email"
             placeholder="you@gmail.com"
             type="email"
@@ -51,6 +53,7 @@ export default function SignUpStepOneForm() {
           />
 
           <InputField
+            name="password"
             title="Password"
             placeholder="********"
             type="password"
