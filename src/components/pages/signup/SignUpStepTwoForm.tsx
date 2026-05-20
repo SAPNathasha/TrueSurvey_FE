@@ -26,21 +26,10 @@ type SignUpStepTwoFormProps = {
 };
 
 export default function SignUpStepTwoForm({ onNext }: SignUpStepTwoFormProps) {
-  const nextStep = useSignupStore((state) => state.nextStep);
   const prevStep = useSignupStore((state) => state.prevStep);
 
-  const { values, errors, touched, setFieldValue, setFieldTouched } =
+  const { values, errors, touched, setFieldValue } =
     useFormikContext<SignupFormValues>();
-
-  const handleNext = async () => {
-    setFieldTouched("role", true);
-
-    if (!values.role) {
-      return;
-    }
-
-    nextStep();
-  };
 
   return (
     <Flex justify="center">
