@@ -1,6 +1,5 @@
 "use client";
 
-import { IoPeople, IoPerson } from "react-icons/io5";
 import { RiErrorWarningFill } from "react-icons/ri";
 
 import {
@@ -9,7 +8,6 @@ import {
   Text,
   Icon,
   Box,
-  CheckboxCard,
   Button,
   Stack,
   HStack,
@@ -17,6 +15,7 @@ import {
 } from "@chakra-ui/react";
 import StepItem from "@/components/common/StepItem";
 import { useSignupStore } from "@/store/useSignupStore";
+import RoleCheckboxes from "./RoleCheckBoxCard";
 
 export default function SignUpStepTwoForm() {
   const nextStep = useSignupStore((state) => state.nextStep);
@@ -41,164 +40,18 @@ export default function SignUpStepTwoForm() {
           </Text>
 
           <Stack w="full" maxW="366px" gap="15px">
-            <CheckboxCard.Root value="participant" w="full">
-              <CheckboxCard.HiddenInput />
-
-              <CheckboxCard.Control
-                display="flex"
-                alignItems="center"
-                gap="12px"
-                px="20px"
-                py="10px"
-                h="64px"
-                borderWidth="1px"
-                borderColor="brand.border"
-                borderRadius="input"
-                bg="white"
-                cursor="pointer"
-                transition="all 0.2s ease"
-                _hover={{
-                  bg: "brand.cardHover",
-                  borderColor: "brand.primary",
-                }}
-                _checked={{
-                  bg: "brand.cardSelected",
-                  borderColor: "brand.primary",
-                }}
-              >
-                <Flex
-                  bg="brand.lightBlue"
-                  w="38px"
-                  h="38px"
-                  minW="38px"
-                  borderRadius="md"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Icon size="sm" color="brand.primary">
-                    <IoPerson />
-                  </Icon>
-                </Flex>
-
-                <CheckboxCard.Content flex="1">
-                  <CheckboxCard.Label textStyle="roleTitle">
-                    Participant
-                  </CheckboxCard.Label>
-
-                  <CheckboxCard.Description textStyle="helperText" mt="3px">
-                    Fill surveys and earn rewards.
-                  </CheckboxCard.Description>
-                </CheckboxCard.Content>
-
-                <CheckboxCard.Indicator />
-              </CheckboxCard.Control>
-            </CheckboxCard.Root>
-
-            <CheckboxCard.Root value="creator" w="full">
-              <CheckboxCard.HiddenInput />
-
-              <CheckboxCard.Control
-                display="flex"
-                alignItems="center"
-                gap="12px"
-                px="20px"
-                py="10px"
-                h="64px"
-                borderWidth="1px"
-                borderColor="brand.border"
-                borderRadius="input"
-                bg="white"
-                cursor="pointer"
-                transition="all 0.2s ease"
-                _hover={{
-                  bg: "brand.cardHover",
-                  borderColor: "brand.primary",
-                }}
-                _checked={{
-                  bg: "brand.cardSelected",
-                  borderColor: "brand.primary",
-                }}
-              >
-                <Flex
-                  bg="brand.lightBlue"
-                  w="38px"
-                  h="38px"
-                  minW="38px"
-                  borderRadius="md"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Icon size="sm" color="brand.primary">
-                    <IoPerson />
-                  </Icon>
-                </Flex>
-
-                <CheckboxCard.Content flex="1">
-                  <CheckboxCard.Label textStyle="roleTitle">
-                    Survey Creator
-                  </CheckboxCard.Label>
-
-                  <CheckboxCard.Description textStyle="helperText" mt="3px">
-                    Create surveys and collect responses.
-                  </CheckboxCard.Description>
-                </CheckboxCard.Content>
-
-                <CheckboxCard.Indicator />
-              </CheckboxCard.Control>
-            </CheckboxCard.Root>
-
-            <CheckboxCard.Root value="both" w="full">
-              <CheckboxCard.HiddenInput />
-
-              <CheckboxCard.Control
-                display="flex"
-                alignItems="center"
-                gap="12px"
-                px="20px"
-                py="10px"
-                h="70px"
-                borderWidth="1px"
-                borderColor="brand.border"
-                borderRadius="input"
-                bg="white"
-                cursor="pointer"
-                transition="all 0.2s ease"
-                _hover={{
-                  bg: "brand.cardHover",
-                  borderColor: "brand.primary",
-                }}
-                _checked={{
-                  bg: "brand.cardSelected",
-                  borderColor: "brand.primary",
-                }}
-              >
-                <Flex
-                  bg="brand.lightBlue"
-                  w="38px"
-                  h="38px"
-                  minW="38px"
-                  borderRadius="md"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Icon size="sm" color="brand.primary">
-                    <IoPeople />
-                  </Icon>
-                </Flex>
-
-                <CheckboxCard.Content flex="1">
-                  <CheckboxCard.Label textStyle="roleTitle">
-                    Both
-                  </CheckboxCard.Label>
-
-                  <CheckboxCard.Description textStyle="helperText" mt="3px">
-                    Create surveys and participate in surveys.
-                  </CheckboxCard.Description>
-                </CheckboxCard.Content>
-
-                <CheckboxCard.Indicator />
-              </CheckboxCard.Control>
-            </CheckboxCard.Root>
+            <RoleCheckboxes
+              label="Participant"
+              description="You can earn money"
+            />
+            <RoleCheckboxes
+              label="Participant"
+              description="You can earn money"
+            />
+            <RoleCheckboxes
+              label="Participant"
+              description="You can earn money"
+            />
           </Stack>
 
           <Flex pt="20px" gap="4" justify="center" direction="row">

@@ -40,6 +40,7 @@ export default function SignupForm() {
         "Please select a valid role",
       )
       .required("Please select a role"),
+      
     nicOrLicense: Yup.mixed<File>()
       .nullable()
       .test("fileSize", "File size must be less than 2MB", (file) => {
