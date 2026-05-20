@@ -1,7 +1,6 @@
 "use client";
 
 import { RiErrorWarningFill } from "react-icons/ri";
-
 import {
   Flex,
   Heading,
@@ -13,13 +12,36 @@ import {
   HStack,
   VStack,
 } from "@chakra-ui/react";
+import { useFormikContext } from "formik";
+
 import StepItem from "@/components/common/StepItem";
 import { useSignupStore } from "@/store/useSignupStore";
 import RoleCheckboxes from "./RoleCheckBoxCard";
 
-export default function SignUpStepTwoForm() {
+interface SignupFormValues {
+  role: string;
+}
+type SignUpStepTwoFormProps = {
+  onNext: () => Promise<void>;
+};
+
+export default function SignUpStepTwoForm({ onNext }: SignUpStepTwoFormProps) {
   const nextStep = useSignupStore((state) => state.nextStep);
   const prevStep = useSignupStore((state) => state.prevStep);
+
+  const { values, errors, touched, setFieldValue, setFieldTouched } =
+    useFormikContext<SignupFormValues>();
+
+  const handleNext = async () => {
+    setFieldTouched("role", true);
+
+    if (!values.role) {
+      return;
+    }
+
+    nextStep();
+  };
+
   return (
     <Flex justify="center">
       <Box layerStyle="formCard">
@@ -42,16 +64,33 @@ export default function SignUpStepTwoForm() {
           <Stack w="full" maxW="366px" gap="15px">
             <RoleCheckboxes
               label="Participant"
-              description="You can earn money"
+              description="Take part and earn money"
+              value="participant"
+              selectedValue={values.role}
+              onSelect={(value) => setFieldValue("role", value)}
             />
+
             <RoleCheckboxes
-              label="Participant"
-              description="You can earn money"
+              label="Survey creator"
+              description="Create and manage surveys"
+              value="surveyCreator"
+              selectedValue={values.role}
+              onSelect={(value) => setFieldValue("role", value)}
             />
+
             <RoleCheckboxes
-              label="Participant"
-              description="You can earn money"
+              label="Both"
+              description="Participate and create surveys"
+              value="both"
+              selectedValue={values.role}
+              onSelect={(value) => setFieldValue("role", value)}
             />
+
+            {touched.role && errors.role && (
+              <Text color="red.500" fontSize="sm">
+                {errors.role}
+              </Text>
+            )}
           </Stack>
 
           <Flex pt="20px" gap="4" justify="center" direction="row">
@@ -70,7 +109,7 @@ export default function SignUpStepTwoForm() {
               Back
             </Button>
 
-            <Button flex="1" variant="solid" onClick={nextStep}>
+            <Button flex="1" variant="solid" onClick={onNext}>
               Next
             </Button>
           </Flex>

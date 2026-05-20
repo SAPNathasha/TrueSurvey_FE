@@ -1,24 +1,33 @@
 import { CheckboxCard } from "@chakra-ui/react";
 
-interface RoleCheckboxes {
+interface RoleCheckboxesProps {
   label: string;
   description: string;
+  value: string;
+  selectedValue: string;
+  onSelect: (value: string) => void;
 }
 
-export default function RoleCheckboxes({ label, description }: RoleCheckboxes) {
+export default function RoleCheckboxes({
+  label,
+  description,
+  value,
+  selectedValue,
+  onSelect,
+}: RoleCheckboxesProps) {
+  const isChecked = selectedValue === value;
+
   return (
     <CheckboxCard.Root
-      key={label}
       width="full"
       minH="90px"
+      checked={isChecked}
+      onCheckedChange={() => onSelect(value)}
       border="1px solid"
-      borderColor="black"
+      borderColor={isChecked ? "blue.500" : "black"}
       borderRadius="12px"
-      _checked={{
-        borderColor: "blue.500",
-      }}
     >
-      <CheckboxCard.HiddenInput />
+      <CheckboxCard.HiddenInput name="role" value={value} />
 
       <CheckboxCard.Control
         width="full"
@@ -41,12 +50,9 @@ export default function RoleCheckboxes({ label, description }: RoleCheckboxes) {
 
         <CheckboxCard.Indicator
           border="1px solid"
-          borderColor="black"
-          _checked={{
-            borderColor: "brand.primary",
-            bg: "blue.500",
-            color: "white",
-          }}
+          borderColor={isChecked ? "blue.500" : "black"}
+          bg={isChecked ? "blue.500" : "white"}
+          color={isChecked ? "white" : "black"}
         />
       </CheckboxCard.Control>
     </CheckboxCard.Root>

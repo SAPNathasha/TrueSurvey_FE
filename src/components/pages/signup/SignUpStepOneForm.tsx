@@ -14,10 +14,10 @@ import {
 } from "@chakra-ui/react";
 import StepItem from "@/components/common/StepItem";
 import InputField from "@/components/common/InputField";
-import { useSignupStore } from "@/store/useSignupStore";
-
-export default function SignUpStepOneForm() {
-  const nextStep = useSignupStore((state) => state.nextStep);
+type SignUpStepOneFormProps = {
+  onNext: () => Promise<void>;
+};
+export default function SignUpStepOneForm({ onNext }: SignUpStepOneFormProps) {
   return (
     <Flex flex="1" alignItems="center" justifyContent="center">
       <Box layerStyle="formCard">
@@ -61,7 +61,7 @@ export default function SignUpStepOneForm() {
               symbols."
           />
 
-          <Button width="100%" maxW="360px" variant="solid" onClick={nextStep}>
+          <Button width="100%" maxW="360px" variant="solid" onClick={onNext}>
             Next
           </Button>
 
