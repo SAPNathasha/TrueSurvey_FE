@@ -1,6 +1,7 @@
 "use client";
 
 import InputField from "@/components/common/InputField";
+import NextLink from "next/link";
 import {
   Flex,
   Heading,
@@ -9,6 +10,7 @@ import {
   Box,
   Checkbox,
   Button,
+  Link as ChakraLink,
 } from "@chakra-ui/react";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
@@ -41,7 +43,7 @@ export default function LoginForm() {
   const handleLogin = (values: LoginFormValues) => {
     console.log("Login values:", values);
 
-    // Later you can call your backend login API here
+    // backend login API
   };
 
   return (
@@ -98,7 +100,17 @@ export default function LoginForm() {
                     </Checkbox.Label>
                   </Checkbox.Root>
 
-                  <Text textStyle="link">Forgot password?</Text>
+                  <ChakraLink
+                    asChild
+                    color="#344CB7"
+                    fontSize="sm"
+                    fontWeight="semibold"
+                    _hover={{ textDecoration: "underline" }}
+                  >
+                    <NextLink href="/forgot-password">
+                      Forgot password?
+                    </NextLink>
+                  </ChakraLink>
                 </Flex>
 
                 <Button
@@ -111,7 +123,12 @@ export default function LoginForm() {
                   Login
                 </Button>
 
-                <Button width="100%" maxW="360px" variant="outline" type="button">
+                <Button
+                  width="100%"
+                  maxW="360px"
+                  variant="outline"
+                  type="button"
+                >
                   Create an account
                 </Button>
 
