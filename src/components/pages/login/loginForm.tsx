@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import InputField from "@/components/common/InputField";
 import NextLink from "next/link";
 import {
@@ -14,6 +16,8 @@ import {
 } from "@chakra-ui/react";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
+
+import { loginUser } from "@/services/authService";
 
 interface LoginFormValues {
   email: string;
@@ -40,10 +44,40 @@ const loginValidationSchema = Yup.object({
 });
 
 export default function LoginForm() {
-  const handleLogin = (values: LoginFormValues) => {
-    console.log("Login values:", values);
+  const router = useRouter();
+  const [serverError, setServerError] = useState("");
 
-    // backend login API
+  const handleLogin = async (values: LoginFormValues) => {
+    try {
+      setServerError("");
+
+      const data = await loginUser({
+        email: values.email,
+        password: values.password,
+      });
+
+      console.log("Login success:", data);
+
+      const token = data.access_token || data.token;
+
+      if (!token) {
+        throw new Error("Login successful, but token was not returned");
+      }
+
+      if (values.rememberMe) {
+        localStorage.setItem("token", token);
+      } else {
+        sessionStorage.setItem("token", token);
+      }
+
+      router.push("/dashboard");
+    } catch (error) {
+      if (error instanceof Error) {
+        setServerError(error.message);
+      } else {
+        setServerError("Login failed");
+      }
+    }
   };
 
   return (
@@ -80,6 +114,12 @@ export default function LoginForm() {
                   placeholder="Enter your password"
                   type="password"
                 />
+
+                {serverError && (
+                  <Text color="red.500" fontSize="sm" maxW="360px">
+                    {serverError}
+                  </Text>
+                )}
 
                 <Flex
                   width="100%"
@@ -128,8 +168,9 @@ export default function LoginForm() {
                   maxW="360px"
                   variant="outline"
                   type="button"
+                  asChild
                 >
-                  Create an account
+                  <NextLink href="/signup">Create an account</NextLink>
                 </Button>
 
                 <Text textStyle="smallText" textAlign="center" maxW="360px">
