@@ -21,10 +21,13 @@ import CreateQuestionsManualRightPanel from "./create-questions-manual/CreateQue
 import TargetAudienceStep from "./target-audience/TargetAudienceStep";
 import TargetAudienceRightPanel from "./target-audience/TargetAudienceRightPanel";
 
+import SampleBudgetStep from "./sample-budget/SampleBudgetStep";
+import SampleBudgetRightPanel from "./sample-budget/SampleBudgetRightPanel";
+
 import type { SurveyMethodId } from "./select-method/selectMethodTypes";
 
 export default function CreateSurvey() {
-  const [currentStep, setCurrentStep] = useState(4);
+  const [currentStep, setCurrentStep] = useState(5);
   const [selectedMethod, setSelectedMethod] = useState<SurveyMethodId>("ai");
 
   const renderStepContent = () => {
@@ -70,6 +73,15 @@ export default function CreateSurvey() {
       );
     }
 
+    if (currentStep === 5) {
+      return (
+        <SampleBudgetStep
+          onBack={() => setCurrentStep(4)}
+          onNext={() => setCurrentStep(6)}
+        />
+      );
+    }
+
     return null;
   };
 
@@ -92,6 +104,10 @@ export default function CreateSurvey() {
 
     if (currentStep === 4) {
       return <TargetAudienceRightPanel selectedMethod={selectedMethod} />;
+    }
+
+    if (currentStep === 5) {
+      return <SampleBudgetRightPanel selectedMethod={selectedMethod} />;
     }
 
     return null;
