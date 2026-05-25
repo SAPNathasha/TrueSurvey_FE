@@ -1,17 +1,10 @@
 "use client";
 
-import {
-  Box,
-  Button,
-  HStack,
-  Icon,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
-import { FiChevronUp } from "react-icons/fi";
+import { Box, Button, HStack, Icon, Text, VStack } from "@chakra-ui/react";
+import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { useState } from "react";
 
-import { surveyCategories } from "./createSurveyData";
+import { surveyCategories } from "./basicDetailsData";
 
 type CategoryDropdownProps = {
   value: string;
@@ -22,7 +15,7 @@ export default function CategoryDropdown({
   value,
   onChange,
 }: CategoryDropdownProps) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const selectedCategory = surveyCategories.find(
     (category) => category.value === value,
@@ -30,23 +23,31 @@ export default function CategoryDropdown({
 
   return (
     <Box position="relative">
-      <Button
-        variant="outline"
+      <HStack
         w="full"
         h="46px"
-        px={5}
-        justifyContent="space-between"
+        px="4"
+        justify="space-between"
+        borderWidth="1px"
         borderColor={open ? "brand.primary" : "brand.border"}
-        color={selectedCategory ? "brand.dark" : "brand.mutedText"}
-        fontWeight="normal"
-        onClick={() => setOpen((previous) => !previous)}
+        borderRadius="md"
+        bg="white"
       >
-        <Text >
+        <Text color={selectedCategory ? "brand.dark" : "brand.mutedText"}>
           {selectedCategory ? selectedCategory.label : "Select a category"}
         </Text>
 
-        <FiChevronUp />
-      </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          minW="auto"
+          px="1"
+          color="brand.dark"
+          onClick={() => setOpen((previous) => !previous)}
+        >
+          {open ? <FiChevronUp /> : <FiChevronDown />}
+        </Button>
+      </HStack>
 
       {open && (
         <Box
@@ -64,9 +65,7 @@ export default function CategoryDropdown({
         >
           <VStack align="stretch" gap="0">
             {surveyCategories.map((category) => {
-              const active =
-                category.value === value ||
-                (!value && category.value === "customer-feedback");
+              const active = category.value === value;
 
               return (
                 <Button

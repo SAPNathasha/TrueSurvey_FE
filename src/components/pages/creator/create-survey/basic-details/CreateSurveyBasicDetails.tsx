@@ -4,7 +4,7 @@ import { Box, Flex, Grid } from "@chakra-ui/react";
 
 import Sidebar from "@/components/pages/creator/dashboard/Sidebar";
 import BasicDetailsForm from "./BasicDetailsForm";
-import CreateSurveyStepper from "./CreateSurveyStepper";
+import CreateSurveyStepper from "../shared/CreateSurveyStepper";
 import CreateSurveyRightPanel from "./CreateSurveyRightPanel";
 
 export default function CreateSurveyBasicDetails() {

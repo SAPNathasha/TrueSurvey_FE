@@ -1,6 +1,6 @@
 import { Box, Flex, HStack, Text } from "@chakra-ui/react";
 
-import { surveySteps } from "./createSurveyData";
+import { surveySteps } from "./createSurveySteps";
 
 type CreateSurveyStepperProps = {
   currentStep: number;

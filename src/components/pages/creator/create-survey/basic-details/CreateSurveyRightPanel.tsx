@@ -1,6 +1,6 @@
 import { VStack } from "@chakra-ui/react";
 
-import StepProgressCard from "./StepProgressCard";
+import StepProgressCard from "../shared/StepProgressCard";
 import SetupTipsCard from "./SetupTipsCard";
 import WhatNextCard from "./WhatNextCard";
 

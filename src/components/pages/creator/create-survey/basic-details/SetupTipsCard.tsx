@@ -9,7 +9,7 @@ import {
 import { FiZap } from "react-icons/fi";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-import { setupTips } from "./createSurveyData";
+import { setupTips } from "./basicDetailsData";
 
 export default function SetupTipsCard() {
   return (

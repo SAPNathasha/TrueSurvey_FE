@@ -8,7 +8,7 @@ import {
 import { FiFlag } from "react-icons/fi";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-import { nextStepItems } from "./createSurveyData";
+import { nextStepItems } from "./basicDetailsData";
 
 export default function WhatNextCard() {
   return (
