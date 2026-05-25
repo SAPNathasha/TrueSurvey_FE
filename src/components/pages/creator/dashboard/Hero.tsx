@@ -32,14 +32,14 @@ export default function Hero() {
           </Text>
 
           <HStack mt="6" gap="3" flexWrap="wrap">
-            <Button asChild>
+            <Button asChild py={5} px={3} color={"white"}>
               <NextLink href="/creator/surveys/create">
-                <FiPlus />
+                <FiPlus color="white"/>
                 Create New Survey
               </NextLink>
             </Button>
 
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild py={5} px={3}>
               <NextLink href="/creator/analytics">
                 <FiBarChart2 />
                 View Analytics
