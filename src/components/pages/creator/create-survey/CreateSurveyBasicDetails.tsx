@@ -9,7 +9,7 @@ import CreateSurveyRightPanel from "./CreateSurveyRightPanel";
 
 export default function CreateSurveyBasicDetails() {
   return (
-    <Flex minH="100vh" bg="brand.pageBg" color="brand.dark">
+    <Flex minH="100vh" bg="white" color="brand.dark">
       <Sidebar />
 
       <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
