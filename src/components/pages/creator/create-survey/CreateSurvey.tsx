@@ -24,10 +24,13 @@ import TargetAudienceRightPanel from "./target-audience/TargetAudienceRightPanel
 import SampleBudgetStep from "./sample-budget/SampleBudgetStep";
 import SampleBudgetRightPanel from "./sample-budget/SampleBudgetRightPanel";
 
+import PreviewSubmitStep from "./preview-submit/PreviewSubmitStep";
+import PreviewSubmitRightPanel from "./preview-submit/PreviewSubmitRightPanel";
+
 import type { SurveyMethodId } from "./select-method/selectMethodTypes";
 
 export default function CreateSurvey() {
-  const [currentStep, setCurrentStep] = useState(5);
+  const [currentStep, setCurrentStep] = useState(6);
   const [selectedMethod, setSelectedMethod] = useState<SurveyMethodId>("ai");
 
   const renderStepContent = () => {
@@ -82,6 +85,10 @@ export default function CreateSurvey() {
       );
     }
 
+    if (currentStep === 6) {
+      return <PreviewSubmitStep onBack={() => setCurrentStep(5)} />;
+    }
+
     return null;
   };
 
@@ -108,6 +115,10 @@ export default function CreateSurvey() {
 
     if (currentStep === 5) {
       return <SampleBudgetRightPanel selectedMethod={selectedMethod} />;
+    }
+
+    if (currentStep === 6) {
+      return <PreviewSubmitRightPanel selectedMethod={selectedMethod} />;
     }
 
     return null;
