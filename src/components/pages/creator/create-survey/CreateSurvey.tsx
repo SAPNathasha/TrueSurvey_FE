@@ -12,6 +12,9 @@ import BasicDetailsRightPanel from "./basic-details/CreateSurveyRightPanel";
 import SelectMethodStep from "./select-method/SelectMethodStep";
 import SelectMethodRightPanel from "./select-method/SelectMethodRightPanel";
 
+import CreateQuestionsAIStep from "./create-questions-ai/CreateQuestionsAIStep";
+import CreateQuestionsAIRightPanel from "./create-questions-ai/CreateQuestionsAIRightPanel";
+
 import type { SurveyMethodId } from "./select-method/selectMethodTypes";
 
 export default function CreateSurvey() {
@@ -34,6 +37,15 @@ export default function CreateSurvey() {
       );
     }
 
+    if (currentStep === 3) {
+      return (
+        <CreateQuestionsAIStep
+          onBack={() => setCurrentStep(2)}
+          onNext={() => setCurrentStep(4)}
+        />
+      );
+    }
+
     return null;
   };
 
@@ -44,6 +56,10 @@ export default function CreateSurvey() {
 
     if (currentStep === 2) {
       return <SelectMethodRightPanel />;
+    }
+
+    if (currentStep === 3) {
+      return <CreateQuestionsAIRightPanel />;
     }
 
     return null;
@@ -64,7 +80,6 @@ export default function CreateSurvey() {
             alignItems="start"
           >
             {renderStepContent()}
-
             {renderRightPanel()}
           </Grid>
         </Box>
