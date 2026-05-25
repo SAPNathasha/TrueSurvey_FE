@@ -28,7 +28,7 @@ export default function ResponseGrowthCard() {
       <HStack justify="space-between" mb="5">
         <Heading fontSize="md">Response Growth</Heading>
 
-        <Button variant="outline" size="sm" h="32px">
+        <Button variant="outline" size="sm" h="32px" py={5} px={3}>
           Last 30 Days
         </Button>
       </HStack>
