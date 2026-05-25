@@ -1,5 +1,5 @@
-import CreateSurveyBasicDetails from "@/components/pages/creator/create-survey/basic-details/CreateSurveyBasicDetails";
+import CreateSurvey from "@/components/pages/creator/create-survey/CreateSurvey";
 
 export default function CreateSurveyPage() {
-  return <CreateSurveyBasicDetails />;
+  return <CreateSurvey />;
 }

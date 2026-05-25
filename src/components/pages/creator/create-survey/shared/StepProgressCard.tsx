@@ -17,6 +17,7 @@ export default function StepProgressCard({
     <DashboardCard>
       <HStack justify="space-between" mb="4">
         <Text fontWeight="bold">Step Progress</Text>
+
         <Text fontSize="sm" color="brand.dark">
           Step {currentStep} of {totalSteps}
         </Text>

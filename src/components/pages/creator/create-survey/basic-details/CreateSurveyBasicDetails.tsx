@@ -22,7 +22,9 @@ export default function CreateSurveyBasicDetails() {
             mt="5"
             alignItems="start"
           >
-            <BasicDetailsForm />
+            <BasicDetailsForm onNext={function (): void {
+              throw new Error("Function not implemented.");
+            } } />
             <CreateSurveyRightPanel />
           </Grid>
         </Box>

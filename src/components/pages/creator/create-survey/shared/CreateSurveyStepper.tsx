@@ -1,4 +1,5 @@
 import { Box, Flex, HStack, Text } from "@chakra-ui/react";
+import { FiCheck } from "react-icons/fi";
 
 import { surveySteps } from "./createSurveySteps";
 
@@ -29,9 +30,10 @@ export default function CreateSurveyStepper({
             <HStack key={step.number} flex="1" gap="4">
               <HStack
                 gap="3"
-                color={active ? "brand.primary" : "brand.mutedText"}
+                color={
+                  active || completed ? "brand.primary" : "brand.mutedText"
+                }
                 fontWeight={active ? "bold" : "medium"}
-                position="relative"
               >
                 <Box
                   w="34px"
@@ -44,7 +46,7 @@ export default function CreateSurveyStepper({
                   fontWeight="bold"
                   fontSize="sm"
                 >
-                  {step.number}
+                  {completed ? <FiCheck /> : step.number}
                 </Box>
 
                 <Text fontSize="sm" whiteSpace="nowrap">
@@ -68,6 +70,7 @@ export default function CreateSurveyStepper({
 
       <Box
         mt="3"
+        ml={`${(currentStep - 1) * 16.6}%`}
         h="3px"
         w={{ base: "120px", lg: "150px" }}
         bg="brand.primary"

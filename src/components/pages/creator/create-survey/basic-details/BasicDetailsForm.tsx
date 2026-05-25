@@ -1,6 +1,5 @@
 "use client";
 
-import NextLink from "next/link";
 import {
   Box,
   Button,
@@ -18,7 +17,11 @@ import { useState } from "react";
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
 import CategoryDropdown from "./CategoryDropdown";
 
-export default function BasicDetailsForm() {
+type BasicDetailsFormProps = {
+  onNext: () => void;
+};
+
+export default function BasicDetailsForm({ onNext }: BasicDetailsFormProps) {
   const [surveyTitle, setSurveyTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -93,7 +96,7 @@ export default function BasicDetailsForm() {
           </Box>
 
           <Grid templateColumns={{ base: "1fr", lg: "1fr 0.9fr" }} gap="4">
-            <Box >
+            <Box>
               <Text fontWeight="bold" fontSize="sm" mb="2">
                 Survey Category / Domain{" "}
                 <Text as="span" color="red.500">
@@ -154,12 +157,12 @@ export default function BasicDetailsForm() {
             Save as Draft
           </Button>
 
-          <Button px={5} py={3} variant="subtle">Cancel</Button>
+          <Button px={5} py={3} variant="subtle">
+            Cancel
+          </Button>
 
-          <Button asChild px={5} py={3} color={"white"}>
-            <NextLink href="/creator/surveys/create/select-method">
-              Continue to Select Method <FiArrowRight />
-            </NextLink>
+          <Button px={5} py={3} color="white" onClick={onNext}>
+            Continue to Select Method <FiArrowRight />
           </Button>
         </HStack>
       </Box>
