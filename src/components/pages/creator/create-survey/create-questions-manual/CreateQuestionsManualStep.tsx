@@ -417,18 +417,6 @@ export default function CreateQuestionsManualStep({
     );
   };
 
-  const addQuestion = () => {
-    setQuestions((currentQuestions) => [
-      ...currentQuestions,
-      {
-        id: crypto.randomUUID(),
-        questionText: "",
-        questionType: "multiple-choice",
-        options: ["", ""],
-        required: false,
-      },
-    ]);
-  };
 
   const duplicateQuestion = (questionId: string) => {
     const questionToDuplicate = questions.find(
@@ -542,7 +530,7 @@ export default function CreateQuestionsManualStep({
         <Box p={{ base: "5", lg: "7" }}>
           <VStack align="stretch" gap="4">
             <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
+              <Text fontSize="sm" fontWeight="semibold" mb="2" >
                 Section Title
               </Text>
 
@@ -574,6 +562,8 @@ export default function CreateQuestionsManualStep({
                 resize="none"
                 borderColor="brand.border"
                 borderRadius="12px"
+                px={5}
+                py={3}
                 _focus={{
                   borderColor: "brand.primary",
                   boxShadow: "0 0 0 1px #0015D6",
