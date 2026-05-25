@@ -4,42 +4,52 @@ import { Box, HStack, Text, VStack } from "@chakra-ui/react";
 import {
   FiBell,
   FiClipboard,
+  FiCreditCard,
   FiGrid,
+  FiHelpCircle,
   FiList,
+  FiLogOut,
+  FiSearch,
   FiSettings,
   FiShield,
   FiUser,
 } from "react-icons/fi";
 
+type ParticipantSidebarProps = {
+  activeItem?: string;
+};
+
 type SidebarItem = {
   label: string;
   icon: React.ReactNode;
-  active?: boolean;
   badge?: string;
+  statusBadge?: string;
 };
 
 const sidebarItems: SidebarItem[] = [
   {
     label: "Dashboard",
     icon: <FiGrid />,
-    active: true,
   },
   {
     label: "Available Surveys",
-    icon: <FiClipboard />,
+    icon: <FiSearch />,
   },
   {
     label: "My Surveys",
     icon: <FiList />,
   },
   {
+    label: "Earnings",
+    icon: <FiCreditCard />,
+  },
+  {
     label: "Wallet",
     icon: <FiUser />,
   },
   {
-    label: "Notifications",
-    icon: <FiBell />,
-    badge: "3",
+    label: "Transactions",
+    icon: <FiClipboard />,
   },
   {
     label: "Profile",
@@ -48,32 +58,52 @@ const sidebarItems: SidebarItem[] = [
   {
     label: "Verification",
     icon: <FiShield />,
+    statusBadge: "Not Verified",
+  },
+  {
+    label: "Notifications",
+    icon: <FiBell />,
+    badge: "3",
   },
   {
     label: "Settings",
     icon: <FiSettings />,
   },
+  {
+    label: "Help & Support",
+    icon: <FiHelpCircle />,
+  },
+  {
+    label: "Logout",
+    icon: <FiLogOut />,
+  },
 ];
 
-function SidebarItemCard({ item }: { item: SidebarItem }) {
+function SidebarItemCard({
+  item,
+  active,
+}: {
+  item: SidebarItem;
+  active: boolean;
+}) {
   return (
     <HStack
       w="100%"
       px="4"
       py="3"
       borderRadius="10px"
-      bg={item.active ? "brand.lightBlue" : "transparent"}
-      color={item.active ? "brand.primary" : "brand.dark"}
-      fontWeight={item.active ? "bold" : "medium"}
+      bg={active ? "brand.primary" : "transparent"}
+      color={active ? "white" : "brand.dark"}
+      fontWeight={active ? "bold" : "medium"}
       justify="space-between"
       cursor="pointer"
       _hover={{
-        bg: "brand.lightBlue",
-        color: "brand.primary",
+        bg: active ? "brand.primary" : "brand.lightBlue",
+        color: active ? "white" : "brand.primary",
       }}
     >
       <HStack gap="3">
-        <Box fontSize="22px">{item.icon}</Box>
+        <Box fontSize="20px">{item.icon}</Box>
         <Text fontSize="sm">{item.label}</Text>
       </HStack>
 
@@ -82,8 +112,8 @@ function SidebarItemCard({ item }: { item: SidebarItem }) {
           w="24px"
           h="24px"
           borderRadius="full"
-          bg="brand.primary"
-          color="white"
+          bg={active ? "white" : "#FFEB00"}
+          color={active ? "brand.primary" : "brand.dark"}
           fontSize="xs"
           display="flex"
           alignItems="center"
@@ -93,11 +123,27 @@ function SidebarItemCard({ item }: { item: SidebarItem }) {
           {item.badge}
         </Box>
       )}
+
+      {item.statusBadge && (
+        <Box
+          px="3"
+          py="1"
+          borderRadius="999px"
+          bg={active ? "whiteAlpha.300" : "#EEF2FF"}
+          color={active ? "white" : "brand.primary"}
+          fontSize="xs"
+          fontWeight="bold"
+        >
+          {item.statusBadge}
+        </Box>
+      )}
     </HStack>
   );
 }
 
-export default function ParticipantSidebar() {
+export default function ParticipantSidebar({
+  activeItem = "Dashboard",
+}: ParticipantSidebarProps) {
   return (
     <Box
       w="300px"
@@ -112,47 +158,58 @@ export default function ParticipantSidebar() {
     >
       <VStack align="stretch" gap="2">
         {sidebarItems.map((item) => (
-          <SidebarItemCard key={item.label} item={item} />
+          <SidebarItemCard
+            key={item.label}
+            item={item}
+            active={activeItem === item.label}
+          />
         ))}
       </VStack>
 
       <Box
-        mt="20"
+        mt="16"
         borderWidth="1px"
         borderColor="#C7D2FE"
         borderRadius="16px"
         p="5"
-        textAlign="center"
-        bg="white"
+        bg="brand.lightBlue"
       >
         <Box
-          w="92px"
-          h="92px"
-          borderRadius="24px"
-          bg="brand.lightBlue"
-          color="brand.primary"
+          w="52px"
+          h="52px"
+          borderRadius="14px"
+          bg="brand.primary"
+          color="white"
           display="flex"
           alignItems="center"
           justifyContent="center"
-          fontSize="46px"
-          mx="auto"
+          fontSize="26px"
           mb="4"
         >
-          <FiUser />
+          <FiShield />
         </Box>
 
         <Text fontWeight="bold" color="brand.dark">
-          Earn more with every opinion you share! 🎉
+          Unlock more surveys
         </Text>
 
-        <Text fontSize="sm" color="brand.mutedText" mt="2">
-          Complete surveys and get rewarded with cash.
+        <Text fontSize="sm" color="brand.mutedText" mt="3">
+          Verify your identity to access high paying surveys.
         </Text>
 
-        <HStack justify="center" color="brand.primary" fontWeight="bold" mt="4">
-          <Text fontSize="sm">Learn how it works</Text>
-          <Text>→</Text>
-        </HStack>
+        <Box
+          as="button"
+          w="100%"
+          h="44px"
+          mt="5"
+          borderRadius="10px"
+          bg="brand.primary"
+          color="white"
+          fontWeight="bold"
+          fontSize="sm"
+        >
+          Verify Now
+        </Box>
       </Box>
     </Box>
   );
