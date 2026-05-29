@@ -18,6 +18,15 @@ export interface RegisterPayload {
   selfieImage?: File | null;
 }
 
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
+}
+
 function getErrorMessage(error: unknown) {
   if (axios.isAxiosError(error)) {
     const message = error.response?.data?.message;
@@ -26,10 +35,10 @@ function getErrorMessage(error: unknown) {
       return message[0];
     }
 
-    return message || "Login failed";
+    return message || "Request failed";
   }
 
-  return "Login failed";
+  return "Request failed";
 }
 
 export async function loginUser(payload: LoginPayload) {
@@ -68,6 +77,24 @@ export async function registerUser(payload: RegisterPayload) {
       },
     });
 
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function forgotPassword(payload: ForgotPasswordPayload) {
+  try {
+    const response = await api.post("/auth/forgot-password", payload);
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function resetPassword(payload: ResetPasswordPayload) {
+  try {
+    const response = await api.post("/auth/reset-password", payload);
     return response.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));

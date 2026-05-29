@@ -6,6 +6,7 @@ import * as Yup from "yup";
 import { MdArrowBack, MdLockReset } from "react-icons/md";
 import NextLink from "next/link";
 import { Link as ChakraLink } from "@chakra-ui/react";
+import { useSearchParams } from "next/navigation";
 
 import {
   Box,
@@ -19,39 +20,50 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { forgotPassword } from "@/services/authService";
+import { resetPassword } from "@/services/authService";
 
-interface ForgotPasswordValues {
-  email: string;
+interface ResetPasswordValues {
+  newPassword: string;
 }
 
-const forgotPasswordSchema = Yup.object({
-  email: Yup.string()
-    .email("Enter a valid email address")
-    .required("Email is required"),
+const resetPasswordSchema = Yup.object({
+  newPassword: Yup.string()
+    .min(6, "Password must be at least 6 characters")
+    .required("New password is required"),
 });
 
-export default function ForgotPasswordPage() {
+export default function ResetPasswordPage() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token") || "";
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [serverError, setServerError] = useState("");
 
-  const formik = useFormik<ForgotPasswordValues>({
+  const formik = useFormik<ResetPasswordValues>({
     initialValues: {
-      email: "",
+      newPassword: "",
     },
-    validationSchema: forgotPasswordSchema,
+    validationSchema: resetPasswordSchema,
     onSubmit: async (values, actions) => {
       try {
         setServerError("");
-        await forgotPassword({
-          email: values.email.trim().toLowerCase(),
+
+        if (!token) {
+          setServerError("Reset token is missing or invalid");
+          return;
+        }
+
+        await resetPassword({
+          token,
+          newPassword: values.newPassword,
         });
+
         setIsSubmitted(true);
       } catch (error) {
         if (error instanceof Error) {
           setServerError(error.message);
         } else {
-          setServerError("Failed to send reset link");
+          setServerError("Failed to reset password");
         }
       } finally {
         actions.setSubmitting(false);
@@ -92,12 +104,11 @@ export default function ForgotPasswordPage() {
             </Flex>
 
             <Heading color="#000957" fontSize={{ base: "2xl", md: "3xl" }}>
-              Forgot Password?
+              Reset Password
             </Heading>
 
             <Text color="gray.600" fontSize="sm" lineHeight="1.7">
-              Enter your email address and we will send you instructions to
-              reset your password.
+              Enter a new password for your account.
             </Text>
           </VStack>
 
@@ -111,27 +122,29 @@ export default function ForgotPasswordPage() {
               textAlign="center"
             >
               <Text color="#166534" fontWeight="semibold">
-                Reset link sent!
+                Password reset successful!
               </Text>
 
               <Text color="#166534" fontSize="sm" mt="2">
-                Please check your email inbox for password reset instructions.
+                You can now sign in with your new password.
               </Text>
             </Box>
           ) : (
             <form onSubmit={formik.handleSubmit}>
               <VStack gap="5" align="stretch">
                 <Field.Root
-                  invalid={Boolean(formik.touched.email && formik.errors.email)}
+                  invalid={Boolean(
+                    formik.touched.newPassword && formik.errors.newPassword,
+                  )}
                 >
-                  <Field.Label color="#000957">Email address</Field.Label>
+                  <Field.Label color="#000957">New password</Field.Label>
 
                   <Input
-                    name="email"
-                    type="email"
+                    name="newPassword"
+                    type="password"
                     px={5}
-                    placeholder="Enter your email"
-                    value={formik.values.email}
+                    placeholder="Enter new password"
+                    value={formik.values.newPassword}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     h="48px"
@@ -143,7 +156,7 @@ export default function ForgotPasswordPage() {
                     }}
                   />
 
-                  <Field.ErrorText>{formik.errors.email}</Field.ErrorText>
+                  <Field.ErrorText>{formik.errors.newPassword}</Field.ErrorText>
                 </Field.Root>
 
                 <Button
@@ -154,8 +167,9 @@ export default function ForgotPasswordPage() {
                   rounded="lg"
                   loading={formik.isSubmitting}
                   _hover={{ bg: "#000957" }}
+                  disabled={!token}
                 >
-                  Send Reset Link
+                  Reset Password
                 </Button>
 
                 {serverError ? (
