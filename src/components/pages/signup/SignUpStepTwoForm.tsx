@@ -54,7 +54,7 @@ export default function SignUpStepTwoForm({ onNext }: SignUpStepTwoFormProps) {
             <RoleCheckboxes
               label="Participant"
               description="Take part and earn money"
-              value="participant"
+              value="PARTICIPANT"
               selectedValue={values.role}
               onSelect={(value) => setFieldValue("role", value)}
             />
@@ -62,7 +62,7 @@ export default function SignUpStepTwoForm({ onNext }: SignUpStepTwoFormProps) {
             <RoleCheckboxes
               label="Survey creator"
               description="Create and manage surveys"
-              value="surveyCreator"
+              value="CREATOR"
               selectedValue={values.role}
               onSelect={(value) => setFieldValue("role", value)}
             />
@@ -70,7 +70,7 @@ export default function SignUpStepTwoForm({ onNext }: SignUpStepTwoFormProps) {
             <RoleCheckboxes
               label="Both"
               description="Participate and create surveys"
-              value="both"
+              value="BOTH"
               selectedValue={values.role}
               onSelect={(value) => setFieldValue("role", value)}
             />

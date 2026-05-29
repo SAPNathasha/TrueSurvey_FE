@@ -10,6 +10,7 @@ interface InputFieldProps {
   placeholder: string;
   type: "email" | "password" | "text";
   helperText?: string;
+  required?: boolean;
 }
 
 export default function InputField({
@@ -18,15 +19,16 @@ export default function InputField({
   placeholder,
   type,
   helperText,
+  required = true,
 }: InputFieldProps) {
   const [field, meta] = useField(name);
 
   const hasError = Boolean(meta.touched && meta.error);
 
   return (
-    <Field.Root required width="100%" maxW="360px" invalid={hasError}>
+    <Field.Root required={required} width="100%" maxW="360px" invalid={hasError}>
       <Field.Label textStyle="label">
-        {title} <Field.RequiredIndicator />
+        {title} {required ? <Field.RequiredIndicator /> : null}
       </Field.Label>
 
       <Input

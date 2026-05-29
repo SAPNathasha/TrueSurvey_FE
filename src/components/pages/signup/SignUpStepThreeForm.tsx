@@ -15,9 +15,15 @@ import { FaCamera, FaCheck, FaIdCard } from "react-icons/fa";
 import UploadBox from "@/components/common/UploadBox";
 import StepItem from "@/components/common/StepItem";
 import { useSignupStore } from "@/store/useSignupStore";
+import { useFormikContext } from "formik";
+import type { SignupFormValues } from "./SignUpForm";
+import InputField from "@/components/common/InputField";
 
 export default function SignUprStepThreeForm() {
   const prevStep = useSignupStore((state) => state.prevStep);
+  const { values, errors, touched, setFieldValue, isSubmitting, submitForm, status } =
+    useFormikContext<SignupFormValues>();
+
   return (
     <Flex justify="center">
       <Box layerStyle="formCard">
@@ -47,18 +53,41 @@ export default function SignUprStepThreeForm() {
           </Box>
 
           <VStack gap="4" align="stretch">
-            <UploadBox
-              title="Upload NIC / Driving Licence (Front)"
-              icon={FaIdCard}
-              helper="JPG, PNG or PDF"
+            <InputField
+              name="nicNumber"
+              title="NIC Number (Optional)"
+              placeholder="Enter NIC number"
+              type="text"
+              helperText="Optional text field accepted by backend."
+              required={false}
             />
 
             <UploadBox
+              name="nicImage"
+              title="Upload NIC / Driving Licence (Front)"
+              icon={FaIdCard}
+              helper="JPG, JPEG, PNG or WEBP (max 5MB)"
+              value={values.nicImage}
+              error={touched.nicImage ? errors.nicImage : undefined}
+              onChange={(file) => setFieldValue("nicImage", file)}
+            />
+
+            <UploadBox
+              name="selfieImage"
               title="Upload a Selfie"
               icon={FaCamera}
-              helper="Make sure your face is clearly visible"
+              helper="JPG, JPEG, PNG or WEBP (max 5MB)"
+              value={values.selfieImage}
+              error={touched.selfieImage ? errors.selfieImage : undefined}
+              onChange={(file) => setFieldValue("selfieImage", file)}
             />
           </VStack>
+
+          {status ? (
+            <Text color="red.500" fontSize="sm">
+              {status}
+            </Text>
+          ) : null}
 
           <HStack
             align="center"
@@ -124,6 +153,13 @@ export default function SignUprStepThreeForm() {
               _hover={{
                 bg: "#EEF4FF",
               }}
+              type="button"
+              onClick={async () => {
+                await setFieldValue("nicImage", null);
+                await setFieldValue("selfieImage", null);
+                await submitForm();
+              }}
+              loading={isSubmitting}
             >
               Skip for now
             </Button>
@@ -140,6 +176,7 @@ export default function SignUprStepThreeForm() {
               _hover={{
                 bg: "#000957",
               }}
+              loading={isSubmitting}
             >
               Create account
             </Button>

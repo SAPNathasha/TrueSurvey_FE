@@ -6,17 +6,25 @@ import SignUprStepThreeForm from "./SignUpStepThreeForm";
 import SignUpStepTwoForm from "./SignUpStepTwoForm";
 import { Form, Formik, FormikHelpers } from "formik";
 import * as Yup from "yup";
+import { registerUser, RegisterRole } from "@/services/authService";
+import { useRouter } from "next/navigation";
 
-const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/jpg"];
-const MAX_FILE_SIZE = 2 * 1024 * 1024;
+const SUPPORTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/jpg",
+  "image/webp",
+];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export type SignupFormValues = {
   username: string;
   email: string;
   password: string;
   role: string;
-  nicOrLicense: File | null;
-  selfie: File | null;
+  nicNumber: string;
+  nicImage: File | null;
+  selfieImage: File | null;
 };
 
 const signUpFormSchema = Yup.object({
@@ -35,64 +43,59 @@ const signUpFormSchema = Yup.object({
     .required("Email is required"),
 
   password: Yup.string()
-    .min(8, "Password must be at least 8 characters")
+    .min(6, "Password must be at least 6 characters")
     .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
     .matches(/[a-z]/, "Password must contain at least one lowercase letter")
     .matches(/[0-9]/, "Password must contain at least one number")
     .required("Password is required"),
 
   role: Yup.string()
-    .oneOf(
-      ["participant", "surveyCreator", "both"],
-      "Please select a valid role",
-    )
+    .oneOf(["PARTICIPANT", "CREATOR", "BOTH"], "Please select a valid role")
     .required("Please select a role"),
 
-  nicOrLicense: Yup.mixed<File>()
-    .nullable()
-    .when("role", {
-      is: (role: string) => role === "participant" || role === "both",
-      then: (schema) =>
-        schema
-          .required("NIC or license image is required")
-          .test("fileSize", "File size must be less than 2MB", (file) => {
-            if (!file) return false;
-            return file.size <= MAX_FILE_SIZE;
-          })
-          .test("fileType", "Only JPG and PNG files are allowed", (file) => {
-            if (!file) return false;
-            return SUPPORTED_IMAGE_TYPES.includes(file.type);
-          }),
-      otherwise: (schema) => schema.notRequired().nullable(),
-    }),
+  nicNumber: Yup.string().trim().notRequired(),
 
-  selfie: Yup.mixed<File>()
+  nicImage: Yup.mixed<File>()
     .nullable()
-    .when("role", {
-      is: (role: string) => role === "participant" || role === "both",
-      then: (schema) =>
-        schema
-          .required("Selfie image is required")
-          .test("fileSize", "File size must be less than 2MB", (file) => {
-            if (!file) return false;
-            return file.size <= MAX_FILE_SIZE;
-          })
-          .test("fileType", "Only JPG and PNG files are allowed", (file) => {
-            if (!file) return false;
-            return SUPPORTED_IMAGE_TYPES.includes(file.type);
-          }),
-      otherwise: (schema) => schema.notRequired().nullable(),
-    }),
+    .test("fileSize", "File size must be less than 5MB", (file) => {
+      if (!file) return true;
+      return file.size <= MAX_FILE_SIZE;
+    })
+    .test(
+      "fileType",
+      "Only JPG, JPEG, PNG, and WEBP files are allowed",
+      (file) => {
+        if (!file) return true;
+        return SUPPORTED_IMAGE_TYPES.includes(file.type);
+      },
+    ),
+
+  selfieImage: Yup.mixed<File>()
+    .nullable()
+    .test("fileSize", "File size must be less than 5MB", (file) => {
+      if (!file) return true;
+      return file.size <= MAX_FILE_SIZE;
+    })
+    .test(
+      "fileType",
+      "Only JPG, JPEG, PNG, and WEBP files are allowed",
+      (file) => {
+        if (!file) return true;
+        return SUPPORTED_IMAGE_TYPES.includes(file.type);
+      },
+    ),
 });
 
 export default function SignupForm() {
+  const router = useRouter();
   const currentStep = useSignupStore((state) => state.currentStep);
   const nextStep = useSignupStore((state) => state.nextStep);
+  const resetSignup = useSignupStore((state) => state.resetSignup);
 
   const getStepFields = (step: number): Array<keyof SignupFormValues> => {
     if (step === 1) return ["username", "email", "password"];
     if (step === 2) return ["role"];
-    if (step === 3) return ["nicOrLicense", "selfie"];
+    if (step === 3) return ["nicNumber", "nicImage", "selfieImage"];
     return [];
   };
 
@@ -127,12 +130,34 @@ export default function SignupForm() {
         email: "",
         password: "",
         role: "",
-        nicOrLicense: null,
-        selfie: null,
+        nicNumber: "",
+        nicImage: null,
+        selfieImage: null,
       }}
       validationSchema={signUpFormSchema}
-      onSubmit={(values) => {
-        console.log(values);
+      onSubmit={async (values, { setStatus }) => {
+        try {
+          setStatus(undefined);
+          await registerUser({
+            username: values.username.trim(),
+            email: values.email.trim().toLowerCase(),
+            password: values.password,
+            role: values.role as RegisterRole,
+            nicNumber: values.nicNumber.trim() || undefined,
+            nicImage: values.nicImage,
+            selfieImage: values.selfieImage,
+          });
+
+          resetSignup();
+          router.push("/login");
+        } catch (error) {
+          if (error instanceof Error) {
+            setStatus(error.message);
+            return;
+          }
+
+          setStatus("Registration failed");
+        }
       }}
     >
       {({ validateForm, setTouched }) => (
