@@ -18,6 +18,7 @@ import { Formik, Form } from "formik";
 import * as Yup from "yup";
 
 import { loginUser } from "@/services/authService";
+import { setStoredAccessToken } from "@/lib/axios";
 
 interface LoginFormValues {
   email: string;
@@ -58,17 +59,13 @@ export default function LoginForm() {
 
       console.log("Login success:", data);
 
-      const token = data.access_token || data.token;
+      const token = data.accessToken || data.access_token || data.token;
 
       if (!token) {
         throw new Error("Login successful, but token was not returned");
       }
 
-      if (values.rememberMe) {
-        localStorage.setItem("token", token);
-      } else {
-        sessionStorage.setItem("token", token);
-      }
+      setStoredAccessToken(token);
 
       router.push("/dashboard");
     } catch (error) {
