@@ -578,7 +578,7 @@ export default function CreateQuestionsAIStep({
         </Button>
 
         <Button h="46px" color="white" justifyContent="center" onClick={onNext}>
-          Continue to Target Audience
+          Continue
           <FiArrowRight />
         </Button>
       </Grid>

@@ -86,19 +86,19 @@ export default function SelectMethodStep({
       <DashboardCard mt="5" p="0">
         <Box px={{ base: "5", lg: "7" }} py="5">
           <HStack justify="space-between" flexWrap="wrap" gap="4">
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="outline" onClick={onBack} py={3} px={5}>
               <FiArrowLeft />
               Back to Basic Details
             </Button>
 
-            <HStack gap="4" flexWrap="wrap">
-              <Button variant="outline">
+            <HStack gap="4" flexWrap="wrap" >
+              <Button variant="outline" py={3} px={5}>
                 <FiFileText />
                 Save as Draft
               </Button>
 
-              <Button onClick={onNext}>
-                Continue to Create Questions <FiArrowRight />
+              <Button onClick={onNext} py={3} px={5}>
+                Continue <FiArrowRight />
               </Button>
             </HStack>
           </HStack>

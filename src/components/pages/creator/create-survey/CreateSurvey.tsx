@@ -30,7 +30,7 @@ import PreviewSubmitRightPanel from "./preview-submit/PreviewSubmitRightPanel";
 import type { SurveyMethodId } from "./select-method/selectMethodTypes";
 
 export default function CreateSurvey() {
-  const [currentStep, setCurrentStep] = useState(6);
+  const [currentStep, setCurrentStep] = useState(2);
   const [selectedMethod, setSelectedMethod] = useState<SurveyMethodId>("ai");
 
   const renderStepContent = () => {
