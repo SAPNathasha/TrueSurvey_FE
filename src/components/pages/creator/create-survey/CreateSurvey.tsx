@@ -5,6 +5,8 @@ import { useState } from "react";
 
 import Sidebar from "@/components/pages/creator/dashboard/Sidebar";
 import CreateSurveyStepper from "./shared/CreateSurveyStepper";
+import { getStoredCreatorId } from "@/lib/creatorIdentity";
+import { toaster } from "@/components/ui/toaster";
 
 import BasicDetailsForm, {
   type BasicDetailsFormValues,
@@ -30,7 +32,11 @@ import PreviewSubmitStep from "./preview-submit/PreviewSubmitStep";
 import PreviewSubmitRightPanel from "./preview-submit/PreviewSubmitRightPanel";
 
 import type { SurveyMethodId } from "./select-method/selectMethodTypes";
-import type { SurveyDraft } from "@/services/creatorSurveyService";
+import {
+  selectSurveyMethod,
+  type SurveyCreationMethod,
+  type SurveyDraft,
+} from "@/services/creatorSurveyService";
 
 const initialBasicDetailsValues: BasicDetailsFormValues = {
   surveyTitle: "",
@@ -38,21 +44,182 @@ const initialBasicDetailsValues: BasicDetailsFormValues = {
   category: "",
   completionDays: "7",
 };
+const creatorWizardStepKey = "creatorCurrentStep";
+
+function getStepFromSurveyCreationStep(currentStep?: string | null) {
+  if (currentStep === "SELECT_METHOD") {
+    return 2;
+  }
+
+  if (currentStep === "CREATE_QUESTIONS") {
+    return 3;
+  }
+
+  if (currentStep === "TARGET_AUDIENCE") {
+    return 4;
+  }
+
+  if (currentStep === "SAMPLE_BUDGET") {
+    return 5;
+  }
+
+  if (currentStep === "PREVIEW_SUBMIT" || currentStep === "COMPLETED") {
+    return 6;
+  }
+
+  return 1;
+}
+
+function getStoredDraft() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const storedDraft = window.localStorage.getItem("creatorSurveyDraft");
+
+  if (!storedDraft) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(storedDraft) as SurveyDraft;
+  } catch {
+    return null;
+  }
+}
+
+function getStoredWizardStep() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const storedStep = window.localStorage.getItem(creatorWizardStepKey);
+  const parsedStep = storedStep ? Number(storedStep) : NaN;
+
+  if (!Number.isInteger(parsedStep) || parsedStep < 1 || parsedStep > 6) {
+    return null;
+  }
+
+  return parsedStep;
+}
 
 export default function CreateSurvey() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedMethod, setSelectedMethod] = useState<SurveyMethodId>("ai");
-  const [basicDetails, setBasicDetails] = useState<BasicDetailsFormValues>(
-    initialBasicDetailsValues
+  const creatorId = getStoredCreatorId();
+  const initialDraft = getStoredDraft();
+  const storedWizardStep = getStoredWizardStep();
+  const [currentStep, setCurrentStep] = useState(() =>
+    Math.max(
+      getStepFromSurveyCreationStep(initialDraft?.currentStep),
+      storedWizardStep ?? 1
+    )
   );
-  const [createdDraftId, setCreatedDraftId] = useState<string | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<SurveyMethodId>(() => {
+    if (initialDraft?.creationMethod === "MANUAL") {
+      return "manual";
+    }
+
+    return "ai";
+  });
+  const [basicDetails, setBasicDetails] = useState<BasicDetailsFormValues>(
+    () =>
+      initialDraft
+        ? {
+            surveyTitle: initialDraft.title || "",
+            description: initialDraft.description || "",
+            category: initialDraft.category || "",
+            completionDays: initialDraft.estimatedCompletionDays
+              ? String(initialDraft.estimatedCompletionDays)
+              : "7",
+          }
+        : initialBasicDetailsValues
+  );
+  const [createdDraftId, setCreatedDraftId] = useState<string | null>(
+    initialDraft?.id || null
+  );
+  const [isSavingMethod, setIsSavingMethod] = useState(false);
+
+  const goToStep = (step: number) => {
+    setCurrentStep(step);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(creatorWizardStepKey, String(step));
+    }
+  };
 
   const handleDraftCreated = (survey: SurveyDraft) => {
+    setCreatedDraftId(survey.id);
+    goToStep(1);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("creatorSurveyDraftId", survey.id);
+      window.localStorage.setItem("creatorSurveyDraft", JSON.stringify(survey));
+    }
+  };
+
+  const persistDraft = (survey: SurveyDraft) => {
     setCreatedDraftId(survey.id);
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem("creatorSurveyDraftId", survey.id);
       window.localStorage.setItem("creatorSurveyDraft", JSON.stringify(survey));
+    }
+  };
+
+  const toCreationMethod = (
+    method: SurveyMethodId
+  ): SurveyCreationMethod => {
+    return method === "manual" ? "MANUAL" : "AI_ASSISTED";
+  };
+
+  const submitMethodSelection = async (advanceToNextStep: boolean) => {
+    if (!creatorId) {
+      toaster.create({
+        type: "error",
+        title: "Creator not found",
+        description: "Please log in again to continue creating your survey.",
+      });
+      return;
+    }
+
+    if (!createdDraftId) {
+      toaster.create({
+        type: "error",
+        title: "Save basic details first",
+        description: "Create the survey draft before selecting a method.",
+      });
+      return;
+    }
+
+    try {
+      setIsSavingMethod(true);
+      const response = await selectSurveyMethod({
+        creatorId,
+        surveyId: createdDraftId,
+        creationMethod: toCreationMethod(selectedMethod),
+      });
+
+      persistDraft(response.survey);
+
+      toaster.create({
+        type: "success",
+        title: advanceToNextStep ? "Method saved" : "Draft updated",
+        description: response.message,
+      });
+
+      if (advanceToNextStep) {
+        goToStep(3);
+      }
+    } catch (error) {
+      toaster.create({
+        type: "error",
+        title: "Could not save survey method",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again in a moment.",
+      });
+    } finally {
+      setIsSavingMethod(false);
     }
   };
 
@@ -64,7 +231,7 @@ export default function CreateSurvey() {
           onChange={setBasicDetails}
           onDraftCreated={handleDraftCreated}
           existingDraftId={createdDraftId}
-          onNext={() => setCurrentStep(2)}
+          onNext={() => goToStep(2)}
         />
       );
     }
@@ -74,8 +241,10 @@ export default function CreateSurvey() {
         <SelectMethodStep
           selectedMethod={selectedMethod}
           onMethodChange={setSelectedMethod}
-          onBack={() => setCurrentStep(1)}
-          onNext={() => setCurrentStep(3)}
+          onBack={() => goToStep(1)}
+          onSaveDraft={() => submitMethodSelection(false)}
+          onNext={() => submitMethodSelection(true)}
+          isSubmitting={isSavingMethod}
         />
       );
     }
@@ -83,8 +252,8 @@ export default function CreateSurvey() {
     if (currentStep === 3 && selectedMethod === "ai") {
       return (
         <CreateQuestionsAIStep
-          onBack={() => setCurrentStep(2)}
-          onNext={() => setCurrentStep(4)}
+          onBack={() => goToStep(2)}
+          onNext={() => goToStep(4)}
         />
       );
     }
@@ -92,8 +261,8 @@ export default function CreateSurvey() {
     if (currentStep === 3 && selectedMethod === "manual") {
       return (
         <CreateQuestionsManualStep
-          onBack={() => setCurrentStep(2)}
-          onNext={() => setCurrentStep(4)}
+          onBack={() => goToStep(2)}
+          onNext={() => goToStep(4)}
         />
       );
     }
@@ -101,8 +270,8 @@ export default function CreateSurvey() {
     if (currentStep === 4) {
       return (
         <TargetAudienceStep
-          onBack={() => setCurrentStep(3)}
-          onNext={() => setCurrentStep(5)}
+          onBack={() => goToStep(3)}
+          onNext={() => goToStep(5)}
         />
       );
     }
@@ -110,14 +279,14 @@ export default function CreateSurvey() {
     if (currentStep === 5) {
       return (
         <SampleBudgetStep
-          onBack={() => setCurrentStep(4)}
-          onNext={() => setCurrentStep(6)}
+          onBack={() => goToStep(4)}
+          onNext={() => goToStep(6)}
         />
       );
     }
 
     if (currentStep === 6) {
-      return <PreviewSubmitStep onBack={() => setCurrentStep(5)} />;
+      return <PreviewSubmitStep onBack={() => goToStep(5)} />;
     }
 
     return null;

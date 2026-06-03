@@ -1,9 +1,16 @@
 "use client";
 
-import { Box, Button, HStack, Text, VStack } from "@chakra-ui/react";
-import { useState } from "react";
 import {
-  FiCalendar,
+  Box,
+  Button,
+  HStack,
+  Input,
+  Spinner,
+  Text,
+  VStack,
+} from "@chakra-ui/react";
+import { useEffect, useMemo, useState } from "react";
+import {
   FiCheckCircle,
   FiFileText,
   FiInfo,
@@ -11,6 +18,14 @@ import {
 } from "react-icons/fi";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
+import { toaster } from "@/components/ui/toaster";
+import { getStoredCreatorId } from "@/lib/creatorIdentity";
+import {
+  getSurveyPreview,
+  publishSurvey,
+  type GetSurveyPreviewResponse,
+  type SurveyPublishOption,
+} from "@/services/creatorSurveyService";
 import type { SurveyMethodId } from "../select-method/selectMethodTypes";
 
 type PublishOption = "now" | "later" | "draft";
@@ -19,14 +34,98 @@ type PreviewSubmitRightPanelProps = {
   selectedMethod: SurveyMethodId;
 };
 
-function ChecklistItem({ label }: { label: string }) {
+function getStoredDraftId() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage.getItem("creatorSurveyDraftId");
+}
+
+function updateStoredDraftAfterPublish(
+  surveyId: string,
+  updates: Record<string, unknown>
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const storedDraft = window.localStorage.getItem("creatorSurveyDraft");
+
+  if (!storedDraft) {
+    return;
+  }
+
+  try {
+    const parsedDraft = JSON.parse(storedDraft) as Record<string, unknown>;
+
+    if (parsedDraft.id !== surveyId) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      "creatorSurveyDraft",
+      JSON.stringify({
+        ...parsedDraft,
+        ...updates,
+      })
+    );
+  } catch {
+    // Ignore malformed local draft payloads.
+  }
+}
+
+function formatAudience(
+  audience: GetSurveyPreviewResponse["survey"]["targetAudience"]
+) {
+  if (!audience) {
+    return "Not configured";
+  }
+
+  const parts: string[] = [];
+
+  if (audience.city) {
+    parts.push(audience.city);
+  }
+
+  if (audience.minimumAge !== null || audience.maximumAge !== null) {
+    parts.push(`Age ${audience.minimumAge ?? 13}-${audience.maximumAge ?? 100}`);
+  }
+
+  parts.push(
+    audience.sampleBase
+      .toLowerCase()
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ")
+  );
+
+  return parts.join(", ");
+}
+
+function formatCurrency(value?: string | null) {
+  const numericValue = Number(value || 0);
+
+  return `LKR ${numericValue.toLocaleString("en-LK", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function ChecklistItem({
+  label,
+  complete,
+}: {
+  label: string;
+  complete: boolean;
+}) {
   return (
     <HStack gap="3">
-      <Box color="green.600">
+      <Box color={complete ? "green.600" : "brand.mutedText"}>
         <FiCheckCircle />
       </Box>
 
-      <Text fontSize="sm" color="brand.dark">
+      <Text fontSize="sm" color={complete ? "brand.dark" : "brand.mutedText"}>
         {label}
       </Text>
     </HStack>
@@ -104,7 +203,12 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
         {label}
       </Text>
 
-      <Text fontSize="sm" color="brand.dark" fontWeight="semibold" textAlign="right">
+      <Text
+        fontSize="sm"
+        color="brand.dark"
+        fontWeight="semibold"
+        textAlign="right"
+      >
         {value}
       </Text>
     </HStack>
@@ -114,7 +218,234 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 export default function PreviewSubmitRightPanel({
   selectedMethod,
 }: PreviewSubmitRightPanelProps) {
+  const creatorId = getStoredCreatorId();
+  const surveyId = getStoredDraftId();
+  const missingDraftError =
+    !creatorId || !surveyId
+      ? "Survey draft was not found. Please complete the previous steps first."
+      : "";
   const [publishOption, setPublishOption] = useState<PublishOption>("now");
+  const [scheduledPublishAt, setScheduledPublishAt] = useState("");
+  const [isLoading, setIsLoading] = useState(Boolean(creatorId && surveyId));
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(missingDraftError);
+  const [previewResponse, setPreviewResponse] =
+    useState<GetSurveyPreviewResponse | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!creatorId || !surveyId) {
+      return;
+    }
+
+    getSurveyPreview(creatorId, surveyId)
+      .then((response) => {
+        if (isMounted) {
+          setPreviewResponse(response);
+          setError("");
+        }
+      })
+      .catch((requestError) => {
+        if (isMounted) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Could not load survey readiness"
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [creatorId, surveyId]);
+
+  const readinessItems = useMemo(() => {
+    const readiness = previewResponse?.readiness || {};
+
+    return [
+      {
+        key: "basicDetails",
+        label: "Basic details completed",
+        complete: Boolean(
+          readiness.basicDetailsCompleted ??
+            readiness.basicDetails ??
+            readiness.titleAndDescription
+        ),
+      },
+      {
+        key: "method",
+        label: "Survey method selected",
+        complete: Boolean(
+          readiness.methodSelected ?? readiness.creationMethod ?? readiness.method
+        ),
+      },
+      {
+        key: "questions",
+        label: "Questions added successfully",
+        complete: Boolean(
+          readiness.questionsAdded ?? readiness.questions ?? readiness.questionStep
+        ),
+      },
+      {
+        key: "audience",
+        label: "Target audience defined",
+        complete: Boolean(
+          readiness.targetAudienceDefined ??
+            readiness.targetAudience ??
+            readiness.audience
+        ),
+      },
+      {
+        key: "budget",
+        label: "Budget configured",
+        complete: Boolean(
+          readiness.sampleBudgetConfigured ??
+            readiness.sampleBudget ??
+            readiness.budget
+        ),
+      },
+      {
+        key: "reward",
+        label: "Reward per participant calculated",
+        complete: Boolean(
+          readiness.rewardCalculated ??
+            readiness.rewardPerParticipant ??
+            readiness.rewards
+        ),
+      },
+    ];
+  }, [previewResponse]);
+
+  const publishButtonLabel =
+    publishOption === "draft"
+      ? "Save Survey as Draft"
+      : publishOption === "later"
+        ? "Schedule Survey"
+        : "Publish Survey";
+
+  const handlePublish = async () => {
+    if (!creatorId || !surveyId) {
+      toaster.create({
+        type: "error",
+        title: "Survey draft missing",
+        description: missingDraftError || "Please complete the previous steps first.",
+      });
+      return;
+    }
+
+    let publishOptionValue: SurveyPublishOption = "PUBLISH_NOW";
+    let scheduledPublishAtValue: string | undefined;
+
+    if (publishOption === "draft") {
+      publishOptionValue = "SAVE_DRAFT";
+    } else if (publishOption === "later") {
+      publishOptionValue = "SCHEDULE";
+
+      if (!scheduledPublishAt) {
+        toaster.create({
+          type: "error",
+          title: "Schedule date required",
+          description: "Choose a future publish date and time.",
+        });
+        return;
+      }
+
+      const scheduledDate = new Date(scheduledPublishAt);
+
+      if (Number.isNaN(scheduledDate.getTime())) {
+        toaster.create({
+          type: "error",
+          title: "Invalid schedule date",
+          description: "Choose a valid publish date and time.",
+        });
+        return;
+      }
+
+      scheduledPublishAtValue = scheduledDate.toISOString();
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await publishSurvey({
+        creatorId,
+        surveyId,
+        publishOption: publishOptionValue,
+        scheduledPublishAt: scheduledPublishAtValue,
+      });
+
+      updateStoredDraftAfterPublish(surveyId, {
+        status: response.survey.status,
+        currentStep: response.survey.currentStep,
+        publishedAt: response.survey.publishedAt ?? null,
+        scheduledPublishAt: response.survey.scheduledPublishAt ?? null,
+      });
+
+      setPreviewResponse((current) =>
+        current
+          ? {
+              ...current,
+              canPublish:
+                publishOptionValue === "SAVE_DRAFT" ? current.canPublish : false,
+            }
+          : current
+      );
+
+      toaster.create({
+        type: "success",
+        title:
+          publishOptionValue === "SAVE_DRAFT"
+            ? "Survey saved as draft"
+            : publishOptionValue === "SCHEDULE"
+              ? "Survey scheduled"
+              : "Survey published",
+        description: response.message,
+      });
+    } catch (publishError) {
+      toaster.create({
+        type: "error",
+        title: "Could not update survey status",
+        description:
+          publishError instanceof Error
+            ? publishError.message
+            : "Please try again in a moment.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardCard p="8">
+        <HStack justify="center" gap="3" minH="280px">
+          <Spinner color="brand.primary" />
+          <Text color="brand.mutedText">Loading publish settings...</Text>
+        </HStack>
+      </DashboardCard>
+    );
+  }
+
+  if (error || !previewResponse) {
+    return (
+      <DashboardCard p="8">
+        <Text fontWeight="bold" color="brand.dark">
+          We could not load the publish panel.
+        </Text>
+        <Text color="brand.mutedText" mt="2">
+          {error || "Please try again later."}
+        </Text>
+      </DashboardCard>
+    );
+  }
+
+  const survey = previewResponse.survey;
 
   return (
     <VStack align="stretch" gap="5">
@@ -128,22 +459,23 @@ export default function PreviewSubmitRightPanel({
             px="3"
             py="1"
             borderRadius="8px"
-            bg="#DCFCE7"
-            color="green.700"
+            bg={previewResponse.canPublish ? "#DCFCE7" : "#FEF3C7"}
+            color={previewResponse.canPublish ? "green.700" : "#92400E"}
             fontSize="xs"
             fontWeight="bold"
           >
-            Ready to Publish
+            {previewResponse.canPublish ? "Ready to Publish" : "Needs Review"}
           </Box>
         </HStack>
 
         <VStack align="stretch" gap="3">
-          <ChecklistItem label="Basic details completed" />
-          <ChecklistItem label="Survey method selected" />
-          <ChecklistItem label="Questions added successfully" />
-          <ChecklistItem label="Target audience defined" />
-          <ChecklistItem label="Budget configured" />
-          <ChecklistItem label="Reward per participant calculated" />
+          {readinessItems.map((item) => (
+            <ChecklistItem
+              key={item.key}
+              label={item.label}
+              complete={item.complete}
+            />
+          ))}
         </VStack>
       </DashboardCard>
 
@@ -168,17 +500,15 @@ export default function PreviewSubmitRightPanel({
             description="Choose a date and time to publish."
             onSelect={setPublishOption}
           >
-            <HStack mt="3" gap="3" flexWrap="wrap">
-              <Button size="sm" variant="outline">
-                <FiCalendar />
-                May 20, 2025
-              </Button>
-
-              <Button size="sm" variant="outline">
-                <FiRadio />
-                10:00 AM
-              </Button>
-            </HStack>
+            <Box mt="3">
+              <Input
+                type="datetime-local"
+                value={scheduledPublishAt}
+                onChange={(event) => setScheduledPublishAt(event.target.value)}
+                h="40px"
+                borderColor="brand.border"
+              />
+            </Box>
           </PublishOptionCard>
 
           <PublishOptionCard
@@ -212,7 +542,7 @@ export default function PreviewSubmitRightPanel({
         </Box>
       </DashboardCard>
 
-      <DashboardCard >
+      <DashboardCard>
         <HStack gap="2" mb="5">
           <Box
             w="28px"
@@ -233,25 +563,64 @@ export default function PreviewSubmitRightPanel({
         </HStack>
 
         <VStack align="stretch" gap="3">
-          <SummaryItem label="Survey Title" value="Customer Satisfaction Survey" />
-          <SummaryItem label="Category" value="Customer Feedback" />
+          <SummaryItem label="Survey Title" value={survey.title} />
+          <SummaryItem
+            label="Category"
+            value={survey.category
+              .toLowerCase()
+              .split("_")
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+              .join(" ")}
+          />
           <SummaryItem
             label="Method"
             value={selectedMethod === "ai" ? "AI-Assisted" : "Manual"}
           />
           <SummaryItem
             label="Audience"
-            value="Colombo, Age 18–45, Verified users"
+            value={formatAudience(survey.targetAudience)}
           />
-          <SummaryItem label="Questions Added" value="4" />
-          <SummaryItem label="Required Responses" value="500" />
-          <SummaryItem label="Total Budget" value="LKR 100,000" />
-          <SummaryItem label="Reward per Participant" value="LKR 170" />
+          <SummaryItem
+            label="Questions Added"
+            value={String(survey.questions.length)}
+          />
+          <SummaryItem
+            label="Required Responses"
+            value={
+              survey.sampleBudget
+                ? String(survey.sampleBudget.requiredResponses)
+                : "Not configured"
+            }
+          />
+          <SummaryItem
+            label="Total Budget"
+            value={
+              survey.sampleBudget
+                ? formatCurrency(survey.sampleBudget.totalBudget)
+                : "Not configured"
+            }
+          />
+          <SummaryItem
+            label="Reward per Participant"
+            value={
+              survey.sampleBudget
+                ? formatCurrency(survey.sampleBudget.rewardPerParticipant)
+                : "Not configured"
+            }
+          />
         </VStack>
 
-        <Button w="100%" mt="5" color="white">
+        <Button
+          w="100%"
+          mt="5"
+          color="white"
+          onClick={() => {
+            void handlePublish();
+          }}
+          loading={isSubmitting}
+        >
           <FiRadio />
-          Publish Survey
+          {publishButtonLabel}
         </Button>
       </DashboardCard>
     </VStack>

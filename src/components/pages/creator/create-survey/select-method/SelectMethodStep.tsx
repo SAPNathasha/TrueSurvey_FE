@@ -18,7 +18,9 @@ type SelectMethodStepProps = {
   selectedMethod: SurveyMethodId;
   onMethodChange: (method: SurveyMethodId) => void;
   onBack: () => void;
-  onNext: () => void;
+  onNext: () => void | Promise<void>;
+  onSaveDraft: () => void | Promise<void>;
+  isSubmitting: boolean;
 };
 
 export default function SelectMethodStep({
@@ -26,6 +28,8 @@ export default function SelectMethodStep({
   onMethodChange,
   onBack,
   onNext,
+  onSaveDraft,
+  isSubmitting,
 }: SelectMethodStepProps) {
   return (
     <Box>
@@ -92,12 +96,27 @@ export default function SelectMethodStep({
             </Button>
 
             <HStack gap="4" flexWrap="wrap" >
-              <Button variant="outline" py={3} px={5}>
+              <Button
+                variant="outline"
+                py={3}
+                px={5}
+                onClick={() => {
+                  void onSaveDraft();
+                }}
+                loading={isSubmitting}
+              >
                 <FiFileText />
                 Save as Draft
               </Button>
 
-              <Button onClick={onNext} py={3} px={5}>
+              <Button
+                onClick={() => {
+                  void onNext();
+                }}
+                py={3}
+                px={5}
+                loading={isSubmitting}
+              >
                 Continue <FiArrowRight />
               </Button>
             </HStack>

@@ -1,5 +1,18 @@
 "use client";
 
+import { toaster } from "@/components/ui/toaster";
+import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
+import { getStoredCreatorId } from "@/lib/creatorIdentity";
+import {
+  completeQuestionStep,
+  deleteSurveyQuestion,
+  getSurveyQuestions,
+  createManualQuestion,
+  updateManualQuestion,
+  type CreateManualQuestionPayload,
+  type SurveyQuestion,
+  type SurveyQuestionType,
+} from "@/services/creatorSurveyService";
 import {
   Box,
   Button,
@@ -12,7 +25,7 @@ import {
   Textarea,
   VStack,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FiAlignLeft,
   FiArrowLeft,
@@ -31,16 +44,17 @@ import {
   FiUnderline,
 } from "react-icons/fi";
 
-import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-
 type QuestionType = "multiple-choice" | "single-choice" | "short-answer" | "rating-scale";
 
 type ManualQuestion = {
   id: string;
+  savedQuestionId?: string | null;
   questionText: string;
   questionType: QuestionType;
   options: string[];
   required: boolean;
+  isSaved: boolean;
+  hasChanges: boolean;
 };
 
 type CreateQuestionsManualStepProps = {
@@ -62,8 +76,193 @@ const initialQuestions: ManualQuestion[] = [
     questionType: "multiple-choice",
     options: ["", ""],
     required: false,
+    isSaved: false,
+    hasChanges: true,
   },
 ];
+
+const manualQuestionsStoragePrefix = "creatorManualQuestions";
+
+function getStoredDraftId() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage.getItem("creatorSurveyDraftId");
+}
+
+function getStoredManualQuestions(surveyId: string | null) {
+  if (typeof window === "undefined" || !surveyId) {
+    return null;
+  }
+
+  const stored = window.localStorage.getItem(
+    `${manualQuestionsStoragePrefix}:${surveyId}`
+  );
+
+  if (!stored) {
+    return null;
+  }
+
+  try {
+    const parsedQuestions = JSON.parse(stored) as Partial<ManualQuestion>[];
+
+    return parsedQuestions.map((question) => {
+      const inferredSavedQuestionId =
+        typeof question.savedQuestionId === "string" && question.savedQuestionId
+          ? question.savedQuestionId
+          : typeof question.id === "string" && question.id.startsWith("saved-")
+            ? question.id.replace(/^saved-/, "")
+            : null;
+
+      const isSaved = Boolean(
+        question.isSaved || inferredSavedQuestionId
+      );
+
+      return {
+        id:
+          typeof question.id === "string" && question.id
+            ? question.id
+            : crypto.randomUUID(),
+        savedQuestionId: inferredSavedQuestionId,
+        questionText:
+          typeof question.questionText === "string" ? question.questionText : "",
+        questionType:
+          question.questionType === "single-choice" ||
+          question.questionType === "short-answer" ||
+          question.questionType === "rating-scale"
+            ? question.questionType
+            : "multiple-choice",
+        options: Array.isArray(question.options)
+          ? question.options.filter(
+              (option): option is string => typeof option === "string"
+            )
+          : [],
+        required: Boolean(question.required),
+        isSaved,
+        hasChanges: Boolean(question.hasChanges) && !isSaved ? true : Boolean(question.hasChanges),
+      } satisfies ManualQuestion;
+    });
+  } catch {
+    return null;
+  }
+}
+
+function persistManualQuestions(surveyId: string | null, questions: ManualQuestion[]) {
+  if (typeof window === "undefined" || !surveyId) {
+    return;
+  }
+
+  window.localStorage.setItem(
+    `${manualQuestionsStoragePrefix}:${surveyId}`,
+    JSON.stringify(questions)
+  );
+}
+
+function updateStoredDraftStep(surveyId: string, currentStep: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const storedDraft = window.localStorage.getItem("creatorSurveyDraft");
+
+  if (!storedDraft) {
+    return;
+  }
+
+  try {
+    const parsedDraft = JSON.parse(storedDraft) as Record<string, unknown>;
+
+    if (parsedDraft.id !== surveyId) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      "creatorSurveyDraft",
+      JSON.stringify({
+        ...parsedDraft,
+        currentStep,
+      })
+    );
+  } catch {
+    // Ignore malformed local draft payloads.
+  }
+}
+
+function toSurveyQuestionType(questionType: QuestionType): SurveyQuestionType {
+  if (questionType === "multiple-choice") {
+    return "MULTIPLE_CHOICE";
+  }
+
+  if (questionType === "single-choice") {
+    return "SINGLE_SELECT";
+  }
+
+  if (questionType === "short-answer") {
+    return "SHORT_ANSWER";
+  }
+
+  return "RATING_SCALE";
+}
+
+function toManualQuestionType(questionType: SurveyQuestionType): QuestionType {
+  if (questionType === "MULTIPLE_CHOICE") {
+    return "multiple-choice";
+  }
+
+  if (questionType === "SINGLE_SELECT") {
+    return "single-choice";
+  }
+
+  if (questionType === "SHORT_ANSWER" || questionType === "LONG_ANSWER") {
+    return "short-answer";
+  }
+
+  return "rating-scale";
+}
+
+function toManualQuestion(question: SurveyQuestion): ManualQuestion {
+  return {
+    id: `saved-${question.id}`,
+    savedQuestionId: question.id,
+    questionText: question.questionText,
+    questionType: toManualQuestionType(question.type),
+    options: question.options.map((option) => option.optionText),
+    required: question.isRequired,
+    isSaved: true,
+    hasChanges: false,
+  };
+}
+
+function validateQuestion(question: ManualQuestion) {
+  if (!question.questionText.trim()) {
+    return "Each question needs question text.";
+  }
+
+  const isOptionBased =
+    question.questionType === "multiple-choice" ||
+    question.questionType === "single-choice";
+
+  if (!isOptionBased) {
+    return null;
+  }
+
+  const trimmedOptions = question.options.map((option) => option.trim());
+
+  if (trimmedOptions.length < 2) {
+    return "Choice questions need at least two options.";
+  }
+
+  if (trimmedOptions.some((option) => !option)) {
+    return "Choice question options cannot be empty.";
+  }
+
+  if (trimmedOptions.length > 20) {
+    return "A question can have at most 20 options.";
+  }
+
+  return null;
+}
 
 function ToolbarButton({
   label,
@@ -399,24 +598,97 @@ export default function CreateQuestionsManualStep({
   onBack,
   onNext,
 }: CreateQuestionsManualStepProps) {
+  const creatorId = getStoredCreatorId();
+  const surveyId = getStoredDraftId();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [sectionTitle, setSectionTitle] = useState("Survey Basic Information");
   const [sectionDescription, setSectionDescription] = useState(
     "Create your survey questions manually. Add question types, options, and required fields."
   );
-  const [questions, setQuestions] =
-    useState<ManualQuestion[]>(initialQuestions);
+  const [questions, setQuestions] = useState<ManualQuestion[]>(
+    () => getStoredManualQuestions(surveyId) || initialQuestions
+  );
+
+  useEffect(() => {
+    if (!creatorId || !surveyId) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadSurveyQuestions = async () => {
+      try {
+        setIsLoadingQuestions(true);
+        const response = await getSurveyQuestions(creatorId, surveyId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const savedQuestions = response.questions.map(toManualQuestion);
+
+        setQuestions((currentQuestions) => {
+          const unsavedQuestions = currentQuestions.filter(
+            (question) => !question.isSaved && !question.savedQuestionId
+          );
+          const nextQuestions =
+            savedQuestions.length > 0
+              ? [...savedQuestions, ...unsavedQuestions]
+              : unsavedQuestions.length > 0
+                ? unsavedQuestions
+                : initialQuestions;
+
+          persistManualQuestions(surveyId, nextQuestions);
+          return nextQuestions;
+        });
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        toaster.create({
+          type: "error",
+          title: "Could not load survey questions",
+          description:
+            error instanceof Error ? error.message : "Please try again in a moment.",
+        });
+      } finally {
+        if (isMounted) {
+          setIsLoadingQuestions(false);
+        }
+      }
+    };
+
+    void loadSurveyQuestions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [creatorId, surveyId]);
 
   const updateQuestion = (
     questionId: string,
     changes: Partial<ManualQuestion>
   ) => {
-    setQuestions((currentQuestions) =>
-      currentQuestions.map((question) =>
-        question.id === questionId ? { ...question, ...changes } : question
-      )
-    );
+    setQuestions((currentQuestions) => {
+      const nextQuestions = currentQuestions.map((question) =>
+        question.id === questionId
+          ? question.isSaved
+            ? { ...question, ...changes, hasChanges: true }
+            : {
+                ...question,
+                ...changes,
+                isSaved: false,
+                savedQuestionId: null,
+                hasChanges: true,
+              }
+          : question
+      );
+      persistManualQuestions(surveyId, nextQuestions);
+      return nextQuestions;
+    });
   };
-
 
   const duplicateQuestion = (questionId: string) => {
     const questionToDuplicate = questions.find(
@@ -425,22 +697,90 @@ export default function CreateQuestionsManualStep({
 
     if (!questionToDuplicate) return;
 
-    setQuestions((currentQuestions) => [
-      ...currentQuestions,
-      {
-        ...questionToDuplicate,
-        id: crypto.randomUUID(),
-        questionText: `${questionToDuplicate.questionText} Copy`,
-      },
-    ]);
+    setQuestions((currentQuestions) => {
+      const nextQuestions = [
+        ...currentQuestions,
+        {
+          ...questionToDuplicate,
+          id: crypto.randomUUID(),
+          savedQuestionId: null,
+          questionText: `${questionToDuplicate.questionText} Copy`,
+          isSaved: false,
+          hasChanges: true,
+        },
+      ];
+      persistManualQuestions(surveyId, nextQuestions);
+      return nextQuestions;
+    });
   };
 
-  const deleteQuestion = (questionId: string) => {
-    if (questions.length === 1) return;
+  const deleteQuestion = async (questionId: string) => {
+    const question = questions.find((item) => item.id === questionId);
 
-    setQuestions((currentQuestions) =>
-      currentQuestions.filter((question) => question.id !== questionId)
-    );
+    if (!question) {
+      return;
+    }
+
+    if (!question.isSaved) {
+      setQuestions((currentQuestions) => {
+        const nextQuestions = currentQuestions.filter(
+          (currentQuestion) => currentQuestion.id !== questionId
+        );
+        persistManualQuestions(surveyId, nextQuestions);
+        return nextQuestions;
+      });
+      return;
+    }
+
+    if (!creatorId) {
+      toaster.create({
+        type: "error",
+        title: "Creator not found",
+        description: "Please log in again to continue editing your survey.",
+      });
+      return;
+    }
+
+    if (!surveyId || !question.savedQuestionId) {
+      toaster.create({
+        type: "error",
+        title: "Question could not be deleted",
+        description: "The saved question reference is missing.",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await deleteSurveyQuestion(
+        creatorId,
+        surveyId,
+        question.savedQuestionId
+      );
+
+      setQuestions((currentQuestions) => {
+        const nextQuestions = currentQuestions.filter(
+          (currentQuestion) => currentQuestion.id !== questionId
+        );
+        persistManualQuestions(surveyId, nextQuestions);
+        return nextQuestions;
+      });
+
+      toaster.create({
+        type: "success",
+        title: "Question deleted",
+        description: response.message,
+      });
+    } catch (error) {
+      toaster.create({
+        type: "error",
+        title: "Could not delete question",
+        description:
+          error instanceof Error ? error.message : "Please try again in a moment.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const changeQuestionType = (
@@ -457,13 +797,21 @@ export default function CreateQuestionsManualStep({
   };
 
   const addOption = (questionId: string) => {
-    setQuestions((currentQuestions) =>
-      currentQuestions.map((question) =>
+    setQuestions((currentQuestions) => {
+      const nextQuestions = currentQuestions.map((question) =>
         question.id === questionId
-          ? { ...question, options: [...question.options, ""] }
+          ? {
+              ...question,
+              options: [...question.options, ""],
+              isSaved: question.isSaved,
+              savedQuestionId: question.savedQuestionId ?? null,
+              hasChanges: true,
+            }
           : question
-      )
-    );
+      );
+      persistManualQuestions(surveyId, nextQuestions);
+      return nextQuestions;
+    });
   };
 
   const updateOption = (
@@ -471,33 +819,242 @@ export default function CreateQuestionsManualStep({
     optionIndex: number,
     value: string
   ) => {
-    setQuestions((currentQuestions) =>
-      currentQuestions.map((question) =>
+    setQuestions((currentQuestions) => {
+      const nextQuestions = currentQuestions.map((question) =>
         question.id === questionId
           ? {
               ...question,
               options: question.options.map((option, index) =>
                 index === optionIndex ? value : option
               ),
+              isSaved: question.isSaved,
+              savedQuestionId: question.savedQuestionId ?? null,
+              hasChanges: true,
             }
           : question
-      )
-    );
+      );
+      persistManualQuestions(surveyId, nextQuestions);
+      return nextQuestions;
+    });
   };
 
   const removeOption = (questionId: string, optionIndex: number) => {
-    setQuestions((currentQuestions) =>
-      currentQuestions.map((question) =>
+    setQuestions((currentQuestions) => {
+      const nextQuestions = currentQuestions.map((question) =>
         question.id === questionId
           ? {
               ...question,
               options: question.options.filter(
                 (_, index) => index !== optionIndex
               ),
+              isSaved: question.isSaved,
+              savedQuestionId: question.savedQuestionId ?? null,
+              hasChanges: true,
             }
           : question
-      )
+      );
+      persistManualQuestions(surveyId, nextQuestions);
+      return nextQuestions;
+    });
+  };
+
+  const addQuestion = () => {
+    setQuestions((currentQuestions) => {
+      const nextQuestion: ManualQuestion = {
+        id: crypto.randomUUID(),
+        savedQuestionId: null,
+        questionText: "",
+        questionType: "multiple-choice",
+        options: ["", ""],
+        required: true,
+        isSaved: false,
+        hasChanges: true,
+      };
+
+      const nextQuestions: ManualQuestion[] = [
+        ...currentQuestions,
+        nextQuestion,
+      ];
+      persistManualQuestions(surveyId, nextQuestions);
+      return nextQuestions;
+    });
+  };
+
+  const saveQuestions = async (advanceToNextStep: boolean) => {
+    if (!creatorId) {
+      toaster.create({
+        type: "error",
+        title: "Creator not found",
+        description: "Please log in again to continue editing your survey.",
+      });
+      return;
+    }
+
+    if (!surveyId) {
+      toaster.create({
+        type: "error",
+        title: "Survey draft missing",
+        description: "Create and save the survey draft before adding questions.",
+      });
+      return;
+    }
+
+    const unsavedQuestions = questions.filter((question) => !question.isSaved);
+    const changedSavedQuestions = questions.filter(
+      (question) =>
+        question.isSaved && question.hasChanges && Boolean(question.savedQuestionId)
     );
+
+    for (const question of [...unsavedQuestions, ...changedSavedQuestions]) {
+      const validationMessage = validateQuestion(question);
+
+      if (validationMessage) {
+        toaster.create({
+          type: "error",
+          title: `${questionTypeLabels[question.questionType]} is incomplete`,
+          description: validationMessage,
+        });
+        return;
+      }
+    }
+
+    if (unsavedQuestions.length === 0 && changedSavedQuestions.length === 0) {
+      if (advanceToNextStep) {
+        try {
+          setIsSubmitting(true);
+          const response = await completeQuestionStep(creatorId, surveyId);
+          updateStoredDraftStep(surveyId, response.survey.currentStep);
+
+          toaster.create({
+            type: "success",
+            title: "Question step completed",
+            description: response.message,
+          });
+
+          onNext();
+        } catch (error) {
+          toaster.create({
+            type: "error",
+            title: "Could not continue",
+            description:
+              error instanceof Error
+                ? error.message
+                : "Please try again in a moment.",
+          });
+        } finally {
+          setIsSubmitting(false);
+        }
+      } else {
+        toaster.create({
+          type: "info",
+          title: "No new questions to save",
+        });
+      }
+
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const savedQuestionIds = new Map<string, string>();
+
+      for (const question of unsavedQuestions) {
+        const payload: CreateManualQuestionPayload = {
+          creatorId,
+          surveyId,
+          questionText: question.questionText.trim(),
+          type: toSurveyQuestionType(question.questionType),
+          isRequired: question.required,
+        };
+
+        const isOptionBased =
+          question.questionType === "multiple-choice" ||
+          question.questionType === "single-choice";
+
+        if (isOptionBased) {
+          payload.options = question.options.map((option) => ({
+            optionText: option.trim(),
+          }));
+        }
+
+        const response = await createManualQuestion(payload);
+        savedQuestionIds.set(question.id, response.question.id);
+      }
+
+      for (const question of changedSavedQuestions) {
+        const isOptionBased =
+          question.questionType === "multiple-choice" ||
+          question.questionType === "single-choice";
+
+        await updateManualQuestion({
+          creatorId,
+          surveyId,
+          questionId: question.savedQuestionId as string,
+          questionText: question.questionText.trim(),
+          type: toSurveyQuestionType(question.questionType),
+          isRequired: question.required,
+          options: isOptionBased
+            ? question.options.map((option) => ({
+                optionText: option.trim(),
+              }))
+            : [],
+        });
+      }
+
+      const latestQuestionsResponse = await getSurveyQuestions(creatorId, surveyId);
+      const refreshedSavedQuestions = latestQuestionsResponse.questions.map(
+        toManualQuestion
+      );
+
+      setQuestions((currentQuestions) => {
+        const unsavedQuestionsAfterSave = currentQuestions.filter(
+          (question) =>
+            !question.isSaved &&
+            !savedQuestionIds.has(question.id) &&
+            !question.savedQuestionId
+        );
+        const nextQuestions =
+          refreshedSavedQuestions.length > 0
+            ? [...refreshedSavedQuestions, ...unsavedQuestionsAfterSave]
+            : unsavedQuestionsAfterSave.length > 0
+              ? unsavedQuestionsAfterSave
+              : initialQuestions;
+        persistManualQuestions(surveyId, nextQuestions);
+        return nextQuestions;
+      });
+
+      toaster.create({
+        type: "success",
+        title: advanceToNextStep ? "Questions saved" : "Draft updated",
+        description:
+          changedSavedQuestions.length > 0
+            ? "Manual questions updated successfully"
+            : "Manual questions saved successfully",
+      });
+
+      if (advanceToNextStep) {
+        const completionResponse = await completeQuestionStep(creatorId, surveyId);
+        updateStoredDraftStep(surveyId, completionResponse.survey.currentStep);
+
+        toaster.create({
+          type: "success",
+          title: "Question step completed",
+          description: completionResponse.message,
+        });
+
+        onNext();
+      }
+    } catch (error) {
+      toaster.create({
+        type: "error",
+        title: "Could not save questions",
+        description:
+          error instanceof Error ? error.message : "Please try again in a moment.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -594,7 +1151,9 @@ export default function CreateQuestionsManualStep({
               removeOption(question.id, optionIndex)
             }
             onDuplicate={() => duplicateQuestion(question.id)}
-            onDelete={() => deleteQuestion(question.id)}
+            onDelete={() => {
+              void deleteQuestion(question.id);
+            }}
             onToggleRequired={() =>
               updateQuestion(question.id, { required: !question.required })
             }
@@ -602,6 +1161,15 @@ export default function CreateQuestionsManualStep({
         ))}
       </VStack>
 
+      <Button
+        mt="5"
+        variant="outline"
+        onClick={addQuestion}
+        borderStyle="dashed"
+      >
+        <FiPlus />
+        Add Another Question
+      </Button>
 
       <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr 1fr" }} gap="4" mt="5">
         <Button h="46px" variant="outline" onClick={onBack}>
@@ -609,12 +1177,26 @@ export default function CreateQuestionsManualStep({
           Back to Select Method
         </Button>
 
-        <Button h="46px" variant="outline">
+        <Button
+          h="46px"
+          variant="outline"
+          onClick={() => {
+            void saveQuestions(false);
+          }}
+          loading={isSubmitting || isLoadingQuestions}
+        >
           <FiFileText />
           Save as Draft
         </Button>
 
-        <Button h="46px" color="white" onClick={onNext}>
+        <Button
+          h="46px"
+          color="white"
+          onClick={() => {
+            void saveQuestions(true);
+          }}
+          loading={isSubmitting || isLoadingQuestions}
+        >
           Continue to Target Audience
           <FiArrowRight />
         </Button>

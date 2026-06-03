@@ -8,7 +8,6 @@ import {
   Input,
   NativeSelect,
   Text,
-  Textarea,
   VStack,
 } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
@@ -21,20 +20,124 @@ import {
   FiInfo,
   FiSave,
   FiShield,
-  FiStar,
   FiUsers,
 } from "react-icons/fi";
 import type { ReactNode } from "react";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
+import { toaster } from "@/components/ui/toaster";
+import { getStoredCreatorId } from "@/lib/creatorIdentity";
+import {
+  setSampleBudget,
+  type BudgetBreakdown,
+  type SetSampleBudgetPayload,
+} from "@/services/creatorSurveyService";
 
 type SampleBudgetStepProps = {
   onBack: () => void;
   onNext: () => void;
 };
 
+type BudgetInputMode = "TOTAL_BUDGET" | "PER_PARTICIPANT";
+
+type SampleBudgetFormValues = {
+  inputMode: BudgetInputMode;
+  requiredResponses: string;
+  totalBudget: string;
+  rewardPerParticipant: string;
+};
+
+const sampleBudgetStorageKey = "creatorSampleBudget";
+const PLATFORM_COMMISSION_PERCENTAGE = 10;
+const MINIMUM_REWARD_PER_PARTICIPANT = 10;
+
+const initialValues: SampleBudgetFormValues = {
+  inputMode: "TOTAL_BUDGET",
+  requiredResponses: "500",
+  totalBudget: "100000",
+  rewardPerParticipant: "180",
+};
+
+function getStoredDraftId() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage.getItem("creatorSurveyDraftId");
+}
+
+function getStoredSampleBudget(surveyId: string | null) {
+  if (typeof window === "undefined" || !surveyId) {
+    return null;
+  }
+
+  const stored = window.localStorage.getItem(
+    `${sampleBudgetStorageKey}:${surveyId}`
+  );
+
+  if (!stored) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(stored) as SampleBudgetFormValues & {
+      budgetBreakdown?: BudgetBreakdown;
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistSampleBudget(
+  surveyId: string | null,
+  values: SampleBudgetFormValues,
+  budgetBreakdown?: BudgetBreakdown
+) {
+  if (typeof window === "undefined" || !surveyId) {
+    return;
+  }
+
+  window.localStorage.setItem(
+    `${sampleBudgetStorageKey}:${surveyId}`,
+    JSON.stringify({
+      ...values,
+      budgetBreakdown,
+    })
+  );
+}
+
+function updateStoredDraftStep(surveyId: string, currentStep: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const storedDraft = window.localStorage.getItem("creatorSurveyDraft");
+
+  if (!storedDraft) {
+    return;
+  }
+
+  try {
+    const parsedDraft = JSON.parse(storedDraft) as Record<string, unknown>;
+
+    if (parsedDraft.id !== surveyId) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      "creatorSurveyDraft",
+      JSON.stringify({
+        ...parsedDraft,
+        currentStep,
+      })
+    );
+  } catch {
+    // Ignore malformed local draft payloads.
+  }
+}
+
 function parseNumber(value: string) {
-  const cleanedValue = value.replace(/,/g, "");
+  const cleanedValue = value.replace(/,/g, "").trim();
   const numberValue = Number(cleanedValue);
 
   if (Number.isNaN(numberValue)) {
@@ -44,8 +147,11 @@ function parseNumber(value: string) {
   return numberValue;
 }
 
-function formatLKR(value: number) {
-  return value.toLocaleString("en-LK");
+function formatCurrency(value: number) {
+  return value.toLocaleString("en-LK", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 }
 
 function BudgetCalculatorCard({
@@ -170,27 +276,72 @@ export default function SampleBudgetStep({
   onBack,
   onNext,
 }: SampleBudgetStepProps) {
-  const [requiredResponses, setRequiredResponses] = useState("500");
-  const [totalBudget, setTotalBudget] = useState("100,000");
-  const [commissionRate, setCommissionRate] = useState("15");
-  const [rewardDistribution, setRewardDistribution] = useState(
-    "Equal reward per participant"
+  const creatorId = getStoredCreatorId();
+  const surveyId = getStoredDraftId();
+  const storedSampleBudget = getStoredSampleBudget(surveyId);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formValues, setFormValues] = useState<SampleBudgetFormValues>(
+    storedSampleBudget
+      ? {
+          inputMode: storedSampleBudget.inputMode || initialValues.inputMode,
+          requiredResponses:
+            storedSampleBudget.requiredResponses || initialValues.requiredResponses,
+          totalBudget: storedSampleBudget.totalBudget || initialValues.totalBudget,
+          rewardPerParticipant:
+            storedSampleBudget.rewardPerParticipant ||
+            initialValues.rewardPerParticipant,
+        }
+      : initialValues
   );
-  const [budgetNotes, setBudgetNotes] = useState("");
+  const [serverBreakdown, setServerBreakdown] = useState<BudgetBreakdown | null>(
+    storedSampleBudget?.budgetBreakdown ?? null
+  );
 
   const calculations = useMemo(() => {
-    const responses = parseNumber(requiredResponses);
-    const budget = parseNumber(totalBudget);
-    const commissionPercentage = parseNumber(commissionRate);
+    if (serverBreakdown !== null) {
+      return {
+        inputMode: formValues.inputMode,
+        responses: serverBreakdown.requiredResponses,
+        budget: serverBreakdown.totalBudget,
+        commissionPercentage: serverBreakdown.platformCommissionPercentage,
+        commissionAmount: serverBreakdown.platformCommissionAmount,
+        participantRewardBudget: serverBreakdown.participantRewardBudget,
+        rewardPerParticipant: serverBreakdown.rewardPerParticipant,
+        participantRewardPercent: Math.max(
+          100 - serverBreakdown.platformCommissionPercentage,
+          0
+        ),
+      };
+    }
 
-    const commissionAmount = Math.round((budget * commissionPercentage) / 100);
-    const participantRewardBudget = Math.max(budget - commissionAmount, 0);
-    const rewardPerParticipant =
-      responses > 0 ? Math.floor(participantRewardBudget / responses) : 0;
+    const responses = parseNumber(formValues.requiredResponses);
+    const commissionPercentage = PLATFORM_COMMISSION_PERCENTAGE;
+
+    let budget = parseNumber(formValues.totalBudget);
+    let participantRewardBudget = 0;
+    let rewardPerParticipant = 0;
+
+    if (formValues.inputMode === "PER_PARTICIPANT") {
+      rewardPerParticipant = parseNumber(formValues.rewardPerParticipant);
+      participantRewardBudget = responses > 0 ? responses * rewardPerParticipant : 0;
+      budget =
+        participantRewardBudget > 0
+          ? participantRewardBudget / (1 - commissionPercentage / 100)
+          : 0;
+    } else {
+      const commissionAmountFromBudget = (budget * commissionPercentage) / 100;
+      participantRewardBudget = Math.max(budget - commissionAmountFromBudget, 0);
+      rewardPerParticipant =
+        responses > 0 ? participantRewardBudget / responses : 0;
+    }
+
+    const commissionAmount = Math.max(budget - participantRewardBudget, 0);
 
     const participantRewardPercent = Math.max(100 - commissionPercentage, 0);
 
     return {
+      inputMode: formValues.inputMode,
       responses,
       budget,
       commissionPercentage,
@@ -199,7 +350,104 @@ export default function SampleBudgetStep({
       rewardPerParticipant,
       participantRewardPercent,
     };
-  }, [requiredResponses, totalBudget, commissionRate]);
+  }, [formValues, serverBreakdown]);
+
+  const minimumRewardError =
+    calculations.responses > 0 &&
+    calculations.rewardPerParticipant > 0 &&
+    calculations.rewardPerParticipant < MINIMUM_REWARD_PER_PARTICIPANT
+      ? `Minimum reward per participant is Rs ${MINIMUM_REWARD_PER_PARTICIPANT}.`
+      : null;
+
+  const setFieldValue = <K extends keyof SampleBudgetFormValues>(
+    field: K,
+    value: SampleBudgetFormValues[K]
+  ) => {
+    setServerBreakdown(null);
+    setFormValues((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const buildPayload = (): SetSampleBudgetPayload | string => {
+    if (!creatorId) {
+      return "Creator id was not found. Please log in again.";
+    }
+
+    if (!surveyId) {
+      return "Survey draft was not found. Please complete the previous steps first.";
+    }
+
+    const requiredResponses = Number(formValues.requiredResponses.trim());
+    const totalBudget = calculations.budget;
+
+    if (!Number.isFinite(requiredResponses) || requiredResponses <= 0) {
+      return "Required responses must be greater than 0.";
+    }
+
+    if (!Number.isFinite(totalBudget) || totalBudget <= 0) {
+      return "Total budget must be greater than 0.";
+    }
+
+    if (
+      !Number.isFinite(calculations.rewardPerParticipant) ||
+      calculations.rewardPerParticipant < MINIMUM_REWARD_PER_PARTICIPANT
+    ) {
+      return `Minimum reward per participant is Rs ${MINIMUM_REWARD_PER_PARTICIPANT}.`;
+    }
+
+    const payload: SetSampleBudgetPayload = {
+      creatorId,
+      surveyId,
+      requiredResponses,
+      totalBudget,
+      platformCommissionPercentage: PLATFORM_COMMISSION_PERCENTAGE,
+      currency: "LKR",
+    };
+
+    return payload;
+  };
+
+  const submitSampleBudget = async (advanceToNextStep: boolean) => {
+    const payload = buildPayload();
+
+    if (typeof payload === "string") {
+      toaster.create({
+        type: "error",
+        title: "Sample budget is incomplete",
+        description: payload,
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await setSampleBudget(payload);
+      setServerBreakdown(response.budgetBreakdown);
+      persistSampleBudget(payload.surveyId, formValues, response.budgetBreakdown);
+      updateStoredDraftStep(payload.surveyId, response.survey.currentStep);
+
+      toaster.create({
+        type: "success",
+        title: advanceToNextStep ? "Sample budget saved" : "Draft updated",
+        description: response.message,
+      });
+
+      if (advanceToNextStep) {
+        onNext();
+      }
+    } catch (error) {
+      toaster.create({
+        type: "error",
+        title: "Could not save sample budget",
+        description:
+          error instanceof Error ? error.message : "Please try again in a moment.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Box>
@@ -218,9 +466,9 @@ export default function SampleBudgetStep({
           </Box>
 
           <Text fontSize="sm" color="brand.mutedText">
-            Define the number of required responses, total budget, and platform
-            commission to estimate participant rewards before launching your
-            survey.
+            Define the required responses and budget approach to estimate
+            participant rewards before launching your survey. Platform
+            commission is fixed at 10%.
           </Text>
         </HStack>
       </Box>
@@ -240,13 +488,47 @@ export default function SampleBudgetStep({
             <VStack align="stretch" gap="5">
               <Box>
                 <Text fontSize="sm" fontWeight="semibold" mb="2">
+                  Budget Calculation Method
+                </Text>
+
+                <NativeSelect.Root>
+                  <NativeSelect.Field
+                    value={formValues.inputMode}
+                    onChange={(event) =>
+                      setFieldValue(
+                        "inputMode",
+                        event.target.value as BudgetInputMode
+                      )
+                    }
+                    h="46px"
+                    borderColor="brand.border"
+                    px={3}
+                  >
+                    <option value="TOTAL_BUDGET">Total budget</option>
+                    <option value="PER_PARTICIPANT">
+                      Amount per participant
+                    </option>
+                  </NativeSelect.Field>
+                  <NativeSelect.Indicator />
+                </NativeSelect.Root>
+
+                <Text fontSize="sm" color="brand.mutedText" mt="2">
+                  Choose whether you want to calculate from the full campaign
+                  budget or from the participant payout amount.
+                </Text>
+              </Box>
+
+              <Box>
+                <Text fontSize="sm" fontWeight="semibold" mb="2">
                   Required Number of Responses
                 </Text>
 
                 <Input
                   type="number"
-                  value={requiredResponses}
-                  onChange={(event) => setRequiredResponses(event.target.value)}
+                  value={formValues.requiredResponses}
+                  onChange={(event) =>
+                    setFieldValue("requiredResponses", event.target.value)
+                  }
                   h="46px"
                   borderColor="brand.border"
                   px="4"
@@ -263,12 +545,25 @@ export default function SampleBudgetStep({
 
               <Box>
                 <Text fontSize="sm" fontWeight="semibold" mb="2">
-                  Total Budget (LKR)
+                  {formValues.inputMode === "TOTAL_BUDGET"
+                    ? "Total Budget (LKR)"
+                    : "Amount per Participant (LKR)"}
                 </Text>
 
                 <Input
-                  value={totalBudget}
-                  onChange={(event) => setTotalBudget(event.target.value)}
+                  value={
+                    formValues.inputMode === "TOTAL_BUDGET"
+                      ? formValues.totalBudget
+                      : formValues.rewardPerParticipant
+                  }
+                  onChange={(event) =>
+                    setFieldValue(
+                      formValues.inputMode === "TOTAL_BUDGET"
+                        ? "totalBudget"
+                        : "rewardPerParticipant",
+                      event.target.value
+                    )
+                  }
                   h="46px"
                   borderColor="brand.border"
                   px="4"
@@ -279,101 +574,16 @@ export default function SampleBudgetStep({
                 />
 
                 <Text fontSize="sm" color="brand.mutedText" mt="2">
-                  The total amount you plan to spend for this survey.
-                </Text>
-              </Box>
-
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
-                  Platform Commission (%)
+                  {formValues.inputMode === "TOTAL_BUDGET"
+                    ? "The total amount you plan to spend for this survey."
+                    : "The amount each participant should receive after platform commission is excluded."}
                 </Text>
 
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={commissionRate}
-                    onChange={(event) => setCommissionRate(event.target.value)}
-                    h="46px"
-                    borderColor="brand.border"
-                    px={3}
-                  >
-                    <option value="10">10%</option>
-                    <option value="15">15%</option>
-                    <option value="20">20%</option>
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator />
-                </NativeSelect.Root>
-
-                <Text fontSize="sm" color="brand.mutedText" mt="2">
-                  Commission retained by the platform before participant rewards
-                  are allocated.
-                </Text>
-              </Box>
-
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
-                  Reward Distribution
-                </Text>
-
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={rewardDistribution}
-                    onChange={(event) =>
-                      setRewardDistribution(event.target.value)
-                    }
-                    h="46px"
-                    borderColor="brand.border"
-                    px={3}
-                  >
-                    <option value="Equal reward per participant">
-                      Equal reward per participant
-                    </option>
-                    <option value="Higher reward for verified users">
-                      Higher reward for verified users
-                    </option>
-                    <option value="Manual reward allocation">
-                      Manual reward allocation
-                    </option>
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator />
-                </NativeSelect.Root>
-
-                <Text fontSize="sm" color="brand.mutedText" mt="2">
-                  How rewards will be distributed among participants.
-                </Text>
-              </Box>
-
-              <Box>
-                <HStack justify="space-between" mb="2">
-                  <Text fontSize="sm" fontWeight="semibold">
-                    Budget Notes{" "}
-                    <Text as="span" color="brand.mutedText" fontWeight="normal">
-                      Optional
-                    </Text>
+                {minimumRewardError && (
+                  <Text fontSize="sm" color="red.500" mt="2" fontWeight="medium">
+                    {minimumRewardError}
                   </Text>
-
-                  <Text fontSize="xs" color="brand.mutedText">
-                    {budgetNotes.length} / 250
-                  </Text>
-                </HStack>
-
-                <Textarea
-                  value={budgetNotes}
-                  px={3}
-                  py={3}
-                  onChange={(event) => {
-                    if (event.target.value.length <= 250) {
-                      setBudgetNotes(event.target.value);
-                    }
-                  }}
-                  placeholder="Add any notes about your budget or campaign..."
-                  minH="74px"
-                  resize="none"
-                  borderColor="brand.border"
-                  _focus={{
-                    borderColor: "brand.primary",
-                    boxShadow: "0 0 0 1px #0015D6",
-                  }}
-                />
+                )}
               </Box>
             </VStack>
           </Box>
@@ -387,7 +597,7 @@ export default function SampleBudgetStep({
               <BudgetCalculatorCard
                 icon={<FiUsers />}
                 label="Total Budget"
-                value={`LKR ${formatLKR(calculations.budget)}`}
+                value={`LKR ${formatCurrency(calculations.budget)}`}
               />
 
               <BudgetCalculatorCard
@@ -399,29 +609,25 @@ export default function SampleBudgetStep({
               <BudgetCalculatorCard
                 icon={<FiFileText />}
                 label="Commission Amount"
-                value={`LKR ${formatLKR(calculations.commissionAmount)}`}
+                value={`LKR ${formatCurrency(calculations.commissionAmount)}`}
               />
 
               <BudgetCalculatorCard
                 icon={<FiGift />}
                 label="Budget for Participant Rewards"
-                value={`LKR ${formatLKR(
-                  calculations.participantRewardBudget
-                )}`}
+                value={`LKR ${formatCurrency(calculations.participantRewardBudget)}`}
               />
 
               <BudgetCalculatorCard
                 icon={<FiUsers />}
                 label="Required Responses"
-                value={formatLKR(calculations.responses)}
+                value={formatCurrency(calculations.responses)}
               />
 
               <BudgetCalculatorCard
                 icon={<FiGift />}
                 label="Reward per Participant"
-                value={`LKR ${formatLKR(
-                  calculations.rewardPerParticipant
-                )}`}
+                value={`LKR ${formatCurrency(calculations.rewardPerParticipant)}`}
                 highlighted
               />
             </Grid>
@@ -437,8 +643,9 @@ export default function SampleBudgetStep({
               fontWeight="semibold"
               textAlign="center"
             >
-              (Total Budget - Commission Amount) / Required Responses = Reward
-              per Participant
+              {formValues.inputMode === "TOTAL_BUDGET"
+                ? "(Total Budget - Commission Amount) / Required Responses = Reward per Participant"
+                : "(Required Responses x Amount per Participant) + 10% platform commission = Total Budget"}
             </Box>
 
             <Box mt="5">
@@ -448,20 +655,20 @@ export default function SampleBudgetStep({
                     Participant Rewards
                   </Text>
 
-                  <Text fontSize="sm" color="green.600" fontWeight="bold" >
+                  <Text fontSize="sm" color="green.600" fontWeight="bold">
                     {calculations.participantRewardPercent}% (LKR{" "}
-                    {formatLKR(calculations.participantRewardBudget)})
+                    {formatCurrency(calculations.participantRewardBudget)})
                   </Text>
                 </Box>
 
                 <Box textAlign="right">
-                  <Text fontSize="sm" fontWeight="bold" color="brand.dark" >
+                  <Text fontSize="sm" fontWeight="bold" color="brand.dark">
                     Platform Commission
                   </Text>
 
-                  <Text fontSize="sm" color="purple.600" fontWeight="bold" >
+                  <Text fontSize="sm" color="purple.600" fontWeight="bold">
                     {calculations.commissionPercentage}% (LKR{" "}
-                    {formatLKR(calculations.commissionAmount)})
+                    {formatCurrency(calculations.commissionAmount)})
                   </Text>
                 </Box>
               </HStack>
@@ -494,7 +701,7 @@ export default function SampleBudgetStep({
               icon={<FiUsers />}
               title="Participant Rewards"
               percent={`${calculations.participantRewardPercent}%`}
-              amount={`LKR ${formatLKR(calculations.participantRewardBudget)}`}
+              amount={`LKR ${formatCurrency(calculations.participantRewardBudget)}`}
               color="green.500"
             />
 
@@ -502,14 +709,14 @@ export default function SampleBudgetStep({
               icon={<FiShield />}
               title="Platform Commission"
               percent={`${calculations.commissionPercentage}%`}
-              amount={`LKR ${formatLKR(calculations.commissionAmount)}`}
+              amount={`LKR ${formatCurrency(calculations.commissionAmount)}`}
               color="purple.500"
             />
 
             <BudgetBreakdownCard
               icon={<FiGlobe />}
-              title="Estimated Reach"
-              percent={formatLKR(calculations.responses)}
+              title="Required Responses"
+              percent={formatCurrency(calculations.responses)}
               amount="respondents"
               color="brand.primary"
             />
@@ -527,21 +734,6 @@ export default function SampleBudgetStep({
         py="4"
       >
         <HStack gap="4" align="start">
-          <Box
-            w="48px"
-            h="48px"
-            borderRadius="full"
-            bg="#EEF2FF"
-            color="brand.primary"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            fontSize="24px"
-            flexShrink="0"
-          >
-            <FiStar />
-          </Box>
-
           <Box>
             <Text fontWeight="bold" color="brand.dark">
               Campaign Recommendation
@@ -550,17 +742,25 @@ export default function SampleBudgetStep({
             <Text fontSize="sm" color="brand.mutedText" mt="1">
               Your current budget offers an estimated reward of{" "}
               <Text as="span" color="brand.primary" fontWeight="bold">
-                LKR {formatLKR(calculations.rewardPerParticipant)}
+                LKR {formatCurrency(calculations.rewardPerParticipant)}
               </Text>{" "}
               per participant for{" "}
               <Text as="span" color="brand.primary" fontWeight="bold">
-                {formatLKR(calculations.responses)} responses
+                {formatCurrency(calculations.responses)} responses
               </Text>
               .
             </Text>
 
             <Text fontSize="sm" color="brand.mutedText" mt="1">
-              This appears competitive for general customer feedback surveys.
+              Platform commission is fixed at{" "}
+              <Text as="span" color="brand.primary" fontWeight="bold">
+                {PLATFORM_COMMISSION_PERCENTAGE}%
+              </Text>{" "}
+              and each participant must receive at least{" "}
+              <Text as="span" color="brand.primary" fontWeight="bold">
+                Rs {MINIMUM_REWARD_PER_PARTICIPANT}
+              </Text>
+              .
             </Text>
           </Box>
         </HStack>
@@ -572,12 +772,26 @@ export default function SampleBudgetStep({
           Back to Target Audience
         </Button>
 
-        <Button h="46px" variant="outline">
+        <Button
+          h="46px"
+          variant="outline"
+          onClick={() => {
+            void submitSampleBudget(false);
+          }}
+          loading={isSubmitting}
+        >
           <FiSave />
           Save as Draft
         </Button>
 
-        <Button h="46px" color="white" onClick={onNext}>
+        <Button
+          h="46px"
+          color="white"
+          onClick={() => {
+            void submitSampleBudget(true);
+          }}
+          loading={isSubmitting}
+        >
           Continue
           <FiArrowRight />
         </Button>

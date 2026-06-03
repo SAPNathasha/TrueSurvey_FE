@@ -3,12 +3,14 @@
 import {
   Box,
   Button,
+  Flex,
   Grid,
   HStack,
+  Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiCheckSquare,
@@ -26,6 +28,12 @@ import {
 } from "react-icons/fi";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
+import { getStoredCreatorId } from "@/lib/creatorIdentity";
+import {
+  getSurveyPreview,
+  type SurveyPreviewQuestion,
+  type SurveyPreviewData,
+} from "@/services/creatorSurveyService";
 
 type PreviewSubmitStepProps = {
   onBack: () => void;
@@ -46,6 +54,119 @@ type QuestionOverviewItemProps = {
   tagBg: string;
   tagColor: string;
 };
+
+function getStoredDraftId() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage.getItem("creatorSurveyDraftId");
+}
+
+function toDisplayCategory(category: string) {
+  return category
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function toDisplayMethod(method: string | null) {
+  if (method === "AI_ASSISTED") {
+    return "AI-Assisted";
+  }
+
+  if (method === "MANUAL") {
+    return "Manual";
+  }
+
+  return "Not selected";
+}
+
+function toQuestionTypeMeta(questionType: string) {
+  if (questionType === "RATING_SCALE") {
+    return {
+      label: "Rating Scale",
+      bg: "#EAF2FF",
+      color: "#0015D6",
+    };
+  }
+
+  if (questionType === "MULTIPLE_CHOICE") {
+    return {
+      label: "Multiple Choice",
+      bg: "#F3E8FF",
+      color: "#6D28D9",
+    };
+  }
+
+  if (questionType === "SINGLE_SELECT") {
+    return {
+      label: "Single Choice",
+      bg: "#FFF7ED",
+      color: "#C2410C",
+    };
+  }
+
+  if (questionType === "SHORT_ANSWER" || questionType === "LONG_ANSWER") {
+    return {
+      label: "Short Answer",
+      bg: "#E7FBEF",
+      color: "#087A35",
+    };
+  }
+
+  if (questionType === "YES_NO") {
+    return {
+      label: "Yes / No",
+      bg: "#FCE7F3",
+      color: "#BE185D",
+    };
+  }
+
+  return {
+    label: "Question",
+    bg: "#E7FBEF",
+    color: "#087A35",
+  };
+}
+
+function formatAudience(audience: SurveyPreviewData["targetAudience"]) {
+  if (!audience) {
+    return "Not configured";
+  }
+
+  const parts: string[] = [];
+
+  if (audience.city) {
+    parts.push(audience.city);
+  }
+
+  if (audience.minimumAge !== null || audience.maximumAge !== null) {
+    parts.push(
+      `Age ${audience.minimumAge ?? 13}-${audience.maximumAge ?? 100}`
+    );
+  }
+
+  parts.push(
+    audience.sampleBase
+      .toLowerCase()
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ")
+  );
+
+  return parts.join(", ");
+}
+
+function formatMoney(value?: string | number | null) {
+  const numericValue = typeof value === "string" ? Number(value) : value ?? 0;
+
+  return `LKR ${numericValue.toLocaleString("en-LK", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 function DetailItem({ icon, label, value }: DetailItemProps) {
   return (
@@ -116,8 +237,201 @@ function QuestionOverviewItem({
   );
 }
 
+function QuestionPreview({
+  question,
+  index,
+}: {
+  question: SurveyPreviewQuestion;
+  index: number;
+}) {
+  const typeMeta = toQuestionTypeMeta(question.type);
+
+  return (
+    <Box
+      borderWidth="1px"
+      borderColor="brand.border"
+      borderRadius="12px"
+      p="5"
+    >
+      <HStack align="start" gap="4">
+        <Box
+          w="28px"
+          h="28px"
+          borderRadius="6px"
+          bg="brand.primary"
+          color="white"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          fontSize="sm"
+          fontWeight="bold"
+          flexShrink="0"
+        >
+          {index + 1}
+        </Box>
+
+        <Box flex="1">
+          <Text fontWeight="bold" color="brand.dark">
+            {question.questionText}
+          </Text>
+
+          <Text fontSize="sm" color="brand.mutedText" mt="2">
+            {typeMeta.label}
+            {question.isRequired ? " • Required" : " • Optional"}
+          </Text>
+
+          {question.type === "RATING_SCALE" && (
+            <>
+              <HStack justify="space-between" mt="5" maxW="620px">
+                {[1, 2, 3, 4, 5].map((number) => (
+                  <Box
+                    key={number}
+                    w="48px"
+                    h="48px"
+                    borderRadius="full"
+                    borderWidth="1px"
+                    borderColor="#BFD0FF"
+                    color="brand.primary"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    fontWeight="bold"
+                  >
+                    {number}
+                  </Box>
+                ))}
+              </HStack>
+            </>
+          )}
+
+          {question.type !== "RATING_SCALE" &&
+            question.options.length > 0 &&
+            question.options.map((option) => (
+              <HStack gap="3" mt="4" key={option.id}>
+                <Box
+                  w="18px"
+                  h="18px"
+                  borderRadius={
+                    question.type === "MULTIPLE_CHOICE" ? "4px" : "full"
+                  }
+                  borderWidth="1px"
+                  borderColor="brand.mutedText"
+                />
+                <Text fontSize="sm" color="brand.dark">
+                  {option.optionText}
+                </Text>
+              </HStack>
+            ))}
+
+          {question.type === "SHORT_ANSWER" && (
+            <Box
+              mt="4"
+              borderWidth="1px"
+              borderColor="brand.border"
+              borderRadius="10px"
+              p="3"
+              color="brand.mutedText"
+              fontSize="sm"
+            >
+              Participant will type a short answer here
+            </Box>
+          )}
+        </Box>
+      </HStack>
+    </Box>
+  );
+}
+
 export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
+  const creatorId = getStoredCreatorId();
+  const surveyId = getStoredDraftId();
   const [previewMode, setPreviewMode] = useState<PreviewMode>("desktop");
+  const missingDraftError =
+    !creatorId || !surveyId
+      ? "Survey draft was not found. Please complete the previous steps first."
+      : "";
+  const [isLoading, setIsLoading] = useState(Boolean(creatorId && surveyId));
+  const [error, setError] = useState(missingDraftError);
+  const [previewData, setPreviewData] = useState<SurveyPreviewData | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!creatorId || !surveyId) {
+      return;
+    }
+
+    getSurveyPreview(creatorId, surveyId)
+      .then((response) => {
+        if (isMounted) {
+          setPreviewData(response.survey);
+          setError("");
+        }
+      })
+      .catch((requestError) => {
+        if (isMounted) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Could not load survey preview"
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [creatorId, surveyId]);
+
+  const previewQuestions = useMemo(
+    () => previewData?.questions.slice(0, 2) ?? [],
+    [previewData]
+  );
+
+  if (isLoading) {
+    return (
+      <DashboardCard p="8">
+        <Flex align="center" justify="center" gap="3" minH="320px">
+          <Spinner color="brand.primary" />
+          <Text color="brand.mutedText">Loading survey preview...</Text>
+        </Flex>
+      </DashboardCard>
+    );
+  }
+
+  if (error || !previewData) {
+    return (
+      <DashboardCard p="8">
+        <Text fontWeight="bold" color="brand.dark">
+          We could not load the preview.
+        </Text>
+        <Text color="brand.mutedText" mt="2">
+          {error || "Please try again later."}
+        </Text>
+      </DashboardCard>
+    );
+  }
+
+  const audienceSummary = formatAudience(previewData.targetAudience);
+  const rewardPerParticipant = previewData.sampleBudget
+    ? formatMoney(previewData.sampleBudget.rewardPerParticipant)
+    : "Not configured";
+  const totalBudget = previewData.sampleBudget
+    ? formatMoney(previewData.sampleBudget.totalBudget)
+    : "Not configured";
+  const commission = previewData.sampleBudget
+    ? `${Number(previewData.sampleBudget.platformCommissionPercentage).toLocaleString(
+        "en-LK",
+        {
+          maximumFractionDigits: 2,
+        }
+      )}%`
+    : "Not configured";
 
   return (
     <Box>
@@ -223,22 +537,21 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
                 </Box>
 
                 <Text fontSize={{ base: "xl", lg: "2xl" }} fontWeight="bold">
-                  Customer Satisfaction Survey
+                  {previewData.title}
                 </Text>
 
                 <Text fontSize="sm" color="brand.mutedText" mt="2">
-                  We value your feedback! Please take a few minutes to share
-                  your experience with our services.
+                  {previewData.description}
                 </Text>
 
                 <HStack justify="center" gap="4" mt="4">
                   <Text fontSize="xs" color="brand.mutedText">
-                    Question 1 of 4
+                    Question 1 of {previewData.questions.length}
                   </Text>
 
                   <Box w="260px" h="5px" bg="#E5E7EB" borderRadius="999px">
                     <Box
-                      w="25%"
+                      w={previewData.questions.length > 0 ? `${100 / previewData.questions.length}%` : "0%"}
                       h="full"
                       bg="brand.primary"
                       borderRadius="999px"
@@ -247,118 +560,13 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
                 </HStack>
               </Box>
 
-              <Box
-                borderWidth="1px"
-                borderColor="brand.border"
-                borderRadius="12px"
-                p="5"
-              >
-                <HStack align="start" gap="4">
-                  <Box
-                    w="28px"
-                    h="28px"
-                    borderRadius="6px"
-                    bg="brand.primary"
-                    color="white"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    fontSize="sm"
-                    fontWeight="bold"
-                    flexShrink="0"
-                  >
-                    1
-                  </Box>
-
-                  <Box flex="1">
-                    <Text fontWeight="bold" color="brand.dark">
-                      How satisfied are you with your overall service?
-                    </Text>
-
-                    <Text fontSize="sm" color="brand.mutedText" mt="2">
-                      Please rate your experience on a scale of 1 to 5.
-                    </Text>
-
-                    <HStack justify="space-between" mt="5" maxW="620px">
-                      {[1, 2, 3, 4, 5].map((number) => (
-                        <Box
-                          key={number}
-                          w="48px"
-                          h="48px"
-                          borderRadius="full"
-                          borderWidth="1px"
-                          borderColor="#BFD0FF"
-                          color="brand.primary"
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="center"
-                          fontWeight="bold"
-                        >
-                          {number}
-                        </Box>
-                      ))}
-                    </HStack>
-
-                    <HStack justify="space-between" mt="2" maxW="620px">
-                      <Text fontSize="xs" color="brand.mutedText">
-                        Very Dissatisfied
-                      </Text>
-
-                      <Text fontSize="xs" color="brand.mutedText">
-                        Very Satisfied
-                      </Text>
-                    </HStack>
-                  </Box>
-                </HStack>
-              </Box>
-
-              <Box
-                borderWidth="1px"
-                borderColor="brand.border"
-                borderRadius="12px"
-                p="5"
-              >
-                <HStack align="start" gap="4">
-                  <Box
-                    w="28px"
-                    h="28px"
-                    borderRadius="6px"
-                    bg="brand.primary"
-                    color="white"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    fontSize="sm"
-                    fontWeight="bold"
-                    flexShrink="0"
-                  >
-                    2
-                  </Box>
-
-                  <Box flex="1">
-                    <Text fontWeight="bold" color="brand.dark">
-                      Which of the following areas do you value most?
-                    </Text>
-
-                    <Text fontSize="sm" color="brand.mutedText" mt="2">
-                      Please select one option that matters most to you.
-                    </Text>
-
-                    <HStack gap="3" mt="4">
-                      <Box
-                        w="18px"
-                        h="18px"
-                        borderRadius="full"
-                        borderWidth="1px"
-                        borderColor="brand.mutedText"
-                      />
-                      <Text fontSize="sm" color="brand.dark">
-                        Quality of Service
-                      </Text>
-                    </HStack>
-                  </Box>
-                </HStack>
-              </Box>
+              {previewQuestions.map((question, index) => (
+                <QuestionPreview
+                  key={question.id}
+                  question={question}
+                  index={index}
+                />
+              ))}
             </VStack>
           </Box>
         </Box>
@@ -375,12 +583,15 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
         >
           <HStack>
             <FiClock />
-            <Text>Estimated completion time: ~2 minutes</Text>
+            <Text>
+              Estimated completion time: ~{previewData.estimatedCompletionDays} day
+              {previewData.estimatedCompletionDays === 1 ? "" : "s"}
+            </Text>
           </HStack>
 
           <Box h="20px" w="1px" bg="brand.border" />
 
-          <Text>4 questions</Text>
+          <Text>{previewData.questions.length} questions</Text>
 
           <Box h="20px" w="1px" bg="brand.border" />
 
@@ -404,51 +615,64 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
             <DetailItem
               icon={<FiTag />}
               label="Category"
-              value="Customer Feedback"
+              value={toDisplayCategory(previewData.category)}
             />
 
             <DetailItem
               icon={<FiFileText />}
               label="Questions Added"
-              value="4"
+              value={String(previewData.questions.length)}
             />
 
             <DetailItem
               icon={<FiCheckSquare />}
               label="Platform Commission"
-              value="15%"
+              value={commission}
             />
 
-            <DetailItem icon={<FiEdit2 />} label="Method" value="Manual" />
+            <DetailItem
+              icon={<FiEdit2 />}
+              label="Method"
+              value={toDisplayMethod(previewData.creationMethod)}
+            />
 
             <DetailItem
               icon={<FiUsers />}
               label="Required Responses"
-              value="500"
+              value={
+                previewData.sampleBudget
+                  ? String(previewData.sampleBudget.requiredResponses)
+                  : "Not configured"
+              }
             />
 
             <DetailItem
               icon={<FiGift />}
               label="Reward per Participant"
-              value="LKR 170"
+              value={rewardPerParticipant}
             />
 
             <DetailItem
               icon={<FiUsers />}
               label="Audience"
-              value="Colombo, Age 18–45, Verified users"
+              value={audienceSummary}
             />
 
             <DetailItem
               icon={<FiSave />}
               label="Total Budget"
-              value="LKR 100,000"
+              value={totalBudget}
             />
 
             <DetailItem
               icon={<FiGlobe />}
               label="Estimated Reach"
-              value="500 respondents"
+              value={
+                previewData.targetAudience?.estimatedReach !== null &&
+                previewData.targetAudience?.estimatedReach !== undefined
+                  ? `${previewData.targetAudience.estimatedReach} respondents`
+                  : "Not estimated"
+              }
             />
           </Grid>
         </DashboardCard>
@@ -468,37 +692,20 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
           </Box>
 
           <Box px="5" pb="4">
-            <QuestionOverviewItem
-              questionNumber="Q1"
-              question="How satisfied are you with our overall service?"
-              type="Linear Scale"
-              tagBg="#EAF2FF"
-              tagColor="brand.primary"
-            />
+            {previewData.questions.map((question, index) => {
+              const typeMeta = toQuestionTypeMeta(question.type);
 
-            <QuestionOverviewItem
-              questionNumber="Q2"
-              question="Which of the following areas do you value most?"
-              type="Multiple Choice"
-              tagBg="#F3E8FF"
-              tagColor="#6D28D9"
-            />
-
-            <QuestionOverviewItem
-              questionNumber="Q3"
-              question="What could we improve to better serve you?"
-              type="Paragraph"
-              tagBg="#E7FBEF"
-              tagColor="#087A35"
-            />
-
-            <QuestionOverviewItem
-              questionNumber="Q4"
-              question="Which channels have you used to contact us?"
-              type="Checkboxes"
-              tagBg="#FFF7ED"
-              tagColor="#C2410C"
-            />
+              return (
+                <QuestionOverviewItem
+                  key={question.id}
+                  questionNumber={`Q${index + 1}`}
+                  question={question.questionText}
+                  type={typeMeta.label}
+                  tagBg={typeMeta.bg}
+                  tagColor={typeMeta.color}
+                />
+              );
+            })}
           </Box>
         </DashboardCard>
       </Grid>
@@ -524,7 +731,6 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
         </Button>
 
         <Button h="48px" color="white">
-          <FiMonitor />
           Publish Survey
         </Button>
       </Grid>
