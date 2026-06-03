@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent, ComponentProps, ReactNode } from "react";
 import {
   Box,
   Button,
@@ -10,11 +11,11 @@ import {
   Image,
   Input,
   NativeSelect,
+  Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { useState } from "react";
-import type { ComponentProps, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FiBell,
   FiCalendar,
@@ -29,6 +30,15 @@ import {
 } from "react-icons/fi";
 
 import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import { getStoredParticipantId } from "@/lib/participantIdentity";
+import { toaster } from "@/components/ui/toaster";
+import {
+  getParticipantProfileSettings,
+  type ParticipantProfileSettingsResponse,
+  type UpdateParticipantProfilePayload,
+  updateParticipantProfilePhoto,
+  updateParticipantProfileSettings,
+} from "@/services/participantSettingsService";
 
 type SettingsTab =
   | "Profile"
@@ -47,6 +57,21 @@ type OverviewItemProps = {
   label: string;
   value: string;
   color?: string;
+};
+
+type ProfileFormValues = {
+  fullName: string;
+  username: string;
+  phoneCountryCode: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  participantAge: string;
+  participantGender: string;
+  participantCity: string;
+  participantDistrict: string;
+  participantEducationLevel: string;
+  participantOccupation: string;
+  participantAddress: string;
 };
 
 function DashboardCard({ children, ...props }: ComponentProps<typeof Box>) {
@@ -172,18 +197,187 @@ function SettingsTabs({
   );
 }
 
-function ProfileInformationCard() {
-  const [fullName, setFullName] = useState("Nimesha Perera");
-  const [email] = useState("nimesha.perera@example.com");
-  const [phoneCode, setPhoneCode] = useState("+94");
-  const [phoneNumber, setPhoneNumber] = useState("77 123 4567");
-  const [dateOfBirth, setDateOfBirth] = useState("1998-07-15");
-  const [gender, setGender] = useState("Female");
-  const [city, setCity] = useState("Colombo");
-  const [district, setDistrict] = useState("Colombo");
-  const [educationLevel, setEducationLevel] = useState("Bachelor's Degree");
-  const [occupation, setOccupation] = useState("Student");
-  const [address, setAddress] = useState("123, Galle Road, Colombo 03");
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "N/A";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getInitials(name?: string | null, username?: string | null) {
+  const source = name || username || "TS";
+  const parts = source.trim().split(/\s+/);
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
+
+function createProfileFormValues(
+  profile: ParticipantProfileSettingsResponse["profile"]
+): ProfileFormValues {
+  return {
+    fullName: profile.fullName || "",
+    username: profile.username || "",
+    phoneCountryCode: profile.phoneCountryCode || "",
+    phoneNumber: profile.phoneNumber || "",
+    dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "",
+    participantAge: profile.participantAge?.toString() || "",
+    participantGender: profile.participantGender || "",
+    participantCity: profile.participantCity || "",
+    participantDistrict: profile.participantDistrict || "",
+    participantEducationLevel: profile.participantEducationLevel || "",
+    participantOccupation: profile.participantOccupation || "",
+    participantAddress: profile.participantAddress || "",
+  };
+}
+
+function normalizeChangedString(
+  nextValue: string,
+  previousValue?: string | null
+) {
+  const trimmedNext = nextValue.trim();
+  const trimmedPrevious = (previousValue || "").trim();
+
+  if (trimmedNext.length === 0 || trimmedNext === trimmedPrevious) {
+    return undefined;
+  }
+
+  return trimmedNext;
+}
+
+function buildUpdatePayload(
+  participantId: string,
+  formValues: ProfileFormValues,
+  previousProfile: ParticipantProfileSettingsResponse["profile"]
+): UpdateParticipantProfilePayload {
+  const payload: UpdateParticipantProfilePayload = { participantId };
+
+  const fullName = normalizeChangedString(formValues.fullName, previousProfile.fullName);
+  const username = normalizeChangedString(formValues.username, previousProfile.username);
+  const phoneCountryCode = normalizeChangedString(
+    formValues.phoneCountryCode,
+    previousProfile.phoneCountryCode
+  );
+  const phoneNumber = normalizeChangedString(
+    formValues.phoneNumber,
+    previousProfile.phoneNumber
+  );
+  const participantCity = normalizeChangedString(
+    formValues.participantCity,
+    previousProfile.participantCity
+  );
+  const participantDistrict = normalizeChangedString(
+    formValues.participantDistrict,
+    previousProfile.participantDistrict
+  );
+  const participantEducationLevel = normalizeChangedString(
+    formValues.participantEducationLevel,
+    previousProfile.participantEducationLevel
+  );
+  const participantOccupation = normalizeChangedString(
+    formValues.participantOccupation,
+    previousProfile.participantOccupation
+  );
+  const participantAddress = normalizeChangedString(
+    formValues.participantAddress,
+    previousProfile.participantAddress
+  );
+
+  if (fullName !== undefined) payload.fullName = fullName;
+  if (username !== undefined) payload.username = username;
+  if (phoneCountryCode !== undefined) payload.phoneCountryCode = phoneCountryCode;
+  if (phoneNumber !== undefined) payload.phoneNumber = phoneNumber;
+  if (participantCity !== undefined) payload.participantCity = participantCity;
+  if (participantDistrict !== undefined) payload.participantDistrict = participantDistrict;
+  if (participantEducationLevel !== undefined) {
+    payload.participantEducationLevel = participantEducationLevel;
+  }
+  if (participantOccupation !== undefined) {
+    payload.participantOccupation = participantOccupation;
+  }
+  if (participantAddress !== undefined) payload.participantAddress = participantAddress;
+
+  const previousDateOfBirth = previousProfile.dateOfBirth
+    ? previousProfile.dateOfBirth.slice(0, 10)
+    : "";
+  if (
+    formValues.dateOfBirth.trim() &&
+    formValues.dateOfBirth.trim() !== previousDateOfBirth
+  ) {
+    payload.dateOfBirth = formValues.dateOfBirth.trim();
+  }
+
+  if (
+    formValues.participantGender.trim() &&
+    formValues.participantGender !== (previousProfile.participantGender || "")
+  ) {
+    payload.participantGender = formValues.participantGender.trim();
+  }
+
+  const nextAge = formValues.participantAge.trim();
+  const previousAge = previousProfile.participantAge?.toString() || "";
+  if (nextAge && nextAge !== previousAge) {
+    payload.participantAge = Number(nextAge);
+  }
+
+  return payload;
+}
+
+function ProfileInformationCard({
+  data,
+  formValues,
+  onFieldChange,
+  onSave,
+  isSaving,
+  onProfilePhotoUpload,
+  isUploadingPhoto,
+}: {
+  data: ParticipantProfileSettingsResponse;
+  formValues: ProfileFormValues;
+  onFieldChange: <K extends keyof ProfileFormValues>(
+    field: K,
+    value: ProfileFormValues[K]
+  ) => void;
+  onSave: () => void;
+  isSaving: boolean;
+  onProfilePhotoUpload: (file: File) => Promise<void>;
+  isUploadingPhoto: boolean;
+}) {
+  const { profile } = data;
+  const initials = getInitials(formValues.fullName, formValues.username);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleSelectPhoto = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    await onProfilePhotoUpload(file);
+  };
 
   return (
     <DashboardCard p={{ base: "5", lg: "6" }}>
@@ -196,6 +390,16 @@ function ProfileInformationCard() {
       </Text>
 
       <Box mt="6">
+        <Input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          display="none"
+          onChange={(event) => {
+            void handlePhotoChange(event);
+          }}
+        />
+
         <Text fontSize="sm" fontWeight="semibold" color="brand.dark" mb="3">
           Profile Photo
         </Text>
@@ -215,7 +419,17 @@ function ProfileInformationCard() {
               fontWeight="bold"
               overflow="hidden"
             >
-              NP
+              {profile.profileImagePath ? (
+                <Image
+                  src={profile.profileImagePath}
+                  alt={profile.fullName || profile.username}
+                  w="full"
+                  h="full"
+                  objectFit="cover"
+                />
+              ) : (
+                initials
+              )}
             </Box>
 
             <IconButton
@@ -228,6 +442,8 @@ function ProfileInformationCard() {
               bg="white"
               borderWidth="1px"
               borderColor="brand.border"
+              onClick={handleSelectPhoto}
+              disabled={isUploadingPhoto}
             >
               <FiEdit2 />
             </IconButton>
@@ -235,12 +451,16 @@ function ProfileInformationCard() {
 
           <Box>
             <Text fontSize="sm" color="brand.mutedText" mb="3">
-              JPG, PNG or GIF. Max size 5MB.
+              JPG, JPEG, PNG or WEBP. Max size 5MB.
             </Text>
 
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              onClick={handleSelectPhoto}
+              loading={isUploadingPhoto}
+            >
               <FiCamera />
-              Change Photo
+              {isUploadingPhoto ? "Uploading..." : "Change Photo"}
             </Button>
           </Box>
         </HStack>
@@ -249,24 +469,30 @@ function ProfileInformationCard() {
       <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap="5" mt="6">
         <FormField label="Full Name">
           <SettingsInput
-            value={fullName}
-            onChange={(event) => setFullName(event.target.value)}
+            value={formValues.fullName}
+            onChange={(event) => onFieldChange("fullName", event.target.value)}
+          />
+        </FormField>
+
+        <FormField label="Username">
+          <SettingsInput
+            value={formValues.username}
+            onChange={(event) => onFieldChange("username", event.target.value)}
           />
         </FormField>
 
         <FormField label="Email Address">
-          <SettingsInput
-            value={email}
-            readOnly
-            bg="#F8FAFC"
-            color="brand.mutedText"
-          />
+          <SettingsInput value={profile.email || ""} readOnly bg="#F8FAFC" />
         </FormField>
 
         <FormField label="Phone Number">
           <HStack gap="2">
             <Box w="110px">
-              <SettingsSelect value={phoneCode} onChange={setPhoneCode}>
+              <SettingsSelect
+                value={formValues.phoneCountryCode}
+                onChange={(value) => onFieldChange("phoneCountryCode", value)}
+              >
+                <option value="">Select</option>
                 <option value="+94">+94</option>
                 <option value="+91">+91</option>
                 <option value="+1">+1</option>
@@ -275,8 +501,10 @@ function ProfileInformationCard() {
             </Box>
 
             <SettingsInput
-              value={phoneNumber}
-              onChange={(event) => setPhoneNumber(event.target.value)}
+              value={formValues.phoneNumber}
+              onChange={(event) =>
+                onFieldChange("phoneNumber", event.target.value)
+              }
             />
           </HStack>
         </FormField>
@@ -284,28 +512,50 @@ function ProfileInformationCard() {
         <FormField label="Date of Birth">
           <SettingsInput
             type="date"
-            value={dateOfBirth}
-            onChange={(event) => setDateOfBirth(event.target.value)}
+            value={formValues.dateOfBirth}
+            onChange={(event) => onFieldChange("dateOfBirth", event.target.value)}
+          />
+        </FormField>
+
+        <FormField label="Age">
+          <SettingsInput
+            type="number"
+            min={13}
+            max={100}
+            value={formValues.participantAge}
+            onChange={(event) =>
+              onFieldChange("participantAge", event.target.value)
+            }
           />
         </FormField>
 
         <FormField label="Gender">
-          <SettingsSelect value={gender} onChange={setGender}>
-            <option value="Female">Female</option>
+          <SettingsSelect
+            value={formValues.participantGender}
+            onChange={(value) => onFieldChange("participantGender", value)}
+          >
+            <option value="">Select gender</option>
             <option value="Male">Male</option>
+            <option value="Female">Female</option>
             <option value="Prefer not to say">Prefer not to say</option>
           </SettingsSelect>
         </FormField>
 
         <FormField label="City">
           <SettingsInput
-            value={city}
-            onChange={(event) => setCity(event.target.value)}
+            value={formValues.participantCity}
+            onChange={(event) =>
+              onFieldChange("participantCity", event.target.value)
+            }
           />
         </FormField>
 
         <FormField label="District">
-          <SettingsSelect value={district} onChange={setDistrict}>
+          <SettingsSelect
+            value={formValues.participantDistrict}
+            onChange={(value) => onFieldChange("participantDistrict", value)}
+          >
+            <option value="">Select district</option>
             <option value="Colombo">Colombo</option>
             <option value="Gampaha">Gampaha</option>
             <option value="Kandy">Kandy</option>
@@ -315,7 +565,13 @@ function ProfileInformationCard() {
         </FormField>
 
         <FormField label="Education Level">
-          <SettingsSelect value={educationLevel} onChange={setEducationLevel}>
+          <SettingsSelect
+            value={formValues.participantEducationLevel}
+            onChange={(value) =>
+              onFieldChange("participantEducationLevel", value)
+            }
+          >
+            <option value="">Select education level</option>
             <option value="School Student">School Student</option>
             <option value="Diploma">Diploma</option>
             <option value="Bachelor's Degree">Bachelor&apos;s Degree</option>
@@ -325,7 +581,11 @@ function ProfileInformationCard() {
         </FormField>
 
         <FormField label="Occupation">
-          <SettingsSelect value={occupation} onChange={setOccupation}>
+          <SettingsSelect
+            value={formValues.participantOccupation}
+            onChange={(value) => onFieldChange("participantOccupation", value)}
+          >
+            <option value="">Select occupation</option>
             <option value="Student">Student</option>
             <option value="Private Sector Employee">
               Private Sector Employee
@@ -336,15 +596,17 @@ function ProfileInformationCard() {
           </SettingsSelect>
         </FormField>
 
-        <FormField label="Address (Optional)">
+        <FormField label="Address">
           <SettingsInput
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
+            value={formValues.participantAddress}
+            onChange={(event) =>
+              onFieldChange("participantAddress", event.target.value)
+            }
           />
         </FormField>
       </Grid>
 
-      <Button mt="6" color="white" px="8">
+      <Button mt="6" color="white" px="8" onClick={onSave} loading={isSaving}>
         Save Changes
       </Button>
     </DashboardCard>
@@ -387,7 +649,13 @@ function OverviewItem({
   );
 }
 
-function AccountOverviewCard() {
+function AccountOverviewCard({
+  data,
+}: {
+  data: ParticipantProfileSettingsResponse;
+}) {
+  const { accountOverview } = data;
+
   return (
     <DashboardCard p={{ base: "5", lg: "6" }}>
       <Text fontSize="xl" fontWeight="bold" color="brand.dark" mb="6">
@@ -398,28 +666,36 @@ function AccountOverviewCard() {
         <OverviewItem
           icon={<FiCalendar />}
           label="Member Since"
-          value="12 May 2024"
+          value={formatDate(accountOverview.memberSince)}
           color="brand.dark"
         />
 
         <OverviewItem
           icon={<FiCheck />}
           label="Account Status"
-          value="Active"
+          value={accountOverview.accountStatus}
           color="green.600"
         />
 
         <OverviewItem
           icon={<FiShield />}
           label="Verification Status"
-          value="Not Verified"
-          color="brand.primary"
+          value={
+            accountOverview.verificationStatus === "VERIFIED"
+              ? "Verified"
+              : "Not Verified"
+          }
+          color={
+            accountOverview.verificationStatus === "VERIFIED"
+              ? "green.600"
+              : "brand.primary"
+          }
         />
 
         <OverviewItem
           icon={<FiHome />}
           label="Total Surveys Completed"
-          value="18"
+          value={String(accountOverview.totalSurveysCompleted)}
           color="#7C3AED"
         />
       </Grid>
@@ -427,22 +703,29 @@ function AccountOverviewCard() {
   );
 }
 
-function VerificationStepTracker() {
+function VerificationStepTracker({
+  isVerified,
+}: {
+  isVerified: boolean;
+}) {
   const steps = [
     {
       number: "1",
       title: "Step 1",
       label: "ID Document",
+      completed: isVerified,
     },
     {
       number: "2",
       title: "Step 2",
       label: "Selfie",
+      completed: isVerified,
     },
     {
       number: "3",
       title: "Step 3",
       label: "Review",
+      completed: isVerified,
     },
   ];
 
@@ -455,7 +738,7 @@ function VerificationStepTracker() {
               w="32px"
               h="32px"
               borderRadius="full"
-              bg="brand.primary"
+              bg={step.completed ? "green.600" : "brand.primary"}
               color="white"
               display="flex"
               alignItems="center"
@@ -463,7 +746,7 @@ function VerificationStepTracker() {
               fontWeight="bold"
               fontSize="sm"
             >
-              {step.number}
+              {step.completed ? <FiCheck /> : step.number}
             </Box>
 
             {index !== steps.length - 1 && (
@@ -581,7 +864,13 @@ function VerificationInfoBox() {
   );
 }
 
-function AccountVerificationCard() {
+function AccountVerificationCard({
+  data,
+}: {
+  data: ParticipantProfileSettingsResponse;
+}) {
+  const isVerified = data.accountOverview.verificationStatus === "VERIFIED";
+
   return (
     <DashboardCard p={{ base: "5", lg: "6" }}>
       <HStack justify="space-between" align="start" gap="4">
@@ -616,17 +905,17 @@ function AccountVerificationCard() {
           px="3"
           py="1"
           borderRadius="999px"
-          bg="#EEF2FF"
-          color="brand.primary"
+          bg={isVerified ? "#DCFCE7" : "#EEF2FF"}
+          color={isVerified ? "green.600" : "brand.primary"}
           fontSize="xs"
           fontWeight="bold"
           whiteSpace="nowrap"
         >
-          Not Verified
+          {isVerified ? "Verified" : "Not Verified"}
         </Box>
       </HStack>
 
-      <VerificationStepTracker />
+      <VerificationStepTracker isVerified={isVerified} />
 
       <UploadBox
         icon={<FiKey />}
@@ -645,7 +934,7 @@ function AccountVerificationCard() {
       <VerificationInfoBox />
 
       <Button mt="6" color="white" px="8">
-        Start Verification
+        {isVerified ? "Verification Complete" : "Start Verification"}
       </Button>
     </DashboardCard>
   );
@@ -689,21 +978,243 @@ function PlaceholderSettingsCard({
   );
 }
 
-function ProfileTabContent() {
+function ProfileTabContent({
+  data,
+  formValues,
+  onFieldChange,
+  onSave,
+  isSaving,
+  onProfilePhotoUpload,
+  isUploadingPhoto,
+}: {
+  data: ParticipantProfileSettingsResponse;
+  formValues: ProfileFormValues;
+  onFieldChange: <K extends keyof ProfileFormValues>(
+    field: K,
+    value: ProfileFormValues[K]
+  ) => void;
+  onSave: () => void;
+  isSaving: boolean;
+  onProfilePhotoUpload: (file: File) => Promise<void>;
+  isUploadingPhoto: boolean;
+}) {
   return (
     <Grid templateColumns={{ base: "1fr", xl: "1.15fr 1fr" }} gap="5">
       <VStack align="stretch" gap="5">
-        <ProfileInformationCard />
-        <AccountOverviewCard />
+        <ProfileInformationCard
+          data={data}
+          formValues={formValues}
+          onFieldChange={onFieldChange}
+          onSave={onSave}
+          isSaving={isSaving}
+          onProfilePhotoUpload={onProfilePhotoUpload}
+          isUploadingPhoto={isUploadingPhoto}
+        />
+        <AccountOverviewCard data={data} />
       </VStack>
 
-      <AccountVerificationCard />
+      <AccountVerificationCard data={data} />
     </Grid>
   );
 }
 
 export default function ParticipantSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("Profile");
+  const [participantId] = useState(() => getStoredParticipantId());
+  const [data, setData] = useState<ParticipantProfileSettingsResponse | null>(
+    null
+  );
+  const [formValues, setFormValues] = useState<ProfileFormValues | null>(null);
+  const [isLoading, setIsLoading] = useState(Boolean(participantId));
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!participantId) {
+      return;
+    }
+
+    getParticipantProfileSettings(participantId)
+      .then((response) => {
+        if (isMounted) {
+          setData(response);
+          setFormValues(createProfileFormValues(response.profile));
+          setError("");
+        }
+      })
+      .catch((requestError) => {
+        if (isMounted) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Failed to load settings"
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [participantId]);
+
+  const missingParticipantIdError = participantId
+    ? ""
+    : "Participant id was not found. Please log in again.";
+
+  if (isLoading) {
+    return (
+      <Flex minH="100vh" bg="white" color="brand.dark">
+        <ParticipantSidebar activeItem="Settings" />
+        <Flex flex="1" align="center" justify="center" gap="3">
+          <Spinner color="brand.primary" />
+          <Text color="brand.mutedText">Loading settings...</Text>
+        </Flex>
+      </Flex>
+    );
+  }
+
+  if (missingParticipantIdError || error || !data || !formValues) {
+    return (
+      <Flex minH="100vh" bg="white" color="brand.dark">
+        <ParticipantSidebar activeItem="Settings" />
+        <Flex flex="1" align="center" justify="center" p="6">
+          <DashboardCard p="6" maxW="560px">
+            <Text fontWeight="bold" color="brand.dark">
+              We could not load settings.
+            </Text>
+            <Text color="brand.mutedText" mt="2">
+              {missingParticipantIdError || error || "Please try again later."}
+            </Text>
+          </DashboardCard>
+        </Flex>
+      </Flex>
+    );
+  }
+
+  const handleFieldChange = <K extends keyof ProfileFormValues>(
+    field: K,
+    value: ProfileFormValues[K]
+  ) => {
+    setFormValues((current) => (current ? { ...current, [field]: value } : current));
+  };
+
+  const handleSaveProfile = async () => {
+    if (!participantId) {
+      return;
+    }
+
+    const payload = buildUpdatePayload(participantId, formValues, data.profile);
+
+    if (Object.keys(payload).length === 1) {
+      toaster.create({
+        type: "info",
+        title: "No changes to save",
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const response = await updateParticipantProfileSettings(payload);
+      const nextData: ParticipantProfileSettingsResponse = {
+        ...data,
+        profile: response.profile,
+      };
+
+      setData(nextData);
+      setFormValues(createProfileFormValues(response.profile));
+
+      toaster.create({
+        type: "success",
+        title: "Profile updated",
+        description: response.message,
+      });
+    } catch (saveError) {
+      toaster.create({
+        type: "error",
+        title: "Update failed",
+        description:
+          saveError instanceof Error
+            ? saveError.message
+            : "Could not update profile settings",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleProfilePhotoUpload = async (file: File) => {
+    if (!participantId) {
+      return;
+    }
+
+    const allowedMimeTypes = new Set([
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+    ]);
+
+    if (!allowedMimeTypes.has(file.type)) {
+      toaster.create({
+        type: "error",
+        title: "Invalid file type",
+        description: "Please upload a JPG, JPEG, PNG, or WEBP image.",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toaster.create({
+        type: "error",
+        title: "File too large",
+        description: "Profile photo must be 5MB or smaller.",
+      });
+      return;
+    }
+
+    try {
+      setIsUploadingPhoto(true);
+      const response = await updateParticipantProfilePhoto(participantId, file);
+
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              profile: {
+                ...current.profile,
+                ...response.profile,
+              },
+            }
+          : current
+      );
+
+      toaster.create({
+        type: "success",
+        title: "Profile photo updated",
+        description: response.message,
+      });
+    } catch (uploadError) {
+      toaster.create({
+        type: "error",
+        title: "Upload failed",
+        description:
+          uploadError instanceof Error
+            ? uploadError.message
+            : "Could not update profile photo",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   return (
     <Flex minH="100vh" bg="white" color="brand.dark">
@@ -722,15 +1233,27 @@ export default function ParticipantSettingsPage() {
             </Text>
 
             <Text fontSize="lg" color="brand.mutedText" mt="3">
-              Manage your account, preferences and verification
+              Manage your account, profile, and verification details.
             </Text>
           </Box>
 
           <SettingsTabs activeTab={activeTab} onChange={setActiveTab} />
 
-          {activeTab === "Profile" && <ProfileTabContent />}
+          {activeTab === "Profile" && (
+            <ProfileTabContent
+              data={data}
+              formValues={formValues}
+              onFieldChange={handleFieldChange}
+              onSave={handleSaveProfile}
+              isSaving={isSaving}
+              onProfilePhotoUpload={handleProfilePhotoUpload}
+              isUploadingPhoto={isUploadingPhoto}
+            />
+          )}
 
-          {activeTab === "Verification" && <AccountVerificationCard />}
+          {activeTab === "Verification" && (
+            <AccountVerificationCard data={data} />
+          )}
 
           {activeTab === "Preferences" && (
             <PlaceholderSettingsCard

@@ -9,13 +9,15 @@ import {
   IconButton,
   Input,
   InputGroup,
+  NativeSelect,
+  Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react";
 import type { ComponentProps, ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
   FiArrowRight,
-  FiCalendar,
   FiCheckCircle,
   FiChevronDown,
   FiChevronLeft,
@@ -23,13 +25,22 @@ import {
   FiCreditCard,
   FiDollarSign,
   FiDownload,
-  FiFilter,
   FiInfo,
   FiSearch,
   FiTrendingUp,
 } from "react-icons/fi";
 
 import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import { getStoredParticipantId } from "@/lib/participantIdentity";
+import {
+  type EarningsBreakdownMap,
+  getParticipantWallet,
+  type EarningsBreakdownRow,
+  type ParticipantWalletResponse,
+  type ParticipantWalletSortBy,
+  type ParticipantWalletStatus,
+  type WalletTransactionRow,
+} from "@/services/participantWalletService";
 
 type StatCardProps = {
   icon: ReactNode;
@@ -40,28 +51,22 @@ type StatCardProps = {
   color: string;
 };
 
-type Transaction = {
-  id: number;
-  surveyName: string;
-  status: "Completed" | "Pending" | "Paid" | "Processing";
-  earnedMoney: string;
-  date: string;
-  time: string;
-  paymentMethod: "Wallet Balance" | "Bank Transfer";
-  icon: ReactNode;
-  iconBg: string;
-  iconColor: string;
-};
+const STATUS_OPTIONS: { label: string; value: ParticipantWalletStatus }[] = [
+  { label: "All", value: "ALL" },
+  { label: "Completed", value: "COMPLETED" },
+  { label: "Pending", value: "PENDING" },
+  { label: "Paid", value: "PAID" },
+  { label: "Withdrawals", value: "WITHDRAWALS" },
+];
 
-type Withdrawal = {
-  method: string;
-  amount: string;
-  status: string;
-  date: string;
-  icon: ReactNode;
-  iconBg: string;
-  iconColor: string;
-};
+const SORT_OPTIONS: { label: string; value: ParticipantWalletSortBy }[] = [
+  { label: "Most Recent", value: "MOST_RECENT" },
+  { label: "Oldest", value: "OLDEST" },
+  { label: "Amount High", value: "AMOUNT_HIGH" },
+  { label: "Amount Low", value: "AMOUNT_LOW" },
+];
+
+const PAGE_SIZE_OPTIONS = [8, 16, 24, 32, 50];
 
 function DashboardCard({ children, ...props }: ComponentProps<typeof Box>) {
   return (
@@ -115,7 +120,121 @@ function StatCard({ icon, title, value, helper, bg, color }: StatCardProps) {
   );
 }
 
-function WalletBalanceCard() {
+function formatMoney(value: number, currency: string) {
+  return `${currency} ${value.toLocaleString()}`;
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function toTitleCase(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeBreakdownRows(
+  rows: EarningsBreakdownRow[] | EarningsBreakdownMap,
+  currency: string
+) {
+  if (Array.isArray(rows)) {
+    return rows;
+  }
+
+  return Object.entries(rows).map(([label, rawValue]) => {
+    if (typeof rawValue === "number") {
+      return {
+        label: toTitleCase(label),
+        value: rawValue,
+        currency,
+      };
+    }
+
+    if (typeof rawValue === "string") {
+      const parsedValue = Number(rawValue.replace(/[^\d.-]/g, ""));
+
+      return {
+        label: toTitleCase(label),
+        value: Number.isFinite(parsedValue) ? parsedValue : 0,
+        currency,
+      };
+    }
+
+    return {
+      label: toTitleCase(label),
+      value: rawValue.value ?? rawValue.amount ?? 0,
+      currency: rawValue.currency || currency,
+    };
+  });
+}
+
+function WalletBalanceCard({
+  data,
+  currency,
+}: {
+  data: ParticipantWalletResponse;
+  currency: string;
+}) {
+  const trend = data.earningsTrend.length
+    ? data.earningsTrend.map((item, index) => ({
+        label:
+          item.label ||
+          item.day ||
+          ["Apr 20", "Apr 27", "May 04", "May 11", "May 18"][
+            Math.min(index, 4)
+          ] ||
+          "",
+        value: item.amount ?? item.value ?? item.totalEarned ?? 0,
+      }))
+    : [
+        { label: "Apr 20", value: 0 },
+        { label: "Apr 27", value: 0 },
+        { label: "May 04", value: 0 },
+        { label: "May 11", value: 0 },
+        { label: "May 18", value: 0 },
+      ];
+
+  const maxValue = Math.max(...trend.map((item) => item.value), 1);
+  const pointGap = trend.length > 1 ? 620 / (trend.length - 1) : 0;
+  const linePoints = trend
+    .map((item, index) => {
+      const x = index * pointGap;
+      const y = 120 - (item.value / maxValue) * 92;
+
+      return `${x},${y}`;
+    })
+    .join(" ");
+  const areaPath = linePoints
+    ? `M${linePoints.replaceAll(" ", " L")} L620,140 L0,140 Z`
+    : "M0,140 L620,140 L620,140 L0,140 Z";
+
   return (
     <DashboardCard p={{ base: "5", lg: "6" }}>
       <Grid templateColumns={{ base: "1fr", lg: "0.9fr 1.4fr" }} gap="7">
@@ -131,7 +250,7 @@ function WalletBalanceCard() {
             mt="8"
             lineHeight="1"
           >
-            LKR 3,240
+            {formatMoney(data.walletBalance.amount, currency)}
           </Text>
 
           <Box
@@ -145,7 +264,7 @@ function WalletBalanceCard() {
             fontWeight="bold"
             w="fit-content"
           >
-            ↑ 12.5% vs last month
+            {data.walletBalance.growthPercentage}% growth
           </Box>
         </Box>
 
@@ -157,12 +276,12 @@ function WalletBalanceCard() {
               </Text>
 
               <Text as="span" fontSize="sm" color="brand.mutedText">
-                Last 30 days
+                Recent rewards history
               </Text>
             </Box>
 
             <Button size="sm" variant="outline">
-              Last 30 Days
+              This period
               <FiChevronDown />
             </Button>
           </HStack>
@@ -192,13 +311,10 @@ function WalletBalanceCard() {
               <line x1="0" y1="60" x2="620" y2="60" stroke="#F1F5F9" />
               <line x1="0" y1="30" x2="620" y2="30" stroke="#F1F5F9" />
 
-              <path
-                d="M0,120 L30,88 L65,84 L95,82 L125,58 L160,72 L190,54 L225,65 L255,75 L285,55 L320,70 L350,84 L380,58 L415,66 L450,72 L480,52 L515,66 L545,48 L580,45 L605,28 L620,35 L620,140 L0,140 Z"
-                fill="url(#walletAreaGradient)"
-              />
+              <path d={areaPath} fill="url(#walletAreaGradient)" />
 
               <polyline
-                points="0,120 30,88 65,84 95,82 125,58 160,72 190,54 225,65 255,75 285,55 320,70 350,84 380,58 415,66 450,72 480,52 515,66 545,48 580,45 605,28 620,35"
+                points={linePoints}
                 fill="none"
                 stroke="#0015D6"
                 strokeWidth="4"
@@ -213,12 +329,10 @@ function WalletBalanceCard() {
               fontSize="xs"
               mt="-1"
             >
-              <Text>LKR 0</Text>
-              <Text>Apr 20</Text>
-              <Text>Apr 27</Text>
-              <Text>May 04</Text>
-              <Text>May 11</Text>
-              <Text>May 18</Text>
+              <Text>{formatMoney(0, currency)}</Text>
+              {trend.slice(0, 5).map((item) => (
+                <Text key={item.label}>{item.label}</Text>
+              ))}
             </HStack>
           </Box>
         </Box>
@@ -239,134 +353,85 @@ function WalletBalanceCard() {
   );
 }
 
-const transactions: Transaction[] = [
-  {
-    id: 1,
-    surveyName: "Shopping Habits & Preferences",
-    status: "Completed",
-    earnedMoney: "LKR 250.00",
-    date: "May 18, 2025",
-    time: "09:15 AM",
-    paymentMethod: "Wallet Balance",
-    icon: <FiSearch />,
-    iconBg: "#F3E8FF",
-    iconColor: "#7C3AED",
-  },
-  {
-    id: 2,
-    surveyName: "Food & Beverages Feedback",
-    status: "Pending",
-    earnedMoney: "LKR 180.00",
-    date: "May 18, 2025",
-    time: "08:40 AM",
-    paymentMethod: "Wallet Balance",
-    icon: <FiInfo />,
-    iconBg: "#FEF3C7",
-    iconColor: "#D97706",
-  },
-  {
-    id: 3,
-    surveyName: "Technology Usage Survey",
-    status: "Completed",
-    earnedMoney: "LKR 300.00",
-    date: "May 17, 2025",
-    time: "07:30 PM",
-    paymentMethod: "Wallet Balance",
-    icon: <FiCreditCard />,
-    iconBg: "#EAF2FF",
-    iconColor: "brand.primary",
-  },
-  {
-    id: 4,
-    surveyName: "Customer Service Experience",
-    status: "Paid",
-    earnedMoney: "LKR 120.00",
-    date: "May 16, 2025",
-    time: "04:20 PM",
-    paymentMethod: "Bank Transfer",
-    icon: <FiDollarSign />,
-    iconBg: "#DCFCE7",
-    iconColor: "green.600",
-  },
-  {
-    id: 5,
-    surveyName: "Mobile Banking Usability",
-    status: "Completed",
-    earnedMoney: "LKR 180.00",
-    date: "May 18, 2025",
-    time: "11:05 AM",
-    paymentMethod: "Wallet Balance",
-    icon: <FiSearch />,
-    iconBg: "#EEF2FF",
-    iconColor: "brand.primary",
-  },
-  {
-    id: 6,
-    surveyName: "Streaming App Preferences",
-    status: "Processing",
-    earnedMoney: "LKR 200.00",
-    date: "May 15, 2025",
-    time: "06:45 PM",
-    paymentMethod: "Wallet Balance",
-    icon: <FiCreditCard />,
-    iconBg: "#F3E8FF",
-    iconColor: "#7C3AED",
-  },
-  {
-    id: 7,
-    surveyName: "Ride-hailing Experience",
-    status: "Paid",
-    earnedMoney: "LKR 160.00",
-    date: "May 14, 2025",
-    time: "10:30 AM",
-    paymentMethod: "Bank Transfer",
-    icon: <FiSearch />,
-    iconBg: "#EAF2FF",
-    iconColor: "brand.primary",
-  },
-  {
-    id: 8,
-    surveyName: "Insurance Awareness Survey",
-    status: "Pending",
-    earnedMoney: "LKR 350.00",
-    date: "May 14, 2025",
-    time: "09:10 AM",
-    paymentMethod: "Wallet Balance",
-    icon: <FiCheckCircle />,
-    iconBg: "#DCFCE7",
-    iconColor: "green.600",
-  },
-];
-
-function getStatusStyle(status: Transaction["status"]) {
-  if (status === "Completed") {
+function getStatusStyle(status: WalletTransactionRow["status"]) {
+  if (status === "COMPLETED") {
     return {
+      label: "Completed",
       bg: "#DCFCE7",
       color: "green.700",
     };
   }
 
-  if (status === "Pending") {
+  if (status === "PENDING") {
     return {
+      label: "Pending",
       bg: "#FEF3C7",
       color: "#B45309",
     };
   }
 
-  if (status === "Paid") {
+  if (status === "PAID") {
     return {
+      label: "Paid",
       bg: "#DBEAFE",
       color: "brand.primary",
     };
   }
 
+  if (status === "FAILED") {
+    return {
+      label: "Failed",
+      bg: "#FEE2E2",
+      color: "#B91C1C",
+    };
+  }
+
   return {
+    label: "Processing",
     bg: "#EEF2FF",
     color: "brand.primary",
   };
 }
 
-function TransactionsTable() {
+function getTransactionVisual(row: WalletTransactionRow) {
+  if (row.rowType === "WITHDRAWAL") {
+    return {
+      icon: <FiDollarSign />,
+      iconBg: "#DCFCE7",
+      iconColor: "green.600",
+    };
+  }
+
+  if (row.status === "PENDING") {
+    return {
+      icon: <FiTrendingUp />,
+      iconBg: "#FEF3C7",
+      iconColor: "#D97706",
+    };
+  }
+
+  if (row.status === "PAID") {
+    return {
+      icon: <FiCreditCard />,
+      iconBg: "#EAF2FF",
+      iconColor: "brand.primary",
+    };
+  }
+
+  return {
+    icon: <FiSearch />,
+    iconBg: "#F3E8FF",
+    iconColor: "#7C3AED",
+  };
+}
+
+function TransactionsTable({
+  rows,
+  currency,
+}: {
+  rows: WalletTransactionRow[];
+  currency: string;
+}) {
   return (
     <DashboardCard p="0" overflow="hidden">
       <Box overflowX="auto">
@@ -391,8 +456,17 @@ function TransactionsTable() {
             <Text>Action</Text>
           </Grid>
 
-          {transactions.map((transaction) => {
+          {rows.length === 0 && (
+            <Box px="5" py="6">
+              <Text color="brand.mutedText" fontSize="sm">
+                No wallet transactions match this filter.
+              </Text>
+            </Box>
+          )}
+
+          {rows.map((transaction) => {
             const statusStyle = getStatusStyle(transaction.status);
+            const visual = getTransactionVisual(transaction);
 
             return (
               <Grid
@@ -410,14 +484,14 @@ function TransactionsTable() {
                     w="32px"
                     h="32px"
                     borderRadius="8px"
-                    bg={transaction.iconBg}
-                    color={transaction.iconColor}
+                    bg={visual.iconBg}
+                    color={visual.iconColor}
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
                     flexShrink="0"
                   >
-                    {transaction.icon}
+                    {visual.icon}
                   </Box>
 
                   <Text fontWeight="bold" color="brand.dark">
@@ -435,29 +509,24 @@ function TransactionsTable() {
                   fontSize="xs"
                   fontWeight="bold"
                 >
-                  {transaction.status}
+                  {statusStyle.label}
                 </Box>
 
                 <Text fontWeight="bold" color="brand.dark">
-                  {transaction.earnedMoney}
+                  {formatMoney(transaction.earnedMoney, currency)}
                 </Text>
 
-                <Text color="brand.dark">{transaction.date}</Text>
+                <Text color="brand.dark">{formatDate(transaction.date)}</Text>
 
-                <Text color="brand.dark">{transaction.time}</Text>
+                <Text color="brand.dark">{formatTime(transaction.date)}</Text>
 
                 <HStack color="brand.dark">
-                  {transaction.paymentMethod === "Bank Transfer" ? (
-                    <FiSearch />
-                  ) : (
-                    <FiSearch />
-                  )}
-
+                  <FiSearch />
                   <Text>{transaction.paymentMethod}</Text>
                 </HStack>
 
                 <Button variant="ghost" size="sm" color="brand.primary">
-                  View details
+                  {transaction.action}
                 </Button>
               </Grid>
             );
@@ -468,7 +537,25 @@ function TransactionsTable() {
   );
 }
 
-function TransactionsFilterBar() {
+function TransactionsFilterBar({
+  searchInput,
+  onSearchChange,
+  status,
+  onStatusChange,
+  sortBy,
+  onSortByChange,
+  limit,
+  onLimitChange,
+}: {
+  searchInput: string;
+  onSearchChange: (value: string) => void;
+  status: ParticipantWalletStatus;
+  onStatusChange: (value: ParticipantWalletStatus) => void;
+  sortBy: ParticipantWalletSortBy;
+  onSortByChange: (value: ParticipantWalletSortBy) => void;
+  limit: number;
+  onLimitChange: (value: number) => void;
+}) {
   return (
     <HStack gap="4" flexWrap="wrap" mb="4">
       <InputGroup
@@ -480,6 +567,8 @@ function TransactionsFilterBar() {
         }
       >
         <Input
+          value={searchInput}
+          onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Search transactions..."
           h="44px"
           borderColor="brand.border"
@@ -492,66 +581,89 @@ function TransactionsFilterBar() {
       </InputGroup>
 
       <HStack gap="3" flexWrap="wrap">
-        {["All", "Completed", "Pending", "Paid", "Withdrawals"].map((item) => (
+        {STATUS_OPTIONS.map((option) => (
           <Button
-            key={item}
+            key={option.value}
             h="44px"
             borderRadius="999px"
-            variant={item === "All" ? "solid" : "outline"}
-            color={item === "All" ? "white" : "brand.dark"}
-            bg={item === "All" ? "brand.primary" : "white"}
+            variant={option.value === status ? "solid" : "outline"}
+            color={option.value === status ? "white" : "brand.dark"}
+            bg={option.value === status ? "brand.primary" : "white"}
+            onClick={() => onStatusChange(option.value)}
           >
-            {item}
+            {option.label}
           </Button>
         ))}
       </HStack>
 
-      <Button h="44px" variant="outline" ml={{ base: "0", xl: "auto" }}>
-        <FiCalendar />
-        May 1 - May 18, 2025
-        <FiChevronDown />
-      </Button>
+      <NativeSelect.Root minW="180px" ml={{ base: "0", xl: "auto" }}>
+        <NativeSelect.Field
+          value={sortBy}
+          onChange={(event) =>
+            onSortByChange(event.target.value as ParticipantWalletSortBy)
+          }
+          h="44px"
+          borderColor="brand.border"
+          borderRadius="10px"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </NativeSelect.Field>
+        <NativeSelect.Indicator />
+      </NativeSelect.Root>
 
-      <Button h="44px" variant="outline">
-        <FiFilter />
-        Most Recent
-        <FiChevronDown />
-      </Button>
+      <NativeSelect.Root minW="120px">
+        <NativeSelect.Field
+          value={String(limit)}
+          onChange={(event) => onLimitChange(Number(event.target.value))}
+          h="44px"
+          borderColor="brand.border"
+          borderRadius="10px"
+        >
+          {PAGE_SIZE_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option} / page
+            </option>
+          ))}
+        </NativeSelect.Field>
+        <NativeSelect.Indicator />
+      </NativeSelect.Root>
     </HStack>
   );
 }
 
-const withdrawals: Withdrawal[] = [
-  {
-    method: "Bank Transfer",
-    amount: "LKR 2,500.00",
-    status: "Completed",
-    date: "May 12, 2025",
-    icon: <FiSearch />,
-    iconBg: "#DBEAFE",
-    iconColor: "brand.primary",
-  },
-  {
-    method: "Visa **4242",
-    amount: "LKR 1,800.00",
-    status: "Completed",
-    date: "May 01, 2025",
-    icon: <Text fontWeight="bold">VISA</Text>,
-    iconBg: "#EEF2FF",
-    iconColor: "brand.primary",
-  },
-  {
-    method: "eZ Cash",
-    amount: "LKR 1,000.00",
-    status: "Completed",
-    date: "Apr 20, 2025",
-    icon: <Text fontWeight="bold">eZ</Text>,
-    iconBg: "#F3E8FF",
-    iconColor: "#7C3AED",
-  },
-];
+function getWithdrawalStatusStyle(status: string) {
+  if (status.toLowerCase() === "completed") {
+    return {
+      bg: "#DCFCE7",
+      color: "green.700",
+      label: "Completed",
+    };
+  }
 
-function RecentWithdrawalsCard() {
+  if (status.toLowerCase() === "pending") {
+    return {
+      bg: "#FEF3C7",
+      color: "#B45309",
+      label: "Pending",
+    };
+  }
+
+  return {
+    bg: "#EEF2FF",
+    color: "brand.primary",
+    label: status,
+  };
+}
+
+function RecentWithdrawalsCard({
+  data,
+}: {
+  data: ParticipantWalletResponse;
+}) {
   return (
     <DashboardCard p="5">
       <HStack justify="space-between" mb="5">
@@ -565,54 +677,64 @@ function RecentWithdrawalsCard() {
       </HStack>
 
       <VStack align="stretch" gap="4">
-        {withdrawals.map((withdrawal) => (
-          <HStack key={withdrawal.method} justify="space-between" gap="3">
-            <HStack gap="3">
-              <Box
-                w="42px"
-                h="42px"
-                borderRadius="10px"
-                bg={withdrawal.iconBg}
-                color={withdrawal.iconColor}
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                fontSize="18px"
-                flexShrink="0"
-              >
-                {withdrawal.icon}
-              </Box>
+        {data.recentWithdrawals.length === 0 && (
+          <Text color="brand.mutedText" fontSize="sm">
+            No withdrawals yet.
+          </Text>
+        )}
 
-              <Box>
-                <Text fontSize="sm" fontWeight="bold" color="brand.dark">
-                  {withdrawal.amount}
-                </Text>
+        {data.recentWithdrawals.map((withdrawal) => {
+          const statusStyle = getWithdrawalStatusStyle(withdrawal.status);
 
-                <Text fontSize="xs" color="brand.mutedText">
-                  {withdrawal.method}
+          return (
+            <HStack key={withdrawal.id} justify="space-between" gap="3">
+              <HStack gap="3">
+                <Box
+                  w="42px"
+                  h="42px"
+                  borderRadius="10px"
+                  bg="#DBEAFE"
+                  color="brand.primary"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  fontSize="18px"
+                  flexShrink="0"
+                >
+                  <FiDownload />
+                </Box>
+
+                <Box>
+                  <Text fontSize="sm" fontWeight="bold" color="brand.dark">
+                    {formatMoney(withdrawal.amount, withdrawal.currency)}
+                  </Text>
+
+                  <Text fontSize="xs" color="brand.mutedText">
+                    {withdrawal.method}
+                  </Text>
+                </Box>
+              </HStack>
+
+              <Box textAlign="right">
+                <Box
+                  px="3"
+                  py="1"
+                  borderRadius="999px"
+                  bg={statusStyle.bg}
+                  color={statusStyle.color}
+                  fontSize="xs"
+                  fontWeight="bold"
+                >
+                  {statusStyle.label}
+                </Box>
+
+                <Text fontSize="xs" color="brand.dark" mt="1">
+                  {formatDate(withdrawal.createdAt)}
                 </Text>
               </Box>
             </HStack>
-
-            <Box textAlign="right">
-              <Box
-                px="3"
-                py="1"
-                borderRadius="999px"
-                bg="#DCFCE7"
-                color="green.700"
-                fontSize="xs"
-                fontWeight="bold"
-              >
-                {withdrawal.status}
-              </Box>
-
-              <Text fontSize="xs" color="brand.dark" mt="1">
-                {withdrawal.date}
-              </Text>
-            </Box>
-          </HStack>
-        ))}
+          );
+        })}
       </VStack>
 
       <Button w="100%" h="42px" mt="5" variant="outline">
@@ -622,29 +744,20 @@ function RecentWithdrawalsCard() {
   );
 }
 
-function EarningsBreakdownCard() {
-  const rows = [
-    {
-      label: "Completed",
-      value: "LKR 1,240.00",
-      color: "brand.primary",
-    },
-    {
-      label: "Pending",
-      value: "LKR 1,250.00",
-      color: "#EAB308",
-    },
-    {
-      label: "Processing",
-      value: "LKR 200.00",
-      color: "#7C3AED",
-    },
-    {
-      label: "Withdrawn",
-      value: "LKR 2,500.00",
-      color: "green.600",
-    },
-  ];
+function EarningsBreakdownCard({
+  rows,
+  currency,
+}: {
+  rows: EarningsBreakdownRow[] | EarningsBreakdownMap;
+  currency: string;
+}) {
+  const normalizedRows = normalizeBreakdownRows(rows, currency);
+  const totalEarnedRow = normalizedRows.find(
+    (row) => row.label.toLowerCase() === "total earned"
+  );
+  const visibleRows = totalEarnedRow
+    ? normalizedRows.filter((row) => row !== totalEarnedRow)
+    : normalizedRows;
 
   return (
     <DashboardCard p="5">
@@ -660,17 +773,26 @@ function EarningsBreakdownCard() {
       </HStack>
 
       <VStack align="stretch" gap="4">
-        {rows.map((row) => (
+        {visibleRows.map((row, index) => (
           <HStack key={row.label} justify="space-between">
             <HStack gap="3">
-              <Box w="10px" h="10px" borderRadius="full" bg={row.color} />
+              <Box
+                w="10px"
+                h="10px"
+                borderRadius="full"
+                bg={
+                  ["brand.primary", "#EAB308", "#7C3AED", "green.600"][
+                    index % 4
+                  ]
+                }
+              />
               <Text fontSize="sm" color="brand.dark">
                 {row.label}
               </Text>
             </HStack>
 
             <Text fontSize="sm" fontWeight="bold" color="brand.dark">
-              {row.value}
+              {formatMoney(row.value, row.currency || currency)}
             </Text>
           </HStack>
         ))}
@@ -688,14 +810,21 @@ function EarningsBreakdownCard() {
         </Text>
 
         <Text fontSize="xl" fontWeight="extrabold" color="brand.dark">
-          LKR 5,190.00
+          {formatMoney(
+            totalEarnedRow?.value ?? 0,
+            totalEarnedRow?.currency || currency
+          )}
         </Text>
       </HStack>
     </DashboardCard>
   );
 }
 
-function WithdrawalMethodCard() {
+function WithdrawalMethodCard({
+  data,
+}: {
+  data: ParticipantWalletResponse;
+}) {
   return (
     <DashboardCard p="5">
       <HStack justify="space-between" mb="5">
@@ -726,27 +855,29 @@ function WithdrawalMethodCard() {
 
           <Box>
             <Text fontSize="sm" fontWeight="bold" color="brand.dark">
-              Bank Account
+              {data.withdrawalMethod.name}
             </Text>
 
             <Text fontSize="xs" color="brand.mutedText">
-              Commercial Bank **** 1234
+              {data.withdrawalMethod.description}
             </Text>
           </Box>
         </HStack>
 
         <HStack>
-          <Box
-            px="3"
-            py="1"
-            borderRadius="999px"
-            bg="#DCFCE7"
-            color="green.700"
-            fontSize="xs"
-            fontWeight="bold"
-          >
-            Default
-          </Box>
+          {data.withdrawalMethod.isDefault && (
+            <Box
+              px="3"
+              py="1"
+              borderRadius="999px"
+              bg="#DCFCE7"
+              color="green.700"
+              fontSize="xs"
+              fontWeight="bold"
+            >
+              Default
+            </Box>
+          )}
 
           <FiChevronRight />
         </HStack>
@@ -755,14 +886,7 @@ function WithdrawalMethodCard() {
   );
 }
 
-function WalletTipsCard() {
-  const tips = [
-    "Complete more surveys to increase your earnings.",
-    "Verified users get access to higher paying surveys.",
-    "Keep your profile updated for better matches.",
-    "Withdrawals are processed within 1–3 business days.",
-  ];
-
+function WalletTipsCard({ tips }: { tips: string[] }) {
   return (
     <DashboardCard p="5">
       <Text fontSize="lg" fontWeight="bold" color="brand.dark" mb="5">
@@ -786,12 +910,21 @@ function WalletTipsCard() {
   );
 }
 
-function RightPanel() {
+function RightPanel({
+  data,
+  currency,
+}: {
+  data: ParticipantWalletResponse;
+  currency: string;
+}) {
   return (
     <VStack align="stretch" gap="5">
-      <RecentWithdrawalsCard />
-      <EarningsBreakdownCard />
-      <WithdrawalMethodCard />
+      <RecentWithdrawalsCard data={data} />
+      <EarningsBreakdownCard
+        rows={data.earningsBreakdown}
+        currency={currency}
+      />
+      <WithdrawalMethodCard data={data} />
 
       <Box
         bg="#FFF7D6"
@@ -809,7 +942,7 @@ function RightPanel() {
             <Text fontSize="sm" color="brand.dark">
               Minimum withdrawal amount is{" "}
               <Text as="span" fontWeight="bold">
-                LKR 300.00
+                {formatMoney(300, currency)}
               </Text>
               .
             </Text>
@@ -817,7 +950,7 @@ function RightPanel() {
             <Text fontSize="sm" color="brand.dark" mt="2">
               Withdrawals are processed within{" "}
               <Text as="span" fontWeight="bold">
-                1–3 business days
+                1-3 business days
               </Text>
               .
             </Text>
@@ -825,36 +958,75 @@ function RightPanel() {
         </HStack>
       </Box>
 
-      <WalletTipsCard />
+      <WalletTipsCard tips={data.walletTips} />
     </VStack>
   );
 }
 
-function Pagination() {
+function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (nextPage: number) => void;
+}) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const pages = [];
+  const startPage = Math.max(1, page - 1);
+  const endPage = Math.min(totalPages, startPage + 2);
+
+  for (let currentPage = startPage; currentPage <= endPage; currentPage += 1) {
+    pages.push(currentPage);
+  }
+
   return (
     <HStack justify="flex-end" mt="5" gap="3">
-      <IconButton aria-label="Previous page" variant="outline">
+      <IconButton
+        aria-label="Previous page"
+        variant="outline"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page === 1}
+      >
         <FiChevronLeft />
       </IconButton>
 
-      {[1, 2, 3].map((page) => (
+      {pages.map((currentPage) => (
         <Button
-          key={page}
-          variant={page === 1 ? "solid" : "outline"}
-          color={page === 1 ? "white" : "brand.dark"}
+          key={currentPage}
+          variant={currentPage === page ? "solid" : "outline"}
+          color={currentPage === page ? "white" : "brand.dark"}
           w="42px"
+          onClick={() => onPageChange(currentPage)}
         >
-          {page}
+          {currentPage}
         </Button>
       ))}
 
-      <Text fontWeight="bold">...</Text>
+      {endPage < totalPages && (
+        <>
+          <Text fontWeight="bold">...</Text>
 
-      <Button variant="outline" w="42px">
-        4
-      </Button>
+          <Button
+            variant="outline"
+            w="42px"
+            onClick={() => onPageChange(totalPages)}
+          >
+            {totalPages}
+          </Button>
+        </>
+      )}
 
-      <IconButton aria-label="Next page" variant="outline">
+      <IconButton
+        aria-label="Next page"
+        variant="outline"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page === totalPages}
+      >
         <FiChevronRight />
       </IconButton>
     </HStack>
@@ -862,6 +1034,113 @@ function Pagination() {
 }
 
 export default function ParticipantWalletPage() {
+  const [participantId] = useState(() => getStoredParticipantId());
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<ParticipantWalletStatus>("ALL");
+  const [sortBy, setSortBy] =
+    useState<ParticipantWalletSortBy>("MOST_RECENT");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(8);
+  const [data, setData] = useState<ParticipantWalletResponse | null>(null);
+  const [lastCompletedQueryKey, setLastCompletedQueryKey] = useState("");
+  const [error, setError] = useState("");
+
+  const queryKey = participantId
+    ? JSON.stringify({
+        participantId,
+        search,
+        status,
+        sortBy,
+        page,
+        limit,
+      })
+    : "";
+  const isLoading = Boolean(participantId) && queryKey !== lastCompletedQueryKey;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!participantId) {
+      return;
+    }
+
+    getParticipantWallet({
+      participantId,
+      search,
+      status,
+      sortBy,
+      page,
+      limit,
+    })
+      .then((response) => {
+        if (isMounted) {
+          setData(response);
+          setError("");
+          setLastCompletedQueryKey(queryKey);
+        }
+      })
+      .catch((requestError) => {
+        if (isMounted) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Failed to load wallet"
+          );
+          setLastCompletedQueryKey(queryKey);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [limit, page, participantId, queryKey, search, sortBy, status]);
+
+  const missingParticipantIdError = participantId
+    ? ""
+    : "Participant id was not found. Please log in again.";
+
+  if (isLoading && !data) {
+    return (
+      <Flex minH="100vh" bg="white" color="brand.dark">
+        <ParticipantSidebar activeItem="Wallet" />
+        <Flex flex="1" align="center" justify="center" gap="3">
+          <Spinner color="brand.primary" />
+          <Text color="brand.mutedText">Loading wallet...</Text>
+        </Flex>
+      </Flex>
+    );
+  }
+
+  if (missingParticipantIdError || (!data && error) || !data) {
+    return (
+      <Flex minH="100vh" bg="white" color="brand.dark">
+        <ParticipantSidebar activeItem="Wallet" />
+        <Flex flex="1" align="center" justify="center" p="6">
+          <DashboardCard p="6" maxW="560px">
+            <Text fontWeight="bold" color="brand.dark">
+              We could not load your wallet.
+            </Text>
+            <Text color="brand.mutedText" mt="2">
+              {missingParticipantIdError || error || "Please try again later."}
+            </Text>
+          </DashboardCard>
+        </Flex>
+      </Flex>
+    );
+  }
+
+  const currency = data.summaryCards.currency;
+
   return (
     <Flex minH="100vh" bg="white" color="brand.dark">
       <ParticipantSidebar activeItem="Wallet" />
@@ -880,7 +1159,8 @@ export default function ParticipantWalletPage() {
               </Text>
 
               <Text fontSize="lg" color="brand.mutedText" mt="3">
-                Track your earnings, pending rewards, and withdrawals.
+                {data.participant.username}, track your earnings, rewards, and
+                withdrawals here.
               </Text>
             </Box>
 
@@ -896,7 +1176,10 @@ export default function ParticipantWalletPage() {
               <StatCard
                 icon={<FiSearch />}
                 title="Current Wallet Balance"
-                value="LKR 3,240"
+                value={formatMoney(
+                  data.summaryCards.currentWalletBalance,
+                  currency
+                )}
                 helper="Available to withdraw"
                 bg="#DBEAFE"
                 color="brand.primary"
@@ -905,7 +1188,7 @@ export default function ParticipantWalletPage() {
               <StatCard
                 icon={<FiTrendingUp />}
                 title="Pending Earnings"
-                value="LKR 1,250"
+                value={formatMoney(data.summaryCards.pendingEarnings, currency)}
                 helper="Awaiting approval"
                 bg="#FEF3C7"
                 color="#D97706"
@@ -914,7 +1197,7 @@ export default function ParticipantWalletPage() {
               <StatCard
                 icon={<FiDollarSign />}
                 title="Total Earned"
-                value="LKR 18,450"
+                value={formatMoney(data.summaryCards.totalEarned, currency)}
                 helper="All time earnings"
                 bg="#F3E8FF"
                 color="#7C3AED"
@@ -923,30 +1206,65 @@ export default function ParticipantWalletPage() {
               <StatCard
                 icon={<FiCreditCard />}
                 title="Total Withdrawn"
-                value="LKR 14,210"
+                value={formatMoney(data.summaryCards.totalWithdrawn, currency)}
                 helper="All time withdrawals"
                 bg="#DCFCE7"
                 color="green.600"
               />
             </Grid>
 
-            <WalletBalanceCard />
+            <WalletBalanceCard data={data} currency={currency} />
 
             <Box mt="6">
-              <TransactionsFilterBar />
-              <TransactionsTable />
+              <TransactionsFilterBar
+                searchInput={searchInput}
+                onSearchChange={setSearchInput}
+                status={status}
+                onStatusChange={(nextStatus) => {
+                  setStatus(nextStatus);
+                  setPage(1);
+                }}
+                sortBy={sortBy}
+                onSortByChange={(nextSortBy) => {
+                  setSortBy(nextSortBy);
+                  setPage(1);
+                }}
+                limit={limit}
+                onLimitChange={(nextLimit) => {
+                  setLimit(nextLimit);
+                  setPage(1);
+                }}
+              />
+
+              {isLoading && (
+                <HStack mb="4" color="brand.mutedText">
+                  <Spinner size="sm" color="brand.primary" />
+                  <Text fontSize="sm">Refreshing wallet data...</Text>
+                </HStack>
+              )}
+
+              <TransactionsTable
+                rows={data.transactions.rows}
+                currency={currency}
+              />
 
               <HStack justify="space-between" mt="5" flexWrap="wrap" gap="4">
                 <Text color="brand.mutedText">
-                  Showing 1 to 8 of 32 transactions
+                  Showing {data.transactions.pagination.showingFrom} to{" "}
+                  {data.transactions.pagination.showingTo} of{" "}
+                  {data.transactions.pagination.total} transactions
                 </Text>
 
-                <Pagination />
+                <Pagination
+                  page={data.transactions.pagination.page}
+                  totalPages={data.transactions.pagination.totalPages}
+                  onPageChange={setPage}
+                />
               </HStack>
             </Box>
           </Box>
 
-          <RightPanel />
+          <RightPanel data={data} currency={currency} />
         </Grid>
       </Box>
     </Flex>
