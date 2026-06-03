@@ -115,6 +115,7 @@ export default function LoginForm() {
       if (participantId) {
         window.localStorage.setItem("participantId", participantId);
         window.localStorage.setItem("userId", participantId);
+        window.localStorage.setItem("creatorId", participantId);
       }
 
       if (role) {

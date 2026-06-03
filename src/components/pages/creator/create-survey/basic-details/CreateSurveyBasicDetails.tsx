@@ -6,8 +6,32 @@ import Sidebar from "@/components/pages/creator/dashboard/Sidebar";
 import BasicDetailsForm from "./BasicDetailsForm";
 import CreateSurveyStepper from "../shared/CreateSurveyStepper";
 import CreateSurveyRightPanel from "./CreateSurveyRightPanel";
+import { useState } from "react";
+import type { BasicDetailsFormValues } from "./BasicDetailsForm";
+import type { SurveyDraft } from "@/services/creatorSurveyService";
+
+const initialBasicDetailsValues: BasicDetailsFormValues = {
+  surveyTitle: "",
+  description: "",
+  category: "",
+  completionDays: "7",
+};
 
 export default function CreateSurveyBasicDetails() {
+  const [basicDetails, setBasicDetails] = useState<BasicDetailsFormValues>(
+    initialBasicDetailsValues
+  );
+  const [createdDraftId, setCreatedDraftId] = useState<string | null>(null);
+
+  const handleDraftCreated = (survey: SurveyDraft) => {
+    setCreatedDraftId(survey.id);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("creatorSurveyDraftId", survey.id);
+      window.localStorage.setItem("creatorSurveyDraft", JSON.stringify(survey));
+    }
+  };
+
   return (
     <Flex minH="100vh" bg="white" color="brand.dark">
       <Sidebar />
@@ -22,9 +46,13 @@ export default function CreateSurveyBasicDetails() {
             mt="5"
             alignItems="start"
           >
-            <BasicDetailsForm onNext={function (): void {
-              throw new Error("Function not implemented.");
-            } } />
+            <BasicDetailsForm
+              values={basicDetails}
+              onChange={setBasicDetails}
+              onDraftCreated={handleDraftCreated}
+              existingDraftId={createdDraftId}
+              onNext={() => {}}
+            />
             <CreateSurveyRightPanel />
           </Grid>
         </Box>

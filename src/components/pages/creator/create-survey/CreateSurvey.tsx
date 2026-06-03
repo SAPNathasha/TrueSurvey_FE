@@ -6,7 +6,9 @@ import { useState } from "react";
 import Sidebar from "@/components/pages/creator/dashboard/Sidebar";
 import CreateSurveyStepper from "./shared/CreateSurveyStepper";
 
-import BasicDetailsForm from "./basic-details/BasicDetailsForm";
+import BasicDetailsForm, {
+  type BasicDetailsFormValues,
+} from "./basic-details/BasicDetailsForm";
 import BasicDetailsRightPanel from "./basic-details/CreateSurveyRightPanel";
 
 import SelectMethodStep from "./select-method/SelectMethodStep";
@@ -28,14 +30,43 @@ import PreviewSubmitStep from "./preview-submit/PreviewSubmitStep";
 import PreviewSubmitRightPanel from "./preview-submit/PreviewSubmitRightPanel";
 
 import type { SurveyMethodId } from "./select-method/selectMethodTypes";
+import type { SurveyDraft } from "@/services/creatorSurveyService";
+
+const initialBasicDetailsValues: BasicDetailsFormValues = {
+  surveyTitle: "",
+  description: "",
+  category: "",
+  completionDays: "7",
+};
 
 export default function CreateSurvey() {
-  const [currentStep, setCurrentStep] = useState(2);
+  const [currentStep, setCurrentStep] = useState(1);
   const [selectedMethod, setSelectedMethod] = useState<SurveyMethodId>("ai");
+  const [basicDetails, setBasicDetails] = useState<BasicDetailsFormValues>(
+    initialBasicDetailsValues
+  );
+  const [createdDraftId, setCreatedDraftId] = useState<string | null>(null);
+
+  const handleDraftCreated = (survey: SurveyDraft) => {
+    setCreatedDraftId(survey.id);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("creatorSurveyDraftId", survey.id);
+      window.localStorage.setItem("creatorSurveyDraft", JSON.stringify(survey));
+    }
+  };
 
   const renderStepContent = () => {
     if (currentStep === 1) {
-      return <BasicDetailsForm onNext={() => setCurrentStep(2)} />;
+      return (
+        <BasicDetailsForm
+          values={basicDetails}
+          onChange={setBasicDetails}
+          onDraftCreated={handleDraftCreated}
+          existingDraftId={createdDraftId}
+          onNext={() => setCurrentStep(2)}
+        />
+      );
     }
 
     if (currentStep === 2) {

@@ -20,42 +20,42 @@ import type {
 export const surveyCategories: SurveyCategory[] = [
   {
     label: "Customer Feedback",
-    value: "customer-feedback",
+    value: "CUSTOMER_FEEDBACK",
     icon: FiMessageSquare,
   },
   {
     label: "Market Research",
-    value: "market-research",
+    value: "MARKET_RESEARCH",
     icon: FiTarget,
   },
   {
     label: "Employee Engagement",
-    value: "employee-engagement",
+    value: "EMPLOYEE_ENGAGEMENT",
     icon: FiUsers,
   },
   {
     label: "Education",
-    value: "education",
+    value: "EDUCATION",
     icon: FiBookOpen,
   },
   {
     label: "Healthcare",
-    value: "healthcare",
+    value: "HEALTHCARE",
     icon: FiHeart,
   },
   {
     label: "Product Research",
-    value: "product-research",
+    value: "PRODUCT_RESEARCH",
     icon: FiShoppingBag,
   },
   {
     label: "Event Feedback",
-    value: "event-feedback",
+    value: "EVENT_FEEDBACK",
     icon: FiBriefcase,
   },
   {
     label: "Other",
-    value: "other",
+    value: "OTHER",
     icon: FiMoreHorizontal,
   },
 ];

@@ -15,19 +15,135 @@ import { FiArrowRight, FiFileText } from "react-icons/fi";
 import { useState } from "react";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
+import { getStoredCreatorId } from "@/lib/creatorIdentity";
+import { toaster } from "@/components/ui/toaster";
+import {
+  createSurveyBasicDetails,
+  type SurveyDraft,
+} from "@/services/creatorSurveyService";
 import CategoryDropdown from "./CategoryDropdown";
 
-type BasicDetailsFormProps = {
-  onNext: () => void;
+export type BasicDetailsFormValues = {
+  surveyTitle: string;
+  description: string;
+  category: string;
+  completionDays: string;
 };
 
-export default function BasicDetailsForm({ onNext }: BasicDetailsFormProps) {
-  const [surveyTitle, setSurveyTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
-  const [completionDays, setCompletionDays] = useState("7");
+type BasicDetailsFormProps = {
+  values: BasicDetailsFormValues;
+  onChange: (values: BasicDetailsFormValues) => void;
+  onNext: () => void;
+  onDraftCreated: (survey: SurveyDraft) => void;
+  existingDraftId?: string | null;
+};
 
-  const descriptionLength = description.length;
+export default function BasicDetailsForm({
+  values,
+  onChange,
+  onNext,
+  onDraftCreated,
+  existingDraftId,
+}: BasicDetailsFormProps) {
+  const creatorId = getStoredCreatorId();
+  const descriptionLength = values.description.length;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const setFieldValue = <K extends keyof BasicDetailsFormValues>(
+    field: K,
+    value: BasicDetailsFormValues[K]
+  ) => {
+    onChange({
+      ...values,
+      [field]: value,
+    });
+  };
+
+  const validateForm = () => {
+    if (!creatorId) {
+      return "Creator id was not found. Please log in again.";
+    }
+
+    if (!values.surveyTitle.trim()) {
+      return "Survey title is required.";
+    }
+
+    if (!values.description.trim()) {
+      return "Survey description is required.";
+    }
+
+    if (!values.category.trim()) {
+      return "Please select a survey category.";
+    }
+
+    const estimatedCompletionDays = Number(values.completionDays);
+
+    if (!Number.isInteger(estimatedCompletionDays) || estimatedCompletionDays < 1) {
+      return "Estimated completion days must be at least 1.";
+    }
+
+    return null;
+  };
+
+  const submitBasicDetails = async (advanceToNextStep: boolean) => {
+    if (existingDraftId) {
+      if (advanceToNextStep) {
+        onNext();
+      } else {
+        toaster.create({
+          type: "info",
+          title: "Draft already saved",
+          description: "Your survey draft has already been created.",
+        });
+      }
+      return;
+    }
+
+    const validationMessage = validateForm();
+
+    if (validationMessage) {
+      toaster.create({
+        type: "error",
+        title: "Missing survey details",
+        description: validationMessage,
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await createSurveyBasicDetails({
+        creatorId: creatorId as string,
+        title: values.surveyTitle.trim(),
+        description: values.description.trim(),
+        category: values.category,
+        estimatedCompletionDays: Number(values.completionDays),
+      });
+
+      onDraftCreated(response.survey);
+
+      toaster.create({
+        type: "success",
+        title: advanceToNextStep ? "Basic details saved" : "Draft saved",
+        description: response.message,
+      });
+
+      if (advanceToNextStep) {
+        onNext();
+      }
+    } catch (error) {
+      toaster.create({
+        type: "error",
+        title: "Could not save survey",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again in a moment.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <DashboardCard p="0" overflow="visible">
@@ -42,8 +158,10 @@ export default function BasicDetailsForm({ onNext }: BasicDetailsFormProps) {
             </Text>
 
             <Input
-              value={surveyTitle}
-              onChange={(event) => setSurveyTitle(event.target.value)}
+              value={values.surveyTitle}
+              onChange={(event) =>
+                setFieldValue("surveyTitle", event.target.value)
+              }
               placeholder="e.g., Customer Satisfaction Survey"
               h="46px"
               borderColor="brand.border"
@@ -68,10 +186,10 @@ export default function BasicDetailsForm({ onNext }: BasicDetailsFormProps) {
             </Text>
 
             <Textarea
-              value={description}
+              value={values.description}
               onChange={(event) => {
                 if (event.target.value.length <= 500) {
-                  setDescription(event.target.value);
+                  setFieldValue("description", event.target.value);
                 }
               }}
               placeholder="Short explanation of the survey purpose"
@@ -104,7 +222,10 @@ export default function BasicDetailsForm({ onNext }: BasicDetailsFormProps) {
                 </Text>
               </Text>
 
-              <CategoryDropdown value={category} onChange={setCategory} />
+              <CategoryDropdown
+                value={values.category}
+                onChange={(value) => setFieldValue("category", value)}
+              />
             </Box>
 
             <Box>
@@ -123,8 +244,10 @@ export default function BasicDetailsForm({ onNext }: BasicDetailsFormProps) {
                 }
               >
                 <Input
-                  value={completionDays}
-                  onChange={(event) => setCompletionDays(event.target.value)}
+                  value={values.completionDays}
+                  onChange={(event) =>
+                    setFieldValue("completionDays", event.target.value)
+                  }
                   type="number"
                   min="1"
                   h="46px"
@@ -152,7 +275,15 @@ export default function BasicDetailsForm({ onNext }: BasicDetailsFormProps) {
         py="5"
       >
         <HStack justify="flex-end" gap="4" flexWrap="wrap">
-          <Button variant="outline" px={5} py={3}>
+          <Button
+            variant="outline"
+            px={5}
+            py={3}
+            onClick={() => {
+              void submitBasicDetails(false);
+            }}
+            loading={isSubmitting}
+          >
             <FiFileText />
             Save as Draft
           </Button>
@@ -161,7 +292,15 @@ export default function BasicDetailsForm({ onNext }: BasicDetailsFormProps) {
             Cancel
           </Button>
 
-          <Button px={5} py={3} color="white" onClick={onNext}>
+          <Button
+            px={5}
+            py={3}
+            color="white"
+            onClick={() => {
+              void submitBasicDetails(true);
+            }}
+            loading={isSubmitting}
+          >
             Continue to Select Method <FiArrowRight />
           </Button>
         </HStack>
