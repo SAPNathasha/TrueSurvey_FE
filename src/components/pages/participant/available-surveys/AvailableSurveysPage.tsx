@@ -9,17 +9,18 @@ import {
   IconButton,
   Input,
   InputGroup,
+  NativeSelect,
+  Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import {
   FiBookmark,
-  FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
   FiClock,
-  FiFilter,
   FiGift,
   FiLock,
   FiSearch,
@@ -31,89 +32,43 @@ import {
 import { FaHamburger } from "react-icons/fa";
 
 import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
-
-type SurveyStatus = "available" | "locked";
-
-type SurveyCardData = {
-  id: number;
-  title: string;
-  description: string;
-  reward: string;
-  time: string;
-  questions: string;
-  completed?: string;
-  progress?: number;
-  badge?: string;
-  status: SurveyStatus;
-  icon: React.ReactNode;
-  iconBg: string;
-  iconColor: string;
-};
+import { getStoredParticipantId } from "@/lib/participantIdentity";
+import {
+  getAvailableSurveys,
+  type AvailableSurvey,
+  type AvailableSurveysResponse,
+  type AvailableSurveySortBy,
+  type AvailableSurveyTab,
+} from "@/services/participantSurveyService";
 
 type FilterChipProps = {
   label: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   active?: boolean;
+  onClick?: () => void;
 };
 
-const surveys: SurveyCardData[] = [
-  {
-    id: 1,
-    title: "Shopping Habits & Preferences",
-    description: "Share your shopping preferences and help brands improve their products and services.",
-    reward: "LKR 250.00",
-    time: "15 min",
-    questions: "120 Questions",
-    completed: "1,256 / 2,000 completed",
-    progress: 63,
-    badge: "High Paying",
-    status: "available",
-    icon: <FiGift />,
-    iconBg: "#F3E8FF",
-    iconColor: "#7C3AED",
-  },
-  {
-    id: 2,
-    title: "Food & Beverages Feedback",
-    description: "Help restaurant chains improve their menu and customer experience.",
-    reward: "LKR 180.00",
-    time: "10 min",
-    questions: "80 Questions",
-    completed: "845 / 1,500 completed",
-    progress: 56,
-    badge: "New",
-    status: "available",
-    icon: <FaHamburger />,
-    iconBg: "#FEF3C7",
-    iconColor: "#D97706",
-  },
-  {
-    id: 3,
-    title: "Technology Usage Survey",
-    description: "Tell us about the tech products and apps you use in your daily life.",
-    reward: "LKR 300.00",
-    time: "20 min",
-    questions: "25 Questions",
-    completed: "2,340 / 3,000 completed",
-    progress: 78,
-    status: "available",
-    icon: <FiSmartphone />,
-    iconBg: "#EAF2FF",
-    iconColor: "brand.primary",
-  },
-  {
-    id: 4,
-    title: "Financial Services Experience",
-    description: "This survey is only available for verified users to ensure data quality.",
-    reward: "Locked Survey",
-    time: "25 min",
-    questions: "30 Questions",
-    status: "locked",
-    icon: <FiLock />,
-    iconBg: "#F3E8FF",
-    iconColor: "#7C3AED",
-  },
+const TAB_OPTIONS: {
+  label: string;
+  value: AvailableSurveyTab;
+  icon?: ReactNode;
+}[] = [
+  { label: "All Surveys", value: "ALL" },
+  { label: "High Paying", value: "HIGH_PAYING", icon: <FiStar color="#EAB308" /> },
+  { label: "Short Surveys", value: "SHORT_SURVEYS", icon: <FiClock color="#2563EB" /> },
+  { label: "Trending", value: "TRENDING", icon: <FiTrendingUp color="#F97316" /> },
+  { label: "New", value: "NEW" },
 ];
+
+const SORT_OPTIONS: { label: string; value: AvailableSurveySortBy }[] = [
+  { label: "Most Relevant", value: "MOST_RELEVANT" },
+  { label: "Highest Reward", value: "REWARD_HIGH" },
+  { label: "Lowest Reward", value: "REWARD_LOW" },
+  { label: "Newest", value: "NEWEST" },
+  { label: "Shortest", value: "SHORTEST" },
+];
+
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
 
 function DashboardCard({
   children,
@@ -133,7 +88,7 @@ function DashboardCard({
   );
 }
 
-function FilterChip({ label, icon, active }: FilterChipProps) {
+function FilterChip({ label, icon, active, onClick }: FilterChipProps) {
   return (
     <Button
       h="42px"
@@ -148,6 +103,7 @@ function FilterChip({ label, icon, active }: FilterChipProps) {
         bg: active ? "brand.primary" : "brand.lightBlue",
         color: active ? "white" : "brand.primary",
       }}
+      onClick={onClick}
     >
       {icon}
       {label}
@@ -159,7 +115,7 @@ function SurveyMetaTag({
   icon,
   label,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
 }) {
   return (
@@ -181,9 +137,159 @@ function SurveyMetaTag({
   );
 }
 
-function AvailableSurveyCard({ survey }: { survey: SurveyCardData }) {
-  if (survey.status === "locked") {
-    return <LockedSurveyCard survey={survey} />;
+function formatMoney(amount: number, currency: string) {
+  return `${currency} ${amount.toLocaleString()}`;
+}
+
+function getBadge(tags: string[]) {
+  if (tags.includes("HIGH_PAYING")) {
+    return {
+      label: "High Paying",
+      bg: "#DCFCE7",
+      color: "#166534",
+    };
+  }
+
+  if (tags.includes("NEW")) {
+    return {
+      label: "New",
+      bg: "#EEF2FF",
+      color: "#0015D6",
+    };
+  }
+
+  if (tags.includes("TRENDING")) {
+    return {
+      label: "Trending",
+      bg: "#FFF7ED",
+      color: "#C2410C",
+    };
+  }
+
+  return null;
+}
+
+function getSurveyVisual(index: number) {
+  const visuals = [
+    {
+      icon: <FiGift />,
+      iconBg: "#F3E8FF",
+      iconColor: "#7C3AED",
+    },
+    {
+      icon: <FaHamburger />,
+      iconBg: "#FEF3C7",
+      iconColor: "#D97706",
+    },
+    {
+      icon: <FiSmartphone />,
+      iconBg: "#EAF2FF",
+      iconColor: "#0015D6",
+    },
+  ];
+
+  return visuals[index % visuals.length];
+}
+
+function SurveyCard({
+  survey,
+  index,
+}: {
+  survey: AvailableSurvey;
+  index: number;
+}) {
+  const badge = getBadge(survey.tags);
+  const visual = getSurveyVisual(index);
+
+  if (survey.isLocked) {
+    return (
+      <DashboardCard
+        p={{ base: "5", lg: "7" }}
+        borderStyle="dashed"
+        borderColor="#CBD5E1"
+        bg="#FBFCFF"
+      >
+        <Grid
+          templateColumns={{
+            base: "1fr",
+            lg: "90px minmax(260px, 1fr) 250px 230px 40px",
+          }}
+          gap="6"
+          alignItems="center"
+        >
+          <Box
+            w="86px"
+            h="86px"
+            borderRadius="14px"
+            bg={visual.iconBg}
+            color={visual.iconColor}
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            fontSize="34px"
+            opacity="0.75"
+          >
+            <FiLock />
+          </Box>
+
+          <Box>
+            <Text
+              fontSize={{ base: "lg", lg: "2xl" }}
+              fontWeight="extrabold"
+              color="brand.dark"
+              opacity="0.75"
+            >
+              {survey.title}
+            </Text>
+
+            <Text color="brand.mutedText" mt="2" maxW="500px">
+              {survey.description}
+            </Text>
+
+            <HStack gap="3" mt="4" flexWrap="wrap">
+              <SurveyMetaTag icon={<FiClock />} label={survey.estimatedTime} />
+              <SurveyMetaTag
+                icon={<FiUsers />}
+                label={`${survey.questionCount} Questions`}
+              />
+            </HStack>
+          </Box>
+
+          <Box
+            bg="#F3E8FF"
+            borderRadius="12px"
+            py="5"
+            textAlign="center"
+            color="#7C3AED"
+          >
+            <Box fontSize="28px" display="flex" justifyContent="center">
+              <FiLock />
+            </Box>
+
+            <Text fontWeight="bold" mt="2">
+              Locked Survey
+            </Text>
+
+            <Text fontSize="sm" color="brand.mutedText" mt="1" px="4">
+              {survey.lockedReason || "Verify your identity to unlock this survey."}
+            </Text>
+          </Box>
+
+          <Button h="48px" variant="outline" color="brand.primary">
+            Verify Now
+          </Button>
+
+          <IconButton
+            aria-label="Save survey"
+            variant="ghost"
+            color="brand.mutedText"
+            fontSize="22px"
+          >
+            <FiBookmark />
+          </IconButton>
+        </Grid>
+      </DashboardCard>
+    );
   }
 
   return (
@@ -200,30 +306,30 @@ function AvailableSurveyCard({ survey }: { survey: SurveyCardData }) {
           w="86px"
           h="86px"
           borderRadius="14px"
-          bg={survey.iconBg}
-          color={survey.iconColor}
+          bg={visual.iconBg}
+          color={visual.iconColor}
           display="flex"
           alignItems="center"
           justifyContent="center"
           fontSize="36px"
         >
-          {survey.icon}
+          {visual.icon}
         </Box>
 
         <Box>
-          {survey.badge && (
+          {badge && (
             <Box
               mb="2"
               px="3"
               py="1"
               borderRadius="999px"
-              bg={survey.badge === "High Paying" ? "#DCFCE7" : "#EEF2FF"}
-              color={survey.badge === "High Paying" ? "#166534" : "brand.primary"}
+              bg={badge.bg}
+              color={badge.color}
               fontSize="xs"
               fontWeight="bold"
               w="fit-content"
             >
-              {survey.badge}
+              {badge.label}
             </Box>
           )}
 
@@ -241,17 +347,15 @@ function AvailableSurveyCard({ survey }: { survey: SurveyCardData }) {
           </Text>
 
           <HStack gap="3" mt="4" flexWrap="wrap">
-            <SurveyMetaTag icon={<FiClock />} label={survey.time} />
-            <SurveyMetaTag label={survey.questions} icon={<FiUsers />} />
+            <SurveyMetaTag icon={<FiClock />} label={survey.estimatedTime} />
+            <SurveyMetaTag
+              icon={<FiUsers />}
+              label={`${survey.questionCount} Questions`}
+            />
           </HStack>
         </Box>
 
-        <Box
-          bg="#ECFDF3"
-          borderRadius="12px"
-          py="5"
-          textAlign="center"
-        >
+        <Box bg="#ECFDF3" borderRadius="12px" py="5" textAlign="center">
           <Text fontSize="sm" color="green.700" fontWeight="bold">
             Reward
           </Text>
@@ -262,7 +366,7 @@ function AvailableSurveyCard({ survey }: { survey: SurveyCardData }) {
             color="brand.dark"
             mt="1"
           >
-            {survey.reward}
+            {formatMoney(survey.rewardAmount, survey.currency)}
           </Text>
         </Box>
 
@@ -274,21 +378,23 @@ function AvailableSurveyCard({ survey }: { survey: SurveyCardData }) {
 
           <HStack mt="4" gap="2" color="brand.mutedText">
             <FiUsers />
-            <Text fontSize="sm">{survey.completed}</Text>
+            <Text fontSize="sm">
+              {survey.completedResponses} / {survey.requiredResponses} completed
+            </Text>
           </HStack>
 
           <HStack gap="3" mt="2">
             <Box flex="1" h="6px" bg="#E5E7EB" borderRadius="999px">
               <Box
                 h="full"
-                w={`${survey.progress}%`}
+                w={`${survey.completionPercentage}%`}
                 bg="brand.primary"
                 borderRadius="999px"
               />
             </Box>
 
             <Text fontSize="sm" color="brand.dark">
-              {survey.progress}%
+              {survey.completionPercentage}%
             </Text>
           </HStack>
         </Box>
@@ -306,129 +412,240 @@ function AvailableSurveyCard({ survey }: { survey: SurveyCardData }) {
   );
 }
 
-function LockedSurveyCard({ survey }: { survey: SurveyCardData }) {
-  return (
-    <DashboardCard
-      p={{ base: "5", lg: "7" }}
-      borderStyle="dashed"
-      borderColor="#CBD5E1"
-      bg="#FBFCFF"
-    >
-      <Grid
-        templateColumns={{
-          base: "1fr",
-          lg: "90px minmax(260px, 1fr) 250px 230px 40px",
-        }}
-        gap="6"
-        alignItems="center"
-      >
-        <Box
-          w="86px"
-          h="86px"
-          borderRadius="14px"
-          bg={survey.iconBg}
-          color={survey.iconColor}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          fontSize="34px"
-          opacity="0.75"
-        >
-          {survey.icon}
-        </Box>
+function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (nextPage: number) => void;
+}) {
+  if (totalPages <= 1) {
+    return null;
+  }
 
-        <Box>
-          <Text
-            fontSize={{ base: "lg", lg: "2xl" }}
-            fontWeight="extrabold"
-            color="brand.dark"
-            opacity="0.75"
-          >
-            {survey.title}
-          </Text>
+  const pages = [];
+  const startPage = Math.max(1, page - 1);
+  const endPage = Math.min(totalPages, startPage + 2);
 
-          <Text color="brand.mutedText" mt="2" maxW="500px">
-            {survey.description}
-          </Text>
+  for (let currentPage = startPage; currentPage <= endPage; currentPage += 1) {
+    pages.push(currentPage);
+  }
 
-          <HStack gap="3" mt="4" flexWrap="wrap">
-            <SurveyMetaTag icon={<FiClock />} label={survey.time} />
-            <SurveyMetaTag icon={<FiUsers />} label={survey.questions} />
-          </HStack>
-        </Box>
-
-        <Box
-          bg="#F3E8FF"
-          borderRadius="12px"
-          py="5"
-          textAlign="center"
-          color="#7C3AED"
-        >
-          <Box fontSize="28px" display="flex" justifyContent="center">
-            <FiLock />
-          </Box>
-
-          <Text fontWeight="bold" mt="2">
-            Locked Survey
-          </Text>
-
-          <Text fontSize="sm" color="brand.mutedText" mt="1">
-            Verify your identity to unlock this survey.
-          </Text>
-        </Box>
-
-        <Button h="48px" variant="outline" color="brand.primary">
-          Verify Now
-        </Button>
-
-        <IconButton
-          aria-label="Save survey"
-          variant="ghost"
-          color="brand.mutedText"
-          fontSize="22px"
-        >
-          <FiBookmark />
-        </IconButton>
-      </Grid>
-    </DashboardCard>
-  );
-}
-
-function Pagination() {
   return (
     <HStack justify="flex-end" mt="8" gap="3">
-      <IconButton aria-label="Previous page" variant="outline">
+      <IconButton
+        aria-label="Previous page"
+        variant="outline"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page === 1}
+      >
         <FiChevronLeft />
       </IconButton>
 
-      {[1, 2, 3].map((page) => (
+      {pages.map((currentPage) => (
         <Button
-          key={page}
-          variant={page === 1 ? "solid" : "outline"}
-          color={page === 1 ? "white" : "brand.dark"}
+          key={currentPage}
+          variant={currentPage === page ? "solid" : "outline"}
+          color={currentPage === page ? "white" : "brand.dark"}
           w="44px"
+          onClick={() => onPageChange(currentPage)}
         >
-          {page}
+          {currentPage}
         </Button>
       ))}
 
-      <Text fontWeight="bold" color="brand.dark">
-        ...
-      </Text>
+      {endPage < totalPages && (
+        <>
+          <Text fontWeight="bold" color="brand.dark">
+            ...
+          </Text>
 
-      <Button variant="outline" w="44px">
-        6
-      </Button>
+          <Button
+            variant="outline"
+            w="44px"
+            onClick={() => onPageChange(totalPages)}
+          >
+            {totalPages}
+          </Button>
+        </>
+      )}
 
-      <IconButton aria-label="Next page" variant="outline">
+      <IconButton
+        aria-label="Next page"
+        variant="outline"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page === totalPages}
+      >
         <FiChevronRight />
       </IconButton>
     </HStack>
   );
 }
 
+function SortSelect({
+  value,
+  onChange,
+}: {
+  value: AvailableSurveySortBy;
+  onChange: (nextValue: AvailableSurveySortBy) => void;
+}) {
+  return (
+    <NativeSelect.Root minW="180px">
+      <NativeSelect.Field
+        value={value}
+        onChange={(event) =>
+          onChange(event.target.value as AvailableSurveySortBy)
+        }
+        h="42px"
+        borderColor="brand.border"
+        borderRadius="10px"
+        fontWeight="medium"
+      >
+        {SORT_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </NativeSelect.Field>
+      <NativeSelect.Indicator />
+    </NativeSelect.Root>
+  );
+}
+
+function PageSizeSelect({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (nextValue: number) => void;
+}) {
+  return (
+    <NativeSelect.Root minW="110px">
+      <NativeSelect.Field
+        value={String(value)}
+        onChange={(event) => onChange(Number(event.target.value))}
+        h="52px"
+        borderColor="brand.border"
+        borderRadius="10px"
+        bg="white"
+      >
+        {PAGE_SIZE_OPTIONS.map((option) => (
+          <option key={option} value={option}>
+            {option} / page
+          </option>
+        ))}
+      </NativeSelect.Field>
+      <NativeSelect.Indicator />
+    </NativeSelect.Root>
+  );
+}
+
 export default function AvailableSurveysPage() {
+  const [participantId] = useState(() => getStoredParticipantId());
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<AvailableSurveyTab>("ALL");
+  const [sortBy, setSortBy] = useState<AvailableSurveySortBy>("MOST_RELEVANT");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [data, setData] = useState<AvailableSurveysResponse | null>(null);
+  const [lastCompletedQueryKey, setLastCompletedQueryKey] = useState("");
+  const [error, setError] = useState("");
+
+  const queryKey = participantId
+    ? JSON.stringify({
+        participantId,
+        search,
+        tab,
+        sortBy,
+        page,
+        limit,
+      })
+    : "";
+  const isLoading = Boolean(participantId) && queryKey !== lastCompletedQueryKey;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!participantId) {
+      return;
+    }
+
+    getAvailableSurveys({
+      participantId,
+      search,
+      tab,
+      sortBy,
+      page,
+      limit,
+    })
+      .then((response) => {
+        if (isMounted) {
+          setData(response);
+          setError("");
+          setLastCompletedQueryKey(queryKey);
+        }
+      })
+      .catch((requestError) => {
+        if (isMounted) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Failed to load available surveys"
+          );
+          setLastCompletedQueryKey(queryKey);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [limit, page, participantId, queryKey, search, sortBy, tab]);
+
+  const missingParticipantIdError = participantId
+    ? ""
+    : "Participant id was not found. Please log in again.";
+
+  if (isLoading && !data) {
+    return (
+      <Flex minH="100vh" bg="white" color="brand.dark">
+        <ParticipantSidebar activeItem="Available Surveys" />
+        <Flex flex="1" align="center" justify="center" gap="3">
+          <Spinner color="brand.primary" />
+          <Text color="brand.mutedText">Loading available surveys...</Text>
+        </Flex>
+      </Flex>
+    );
+  }
+
+  if (missingParticipantIdError || (!data && error) || !data) {
+    return (
+      <Flex minH="100vh" bg="white" color="brand.dark">
+        <ParticipantSidebar activeItem="Available Surveys" />
+        <Flex flex="1" align="center" justify="center" p="6">
+          <DashboardCard p="6" maxW="560px">
+            <Text fontWeight="bold" color="brand.dark">
+              We could not load available surveys.
+            </Text>
+            <Text color="brand.mutedText" mt="2">
+              {missingParticipantIdError || error || "Please try again later."}
+            </Text>
+          </DashboardCard>
+        </Flex>
+      </Flex>
+    );
+  }
 
   return (
     <Flex minH="100vh" bg="white" color="brand.dark">
@@ -447,11 +664,18 @@ export default function AvailableSurveysPage() {
             </Text>
 
             <Text color="brand.mutedText" mt="2" fontSize="lg">
-              Complete surveys and earn rewards
+              {data.participant.username}, here are the surveys that currently
+              match your profile.
             </Text>
           </Box>
 
-          <HStack gap="4" flex="1" justify="flex-end" minW={{ base: "100%", xl: "600px" }}>
+          <HStack
+            gap="4"
+            flex="1"
+            justify="flex-end"
+            minW={{ base: "100%", xl: "600px" }}
+            flexWrap="wrap"
+          >
             <InputGroup
               maxW="460px"
               startElement={
@@ -461,8 +685,8 @@ export default function AvailableSurveysPage() {
               }
             >
               <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
                 placeholder="Search surveys..."
                 h="52px"
                 borderColor="brand.border"
@@ -475,46 +699,116 @@ export default function AvailableSurveysPage() {
               />
             </InputGroup>
 
-            <Button h="52px" px="7" variant="outline">
-              <FiFilter />
-              Filters
-            </Button>
+            <PageSizeSelect
+              value={limit}
+              onChange={(nextValue) => {
+                setLimit(nextValue);
+                setPage(1);
+              }}
+            />
           </HStack>
         </HStack>
 
+        <DashboardCard p="5" mt="6">
+          <Grid
+            templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
+            gap="4"
+          >
+            <Box>
+              <Text fontSize="sm" color="brand.mutedText">
+                Available
+              </Text>
+              <Text fontSize="2xl" fontWeight="extrabold" color="brand.dark">
+                {data.summary.availableCount}
+              </Text>
+            </Box>
+
+            <Box>
+              <Text fontSize="sm" color="brand.mutedText">
+                Locked
+              </Text>
+              <Text fontSize="2xl" fontWeight="extrabold" color="brand.dark">
+                {data.summary.lockedCount}
+              </Text>
+            </Box>
+
+            <Box>
+              <Text fontSize="sm" color="brand.mutedText">
+                Total Matching
+              </Text>
+              <Text fontSize="2xl" fontWeight="extrabold" color="brand.dark">
+                {data.summary.totalCount}
+              </Text>
+            </Box>
+          </Grid>
+        </DashboardCard>
+
         <HStack justify="space-between" mt="8" mb="6" flexWrap="wrap" gap="4">
           <HStack gap="4" flexWrap="wrap">
-            <FilterChip label="All Surveys" active />
-            <FilterChip label="High Paying" icon={<FiStar color="#EAB308" />} />
-            <FilterChip label="Short Surveys" icon={<FiClock color="#2563EB" />} />
-            <FilterChip label="Trending" icon={<FiTrendingUp color="#F97316" />} />
-            <FilterChip label="New" />
+            {TAB_OPTIONS.map((option) => (
+              <FilterChip
+                key={option.value}
+                label={option.label}
+                icon={option.icon}
+                active={tab === option.value}
+                onClick={() => {
+                  setTab(option.value);
+                  setPage(1);
+                }}
+              />
+            ))}
           </HStack>
 
-          <HStack gap="3">
+          <HStack gap="3" flexWrap="wrap">
             <Text fontSize="sm" color="brand.mutedText">
               Sort by:
             </Text>
 
-            <Button h="42px" variant="outline" fontWeight="medium">
-              Most Relevant
-              <FiChevronDown />
-            </Button>
+            <SortSelect
+              value={sortBy}
+              onChange={(nextValue) => {
+                setSortBy(nextValue);
+                setPage(1);
+              }}
+            />
           </HStack>
         </HStack>
 
+        {isLoading && (
+          <HStack mb="4" color="brand.mutedText">
+            <Spinner size="sm" color="brand.primary" />
+            <Text fontSize="sm">Refreshing surveys...</Text>
+          </HStack>
+        )}
+
         <VStack align="stretch" gap="5">
-          {surveys.map((survey) => (
-            <AvailableSurveyCard key={survey.id} survey={survey} />
+          {data.surveys.length === 0 && (
+            <DashboardCard p="6">
+              <Text fontWeight="bold" color="brand.dark">
+                No surveys found for this filter.
+              </Text>
+              <Text color="brand.mutedText" mt="2">
+                Try a different tab, sort option, or search phrase.
+              </Text>
+            </DashboardCard>
+          )}
+
+          {data.surveys.map((survey, index) => (
+            <SurveyCard key={survey.id} survey={survey} index={index} />
           ))}
         </VStack>
 
         <HStack justify="space-between" mt="8" flexWrap="wrap" gap="4">
           <Text color="brand.mutedText">
-            Showing 1 to 4 of 24 surveys
+            Showing {data.pagination.showingFrom} to {data.pagination.showingTo}{" "}
+            of {data.pagination.total} surveys
           </Text>
 
-          <Pagination />
+          <Pagination
+            page={data.pagination.page}
+            totalPages={data.pagination.totalPages}
+            onPageChange={setPage}
+          />
         </HStack>
       </Box>
     </Flex>

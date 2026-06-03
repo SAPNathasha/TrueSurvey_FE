@@ -7,9 +7,11 @@ import {
   Grid,
   HStack,
   IconButton,
+  Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiCheckCircle,
   FiClock,
@@ -23,10 +25,18 @@ import {
 import {
   FaCar,
   FaUniversity,
-  FaUtensils,
 } from "react-icons/fa";
 import { MdOutlineSlowMotionVideo } from "react-icons/md";
 
+import { getStoredParticipantId } from "@/lib/participantIdentity";
+import {
+  getParticipantDashboard,
+  type DashboardActivity,
+  type DashboardNotification,
+  type DashboardSurvey,
+  type ParticipantDashboardData,
+  type WeeklyEarning,
+} from "@/services/participantDashboardService";
 import ParticipantSidebar from "./ParticipantSidebar";
 
 type StatCardProps = {
@@ -55,6 +65,11 @@ type LockedSurveyCardProps = {
   reward: string;
 };
 
+type VerificationStep = {
+  label: string;
+  completed: boolean;
+};
+
 type NotificationItemProps = {
   icon: React.ReactNode;
   title: string;
@@ -62,6 +77,166 @@ type NotificationItemProps = {
   bg: string;
   color: string;
 };
+
+const DEFAULT_CURRENCY = "LKR";
+
+function formatMoney(value?: number | string | null, currency = DEFAULT_CURRENCY) {
+  const numberValue = Number(value ?? 0);
+
+  return `${currency} ${Number.isFinite(numberValue) ? numberValue.toLocaleString() : "0"}`;
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "N/A";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatRelativeTime(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.max(1, Math.floor(diffMs / 60000));
+
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function formatSurveyTime(survey: DashboardSurvey) {
+  if (survey.estimatedCompletionDays) {
+    return `${survey.estimatedCompletionDays} day${survey.estimatedCompletionDays === 1 ? "" : "s"}`;
+  }
+
+  return "Time varies";
+}
+
+function getSurveyReward(survey: DashboardSurvey, currency = DEFAULT_CURRENCY) {
+  const reward =
+    survey.rewardAmount ??
+    survey.reward ??
+    survey.rewardPerParticipant ??
+    survey.sampleBudget?.rewardPerParticipant ??
+    0;
+
+  return formatMoney(reward, survey.sampleBudget?.currency || currency);
+}
+
+function getStringField(source: unknown, keys: string[]) {
+  if (!source || typeof source !== "object") {
+    return null;
+  }
+
+  const record = source as Record<string, unknown>;
+
+  for (const key of keys) {
+    const value = record[key];
+
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getVerificationNumber(
+  verification: Record<string, unknown>,
+  keys: string[],
+  fallback: number
+) {
+  for (const key of keys) {
+    const value = verification[key];
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return fallback;
+}
+
+function getVerificationBoolean(verification: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = verification[key];
+
+    if (typeof value === "boolean") {
+      return value;
+    }
+  }
+
+  return false;
+}
+
+function getVerificationSteps(verification: Record<string, unknown>): VerificationStep[] {
+  const rawSteps = verification.steps;
+
+  if (Array.isArray(rawSteps)) {
+    return rawSteps
+      .map((step) => {
+        if (!step || typeof step !== "object") {
+          return null;
+        }
+
+        const stepRecord = step as Record<string, unknown>;
+        const label =
+          getStringField(stepRecord, ["label", "title", "name"]) || "Verification step";
+
+        return {
+          label,
+          completed: Boolean(stepRecord.completed || stepRecord.isCompleted),
+        };
+      })
+      .filter((step): step is VerificationStep => Boolean(step));
+  }
+
+  return [
+    {
+      label: "Upload NIC or Driving License",
+      completed: getVerificationBoolean(verification, [
+        "hasNicOrDrivingLicense",
+        "hasNic",
+        "nicUploaded",
+      ]),
+    },
+    {
+      label: "Add Selfie Verification",
+      completed: getVerificationBoolean(verification, ["hasSelfie", "selfieUploaded"]),
+    },
+    {
+      label: "Complete Profile Review",
+      completed: getVerificationBoolean(verification, ["isVerified", "profileReviewed"]),
+    },
+  ];
+}
 
 function DashboardCard({
   children,
@@ -251,20 +426,13 @@ function LockedSurveyCard({ title, time, reward }: LockedSurveyCardProps) {
   );
 }
 
-function RecentActivity() {
-  const activities = [
-    {
-      name: "Customer Shopping Experience Survey",
-      reward: "LKR 120",
-      date: "May 14, 2025",
-    },
-    {
-      name: "Mobile Banking Usability Survey",
-      reward: "LKR 180",
-      date: "May 12, 2025",
-    },
-  ];
-
+function RecentActivity({
+  activities,
+  currency,
+}: {
+  activities: DashboardActivity[];
+  currency: string;
+}) {
   return (
     <DashboardCard p="0">
       <HStack justify="space-between" px="5" py="4">
@@ -296,9 +464,17 @@ function RecentActivity() {
             <Text />
           </Grid>
 
+          {activities.length === 0 && (
+            <Box px="5" py="6" borderTopWidth="1px" borderColor="brand.border">
+              <Text color="brand.mutedText" fontSize="sm">
+                Completed surveys will appear here.
+              </Text>
+            </Box>
+          )}
+
           {activities.map((activity) => (
             <Grid
-              key={activity.name}
+              key={activity.id}
               templateColumns="1.6fr 0.7fr 0.7fr 0.8fr 40px"
               px="5"
               py="3"
@@ -321,7 +497,7 @@ function RecentActivity() {
                   <FiShoppingBag />
                 </Box>
                 <Text fontWeight="medium" color="brand.dark">
-                  {activity.name}
+                  {activity.surveyTitle}
                 </Text>
               </HStack>
 
@@ -339,10 +515,10 @@ function RecentActivity() {
               </Box>
 
               <Text color="brand.dark" fontWeight="bold">
-                {activity.reward}
+                {formatMoney(activity.rewardAmount, currency)}
               </Text>
 
-              <Text color="brand.mutedText">{activity.date}</Text>
+              <Text color="brand.mutedText">{formatDate(activity.completedAt)}</Text>
 
               <IconButton aria-label="More" size="sm" variant="ghost">
                 <FiMoreHorizontal />
@@ -355,18 +531,38 @@ function RecentActivity() {
   );
 }
 
-function EarningsChart() {
-  const bars = [
-    { day: "Mon", value: 180 },
-    { day: "Tue", value: 90 },
-    { day: "Wed", value: 130 },
-    { day: "Thu", value: 260 },
-    { day: "Fri", value: 80 },
-    { day: "Sat", value: 170 },
-    { day: "Sun", value: 60 },
-  ];
+function EarningsChart({
+  earnings,
+  currency,
+}: {
+  earnings: WeeklyEarning[];
+  currency: string;
+}) {
+  const bars = earnings.length
+    ? earnings.map((earning, index) => ({
+        day:
+          earning.day ||
+          earning.label ||
+          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][index] ||
+          "",
+        value: earning.amount ?? earning.earnings ?? earning.totalEarned ?? 0,
+      }))
+    : [
+        { day: "Mon", value: 0 },
+        { day: "Tue", value: 0 },
+        { day: "Wed", value: 0 },
+        { day: "Thu", value: 0 },
+        { day: "Fri", value: 0 },
+        { day: "Sat", value: 0 },
+        { day: "Sun", value: 0 },
+      ];
 
-  const maxValue = Math.max(...bars.map((bar) => bar.value));
+  const maxValue = Math.max(...bars.map((bar) => bar.value), 1);
+  const total = bars.reduce((sum, bar) => sum + bar.value, 0);
+  const highest = bars.reduce(
+    (best, bar) => (bar.value > best.value ? bar : best),
+    bars[0]
+  );
 
   return (
     <DashboardCard p="5">
@@ -377,11 +573,11 @@ function EarningsChart() {
           </Text>
 
           <Text fontSize="3xl" fontWeight="extrabold" color="brand.dark" mt="4">
-            LKR 1,020
+            {formatMoney(total, currency)}
           </Text>
 
           <Text fontSize="sm" color="green.600" fontWeight="bold">
-            ↑ 24% vs last week
+            Weekly completed survey earnings
           </Text>
         </Box>
 
@@ -396,7 +592,7 @@ function EarningsChart() {
 
           return (
             <VStack key={bar.day} flex="1" gap="2" justify="end">
-              {bar.day === "Thu" && (
+              {bar.day === highest.day && highest.value > 0 && (
                 <Box
                   px="3"
                   py="1"
@@ -408,7 +604,7 @@ function EarningsChart() {
                   fontWeight="bold"
                   color="brand.dark"
                 >
-                  LKR 260
+                  {formatMoney(bar.value, currency)}
                 </Box>
               )}
 
@@ -416,7 +612,7 @@ function EarningsChart() {
                 w="100%"
                 maxW="28px"
                 h={`${height}px`}
-                bg={bar.day === "Thu" ? "brand.primary" : "#BFD0FF"}
+                bg={bar.day === highest.day ? "brand.primary" : "#BFD0FF"}
                 borderRadius="8px 8px 0 0"
               />
 
@@ -431,7 +627,33 @@ function EarningsChart() {
   );
 }
 
-function VerificationProgress() {
+function VerificationProgress({
+  verification,
+}: {
+  verification: Record<string, unknown>;
+}) {
+  const steps = getVerificationSteps(verification);
+  const fallbackCompleted = steps.filter((step) => step.completed).length;
+  const completedSteps = getVerificationNumber(
+    verification,
+    ["completedSteps", "completed", "completedCount"],
+    fallbackCompleted
+  );
+  const totalSteps = getVerificationNumber(
+    verification,
+    ["totalSteps", "total", "totalCount"],
+    steps.length || 3
+  );
+  const fallbackPercentage = totalSteps ? Math.round((completedSteps / totalSteps) * 100) : 0;
+  const percentage = Math.min(
+    100,
+    getVerificationNumber(
+      verification,
+      ["percentage", "progress", "progressPercentage"],
+      fallbackPercentage
+    )
+  );
+
   return (
     <DashboardCard p="5">
       <HStack align="start" gap="4">
@@ -463,39 +685,31 @@ function VerificationProgress() {
 
       <HStack justify="space-between" mt="5">
         <Text fontSize="sm" color="brand.primary" fontWeight="bold">
-          1 of 3 completed
+          {completedSteps} of {totalSteps} completed
         </Text>
 
         <Text fontSize="sm" color="brand.mutedText">
-          40%
+          {percentage}%
         </Text>
       </HStack>
 
       <Box h="6px" bg="#E5E7EB" borderRadius="999px" mt="2">
-        <Box h="full" w="40%" bg="brand.primary" borderRadius="999px" />
+        <Box h="full" w={`${percentage}%`} bg="brand.primary" borderRadius="999px" />
       </Box>
 
       <VStack align="stretch" gap="3" mt="5">
-        <HStack>
-          <FiCheckCircle color="#16A34A" />
-          <Text fontSize="sm" color="brand.dark">
-            Upload NIC or Driving License
-          </Text>
-        </HStack>
-
-        <HStack>
-          <Box w="16px" h="16px" borderRadius="full" borderWidth="1px" />
-          <Text fontSize="sm" color="brand.dark">
-            Add Selfie Verification
-          </Text>
-        </HStack>
-
-        <HStack>
-          <Box w="16px" h="16px" borderRadius="full" borderWidth="1px" />
-          <Text fontSize="sm" color="brand.dark">
-            Complete Profile Review
-          </Text>
-        </HStack>
+        {steps.map((step) => (
+          <HStack key={step.label}>
+            {step.completed ? (
+              <FiCheckCircle color="#16A34A" />
+            ) : (
+              <Box w="16px" h="16px" borderRadius="full" borderWidth="1px" />
+            )}
+            <Text fontSize="sm" color="brand.dark">
+              {step.label}
+            </Text>
+          </HStack>
+        ))}
       </VStack>
 
       <Button w="100%" h="42px" mt="5" color="white">
@@ -541,7 +755,35 @@ function NotificationItem({
   );
 }
 
-function RightPanel() {
+function getNotificationIcon(notification: DashboardNotification) {
+  const type = notification.type.toLowerCase();
+
+  if (type.includes("reward") || type.includes("earning")) {
+    return {
+      icon: <FiUser />,
+      bg: "#DCFCE7",
+      color: "green.600",
+    };
+  }
+
+  if (type.includes("lock") || type.includes("survey")) {
+    return {
+      icon: <FiLock />,
+      bg: "#F3E8FF",
+      color: "#7C3AED",
+    };
+  }
+
+  return {
+    icon: <FiShield />,
+    bg: "#FEF3C7",
+    color: "#D97706",
+  };
+}
+
+function RightPanel({ data }: { data: ParticipantDashboardData }) {
+  const currency = data.wallet.currency || DEFAULT_CURRENCY;
+
   return (
     <VStack align="stretch" gap="5">
       <DashboardCard p="5">
@@ -561,7 +803,7 @@ function RightPanel() {
 
         <HStack justify="space-between" mt="1">
           <Text fontSize="2xl" fontWeight="extrabold" color="brand.primary">
-            LKR 3,240
+            {formatMoney(data.wallet.currentBalance, currency)}
           </Text>
 
           <Button size="sm" color="white">
@@ -574,7 +816,7 @@ function RightPanel() {
             Pending Rewards
           </Text>
           <Text fontSize="sm" fontWeight="bold">
-            LKR 1,250
+            {formatMoney(data.wallet.pendingRewards, currency)}
           </Text>
         </HStack>
 
@@ -583,12 +825,12 @@ function RightPanel() {
             Total Withdrawn
           </Text>
           <Text fontSize="sm" fontWeight="bold">
-            LKR 14,210
+            {formatMoney(data.wallet.totalWithdrawn, currency)}
           </Text>
         </HStack>
       </DashboardCard>
 
-      <VerificationProgress />
+      <VerificationProgress verification={data.verification} />
 
       <DashboardCard p="5">
         <HStack justify="space-between" mb="5">
@@ -602,29 +844,26 @@ function RightPanel() {
         </HStack>
 
         <VStack align="stretch" gap="5">
-          <NotificationItem
-            icon={<FiUser />}
-            title="You earned LKR 180 from Customer Feedback Survey."
-            time="1h ago"
-            bg="#DCFCE7"
-            color="green.600"
-          />
+          {data.notifications.length === 0 && (
+            <Text color="brand.mutedText" fontSize="sm">
+              No notifications yet.
+            </Text>
+          )}
 
-          <NotificationItem
-            icon={<FiLock />}
-            title="A new verified-only survey is available."
-            time="3h ago"
-            bg="#F3E8FF"
-            color="#7C3AED"
-          />
+          {data.notifications.map((notification) => {
+            const style = getNotificationIcon(notification);
 
-          <NotificationItem
-            icon={<FiShield />}
-            title="Complete verification to unlock premium surveys."
-            time="1d ago"
-            bg="#FEF3C7"
-            color="#D97706"
-          />
+            return (
+              <NotificationItem
+                key={notification.id}
+                icon={style.icon}
+                title={notification.title || notification.message}
+                time={formatRelativeTime(notification.createdAt)}
+                bg={style.bg}
+                color={style.color}
+              />
+            );
+          })}
         </VStack>
       </DashboardCard>
 
@@ -687,6 +926,105 @@ function QuickAction({
 }
 
 export default function ParticipantDashboard() {
+  const [participantId] = useState(() => getStoredParticipantId());
+  const [data, setData] = useState<ParticipantDashboardData | null>(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(Boolean(participantId));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!participantId) {
+      return;
+    }
+
+    getParticipantDashboard(participantId)
+      .then((dashboardData) => {
+        if (isMounted) {
+          setData(dashboardData);
+        }
+      })
+      .catch((requestError) => {
+        if (isMounted) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Failed to load dashboard"
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [participantId]);
+
+  const currency = data?.wallet.currency || DEFAULT_CURRENCY;
+  const surveyVisuals = useMemo(
+    () => [
+      {
+        icon: <FiShoppingBag />,
+        iconBg: "#EAF2FF",
+        iconColor: "brand.primary",
+      },
+      {
+        icon: <FaUniversity />,
+        iconBg: "#EAF2FF",
+        iconColor: "brand.primary",
+      },
+      {
+        icon: <MdOutlineSlowMotionVideo />,
+        iconBg: "#F3E8FF",
+        iconColor: "#7C3AED",
+      },
+      {
+        icon: <FaCar />,
+        iconBg: "#EAF2FF",
+        iconColor: "brand.primary",
+      },
+    ],
+    []
+  );
+
+  if (isLoading) {
+    return (
+      <Flex minH="100vh" bg="white" color="brand.dark">
+        <ParticipantSidebar />
+        <Flex flex="1" align="center" justify="center" gap="3">
+          <Spinner color="brand.primary" />
+          <Text color="brand.mutedText">Loading participant dashboard...</Text>
+        </Flex>
+      </Flex>
+    );
+  }
+
+  const missingParticipantIdError = participantId
+    ? ""
+    : "Participant id was not found. Please log in again.";
+
+  if (missingParticipantIdError || error || !data) {
+    return (
+      <Flex minH="100vh" bg="white" color="brand.dark">
+        <ParticipantSidebar />
+        <Flex flex="1" align="center" justify="center" p="6">
+          <DashboardCard p="6" maxW="520px">
+            <Text fontWeight="bold" color="brand.dark">
+              We could not load your dashboard.
+            </Text>
+            <Text color="brand.mutedText" mt="2">
+              {missingParticipantIdError || error || "Please try again later."}
+            </Text>
+          </DashboardCard>
+        </Flex>
+      </Flex>
+    );
+  }
+
   return (
     <Flex minH="100vh" bg="white" color="brand.dark">
       <ParticipantSidebar />
@@ -698,7 +1036,7 @@ export default function ParticipantDashboard() {
               <Grid templateColumns={{ base: "1fr", lg: "1.2fr 1fr" }}>
                 <Box p={{ base: "5", lg: "8" }}>
                   <Text fontSize={{ base: "2xl", lg: "3xl" }} fontWeight="extrabold">
-                    Welcome back, Nadeesha! 👋
+                    Welcome back, {data.welcome.username}!
                   </Text>
 
                   <Text color="brand.mutedText" mt="3">
@@ -787,7 +1125,7 @@ export default function ParticipantDashboard() {
               <StatCard
                 icon={<FiUser />}
                 title="Available Surveys"
-                value="18"
+                value={String(data.summaryCards.availableSurveys)}
                 helper="New surveys for you"
                 bg="#DBEAFE"
                 color="brand.primary"
@@ -796,7 +1134,7 @@ export default function ParticipantDashboard() {
               <StatCard
                 icon={<FiCheckCircle />}
                 title="Completed Surveys"
-                value="42"
+                value={String(data.summaryCards.completedSurveys)}
                 helper="Total completed"
                 bg="#DCFCE7"
                 color="green.600"
@@ -805,7 +1143,7 @@ export default function ParticipantDashboard() {
               <StatCard
                 icon={<FiUser />}
                 title="Total Earned"
-                value="LKR 18,450"
+                value={formatMoney(data.summaryCards.totalEarned, currency)}
                 helper="All time earnings"
                 bg="#F3E8FF"
                 color="#7C3AED"
@@ -814,7 +1152,7 @@ export default function ParticipantDashboard() {
               <StatCard
                 icon={<FiUser />}
                 title="Wallet Balance"
-                value="LKR 3,240"
+                value={formatMoney(data.summaryCards.walletBalance, currency)}
                 helper="Available to withdraw"
                 bg="#FEF3C7"
                 color="#D97706"
@@ -831,48 +1169,32 @@ export default function ParticipantDashboard() {
               </Text>
             </HStack>
 
-            <Grid py={5} templateColumns={{ base: "1fr", md: "1fr 1fr", xl: "repeat(5, 1fr)" }} gap="0" mb="5">
-              <SurveyCard
-                icon={<FiShoppingBag />}
-                title="Customer Shopping Experience Survey"
-                category="Retail"
-                time="5–8 min"
-                reward="LKR 120"
-                iconBg="#EAF2FF"
-                iconColor="brand.primary"
-              />
+            <Grid py={5} templateColumns={{ base: "1fr", md: "1fr 1fr", xl: "repeat(5, 1fr)" }} gap="4" mb="5">
+              {data.availableSurveys.length === 0 && (
+                <DashboardCard p="5">
+                  <Text color="brand.mutedText" fontSize="sm">
+                    No matching surveys are available right now.
+                  </Text>
+                </DashboardCard>
+              )}
 
-              <SurveyCard
-                icon={<FaUniversity />}
-                title="Mobile Banking Usability Survey"
-                category="Finance"
-                time="8–12 min"
-                reward="LKR 180"
-                badge="High Reward"
-                iconBg="#EAF2FF"
-                iconColor="brand.primary"
-              />
+              {data.availableSurveys.map((survey, index) => {
+                const visual = surveyVisuals[index % surveyVisuals.length];
 
-              <SurveyCard
-                icon={<MdOutlineSlowMotionVideo />}
-                title="Streaming App Preferences Survey"
-                category="Entertainment"
-                time="7–10 min"
-                reward="LKR 200"
-                badge="New"
-                iconBg="#F3E8FF"
-                iconColor="#7C3AED"
-              />
-
-              <SurveyCard
-                icon={<FaCar />}
-                title="Ride-Hailing Experience Survey"
-                category="Transport"
-                time="6–9 min"
-                reward="LKR 160"
-                iconBg="#EAF2FF"
-                iconColor="brand.primary"
-              />
+                return (
+                  <SurveyCard
+                    key={survey.id}
+                    icon={visual.icon}
+                    title={survey.title}
+                    category={survey.category || "Survey"}
+                    time={formatSurveyTime(survey)}
+                    reward={getSurveyReward(survey, currency)}
+                    badge={index === 0 ? "New" : undefined}
+                    iconBg={visual.iconBg}
+                    iconColor={visual.iconColor}
+                  />
+                );
+              })}
             </Grid>
 
             <Text fontSize="xl" fontWeight="bold" color="brand.dark">
@@ -884,52 +1206,37 @@ export default function ParticipantDashboard() {
             </Text>
 
             <Grid templateColumns={{ base: "1fr", md: "1fr 1fr", xl: "1fr 1fr 1fr 1.2fr" }} gap="4" mb="5">
-              <LockedSurveyCard
-                title="Insurance Awareness Survey"
-                time="15–20 min"
-                reward="LKR 350"
-              />
+              {data.lockedSurveys.length === 0 && (
+                <DashboardCard p="5">
+                  <Text color="brand.mutedText" fontSize="sm">
+                    You have no locked surveys right now.
+                  </Text>
+                </DashboardCard>
+              )}
 
-              <LockedSurveyCard
-                title="Investment Preferences Study"
-                time="18–22 min"
-                reward="LKR 450"
-              />
-
-              <LockedSurveyCard
-                title="Vehicle Ownership Research"
-                time="20–25 min"
-                reward="LKR 500"
-              />
-
-              <DashboardCard
-                p="5"
-                borderStyle="dashed"
-                borderColor="#BFD0FF"
-                bg="#FBFCFF"
-              >
-                <Text fontWeight="bold" color="brand.dark">
-                  Unlock higher rewards!
-                </Text>
-
-                <Text fontSize="sm" color="brand.mutedText" mt="2">
-                  Verify your account with NIC or driving license and selfie to
-                  access premium surveys.
-                </Text>
-
-                <Text color="brand.primary" fontSize="sm" fontWeight="bold" mt="5">
-                  Learn more about verification →
-                </Text>
-              </DashboardCard>
+              {data.lockedSurveys.map((survey) => (
+                <LockedSurveyCard
+                  key={survey.id}
+                  title={survey.title}
+                  time={formatSurveyTime(survey)}
+                  reward={getSurveyReward(survey, currency)}
+                />
+              ))}
             </Grid>
 
             <Grid templateColumns={{ base: "1fr", xl: "1fr 1fr" }} gap="5">
-              <RecentActivity />
-              <EarningsChart />
+              <RecentActivity
+                activities={data.recentActivity}
+                currency={currency}
+              />
+              <EarningsChart
+                earnings={data.earningsThisWeek}
+                currency={currency}
+              />
             </Grid>
           </Box>
 
-          <RightPanel />
+          <RightPanel data={data} />
         </Grid>
       </Box>
     </Flex>

@@ -44,6 +44,42 @@ const loginValidationSchema = Yup.object({
   rememberMe: Yup.boolean(),
 });
 
+function getStringField(source: unknown, keys: string[]) {
+  if (!source || typeof source !== "object") {
+    return null;
+  }
+
+  const record = source as Record<string, unknown>;
+
+  for (const key of keys) {
+    const value = record[key];
+
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getLoginUser(data: unknown) {
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  const record = data as Record<string, unknown>;
+
+  if (record.user && typeof record.user === "object") {
+    return record.user;
+  }
+
+  if (record.participant && typeof record.participant === "object") {
+    return record.participant;
+  }
+
+  return record;
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const [serverError, setServerError] = useState("");
@@ -67,7 +103,31 @@ export default function LoginForm() {
 
       setStoredAccessToken(token);
 
-      router.push("/dashboard");
+      const loginUserData = getLoginUser(data);
+      const participantId = getStringField(loginUserData, [
+        "participantId",
+        "userId",
+        "id",
+        "sub",
+      ]);
+      const role = getStringField(loginUserData, ["role"]);
+
+      if (participantId) {
+        window.localStorage.setItem("participantId", participantId);
+        window.localStorage.setItem("userId", participantId);
+      }
+
+      if (role) {
+        window.localStorage.setItem("userRole", role);
+      }
+
+      if (loginUserData) {
+        window.localStorage.setItem("user", JSON.stringify(loginUserData));
+      }
+
+      router.push(
+        role === "CREATOR" ? "/creator/dashboard" : "/participant/dashboard"
+      );
     } catch (error) {
       if (error instanceof Error) {
         setServerError(error.message);
@@ -167,7 +227,7 @@ export default function LoginForm() {
                   type="button"
                   asChild
                 >
-                  <NextLink href="/signup">Create an account</NextLink>
+                  <NextLink href="/register">Create an account</NextLink>
                 </Button>
 
                 <Text textStyle="smallText" textAlign="center" maxW="360px">

@@ -140,4 +140,9 @@ api.interceptors.response.use(
 );
 
 export default api;
-export { ACCESS_TOKEN_KEY, setStoredAccessToken, clearStoredAccessToken };
+export {
+  ACCESS_TOKEN_KEY,
+  getStoredAccessToken,
+  setStoredAccessToken,
+  clearStoredAccessToken,
+};
