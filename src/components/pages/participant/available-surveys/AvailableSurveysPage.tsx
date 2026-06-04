@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Box,
   Button,
@@ -36,6 +37,7 @@ import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
   getAvailableSurveys,
   type AvailableSurvey,
+  type AvailableSurveyStatus,
   type AvailableSurveysResponse,
   type AvailableSurveySortBy,
   type AvailableSurveyTab,
@@ -169,6 +171,46 @@ function getBadge(tags: string[]) {
   return null;
 }
 
+function getSurveyStatus(survey: AvailableSurvey): AvailableSurveyStatus {
+  if (survey.status) {
+    return survey.status;
+  }
+
+  if (survey.isLocked) {
+    return "LOCKED";
+  }
+
+  return "AVAILABLE";
+}
+
+function getSurveyActionCopy(status: AvailableSurveyStatus) {
+  if (status === "LOCKED") {
+    return {
+      label: "Verify Now",
+      helper: "Unlock this survey by completing verification.",
+    };
+  }
+
+  if (status === "IN_PROGRESS") {
+    return {
+      label: "Submit Response",
+      helper: "Continue where you left off and complete your response.",
+    };
+  }
+
+  if (status === "COMPLETED") {
+    return {
+      label: "Submitted",
+      helper: "You already completed this survey.",
+    };
+  }
+
+  return {
+    label: "Participate",
+    helper: "Start this survey and submit your response.",
+  };
+}
+
 function getSurveyVisual(index: number) {
   const visuals = [
     {
@@ -194,14 +236,18 @@ function getSurveyVisual(index: number) {
 function SurveyCard({
   survey,
   index,
+  onAction,
 }: {
   survey: AvailableSurvey;
   index: number;
+  onAction: (survey: AvailableSurvey) => void;
 }) {
   const badge = getBadge(survey.tags);
   const visual = getSurveyVisual(index);
+  const status = getSurveyStatus(survey);
+  const actionCopy = getSurveyActionCopy(status);
 
-  if (survey.isLocked) {
+  if (status === "LOCKED") {
     return (
       <DashboardCard
         p={{ base: "5", lg: "7" }}
@@ -275,8 +321,13 @@ function SurveyCard({
             </Text>
           </Box>
 
-          <Button h="48px" variant="outline" color="brand.primary">
-            Verify Now
+          <Button
+            h="48px"
+            variant="outline"
+            color="brand.primary"
+            onClick={() => onAction(survey)}
+          >
+            {actionCopy.label}
           </Button>
 
           <IconButton
@@ -371,10 +422,21 @@ function SurveyCard({
         </Box>
 
         <Box>
-          <Button w="100%" h="48px" color="white" fontWeight="bold">
-            Start Survey
+          <Button
+            w="100%"
+            h="48px"
+            color="white"
+            fontWeight="bold"
+            onClick={() => onAction(survey)}
+            disabled={status === "COMPLETED"}
+          >
+            {actionCopy.label}
             <FiChevronRight />
           </Button>
+
+          <Text fontSize="sm" color="brand.mutedText" mt="3">
+            {actionCopy.helper}
+          </Text>
 
           <HStack mt="4" gap="2" color="brand.mutedText">
             <FiUsers />
@@ -543,6 +605,7 @@ function PageSizeSelect({
 }
 
 export default function AvailableSurveysPage() {
+  const router = useRouter();
   const [participantId] = useState(() => getStoredParticipantId());
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -616,6 +679,21 @@ export default function AvailableSurveysPage() {
   const missingParticipantIdError = participantId
     ? ""
     : "Participant id was not found. Please log in again.";
+
+  const handleSurveyAction = (survey: AvailableSurvey) => {
+    const status = getSurveyStatus(survey);
+
+    if (status === "LOCKED") {
+      router.push("/participant/settings");
+      return;
+    }
+
+    if (status === "COMPLETED") {
+      return;
+    }
+
+    router.push(`/participant/available-surveys/${survey.id}`);
+  };
 
   if (isLoading && !data) {
     return (
@@ -794,7 +872,12 @@ export default function AvailableSurveysPage() {
           )}
 
           {data.surveys.map((survey, index) => (
-            <SurveyCard key={survey.id} survey={survey} index={index} />
+            <SurveyCard
+              key={survey.id}
+              survey={survey}
+              index={index}
+              onAction={handleSurveyAction}
+            />
           ))}
         </VStack>
 

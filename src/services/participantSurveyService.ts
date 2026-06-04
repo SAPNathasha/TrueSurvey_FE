@@ -15,6 +15,20 @@ export type AvailableSurveySortBy =
   | "NEWEST"
   | "SHORTEST";
 
+export type AvailableSurveyStatus =
+  | "AVAILABLE"
+  | "LOCKED"
+  | "IN_PROGRESS"
+  | "COMPLETED";
+
+export type ParticipantSurveyQuestionType =
+  | "MULTIPLE_CHOICE"
+  | "SINGLE_SELECT"
+  | "SHORT_ANSWER"
+  | "LONG_ANSWER"
+  | "RATING_SCALE"
+  | "YES_NO";
+
 export type AvailableSurveysQuery = {
   participantId: string;
   search?: string;
@@ -41,7 +55,68 @@ export type AvailableSurvey = {
   isVerifiedOnly: boolean;
   tags: string[];
   isLocked: boolean;
+  status?: AvailableSurveyStatus;
   lockedReason?: string;
+};
+
+export type ParticipantSurveyQuestionOption = {
+  id: string;
+  optionText: string;
+  order: number;
+};
+
+export type ParticipantSurveyQuestion = {
+  id: string;
+  questionText: string;
+  type: ParticipantSurveyQuestionType;
+  order: number;
+  isRequired: boolean;
+  options: ParticipantSurveyQuestionOption[];
+};
+
+export type ParticipantSurveyDetail = AvailableSurvey & {
+  questions: ParticipantSurveyQuestion[];
+};
+
+export type ParticipantSurveyDetailResponse = {
+  survey: ParticipantSurveyDetail;
+  participant?: {
+    id: string;
+    username?: string;
+    isVerified?: boolean;
+  };
+  existingResponse?: {
+    id: string;
+    status?: string;
+    answers?: Array<{
+      questionId: string;
+      answer?: string | string[] | number | boolean | null;
+      selectedOptionIds?: string[];
+      textAnswer?: string;
+      ratingValue?: number;
+      booleanAnswer?: boolean;
+    }>;
+  };
+};
+
+export type SubmitParticipantSurveyResponsePayload = {
+  questionId: string;
+  answer?: string | string[] | number | boolean | null;
+};
+
+export type SubmitParticipantSurveyResponseRequest = {
+  participantId: string;
+  surveyId: string;
+  answers: SubmitParticipantSurveyResponsePayload[];
+};
+
+export type SubmitParticipantSurveyResponseResult = {
+  message: string;
+  response?: {
+    id: string;
+    status?: string;
+    submittedAt?: string;
+  };
 };
 
 export type AvailableSurveysResponse = {
@@ -98,6 +173,44 @@ export async function getAvailableSurveys(query: AvailableSurveysQuery) {
           page: query.page,
           limit: query.limit,
         },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function getParticipantSurveyDetail(
+  participantId: string,
+  surveyId: string
+) {
+  try {
+    const response = await api.get<ParticipantSurveyDetailResponse>(
+      `/participant/available-surveys/${surveyId}`,
+      {
+        params: {
+          participantId,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function submitParticipantSurveyResponse(
+  payload: SubmitParticipantSurveyResponseRequest
+) {
+  try {
+    const response = await api.post<SubmitParticipantSurveyResponseResult>(
+      `/participant/available-surveys/${payload.surveyId}/responses`,
+      {
+        participantId: payload.participantId,
+        answers: payload.answers,
       }
     );
 

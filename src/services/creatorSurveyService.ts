@@ -268,6 +268,143 @@ export type PublishSurveyResponse = {
   nextStep?: "SCHEDULED" | "PUBLISHED";
 };
 
+export type CreatorSurveyStatus = "DRAFT" | "ACTIVE" | "CLOSED";
+
+export type CreatorSurveyListItem = {
+  id: string;
+  title: string;
+  description: string;
+  category: string | null;
+  audience: string | null;
+  status: CreatorSurveyStatus;
+  currentStep: string | null;
+  creationMethod: SurveyCreationMethod | null;
+  estimatedCompletionDays: number | null;
+  responseCount: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type GetCreatorSurveysParams = {
+  creatorId: string;
+  status?: CreatorSurveyStatus | "ALL";
+  limit?: number;
+};
+
+export type GetCreatorSurveysResponse = {
+  surveys: CreatorSurveyListItem[];
+  total: number;
+  limit: number;
+};
+
+function normalizeSurveyStatus(status: unknown): CreatorSurveyStatus {
+  if (status === "ACTIVE" || status === "CLOSED") {
+    return status;
+  }
+
+  return "DRAFT";
+}
+
+function toNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return 0;
+}
+
+function normalizeCreatorSurveyListItem(item: unknown): CreatorSurveyListItem | null {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const record = item as Record<string, unknown>;
+  const id = typeof record.id === "string" ? record.id : null;
+  const title = typeof record.title === "string" ? record.title : null;
+
+  if (!id || !title) {
+    return null;
+  }
+
+  const nestedCount =
+    record._count && typeof record._count === "object"
+      ? (record._count as Record<string, unknown>)
+      : null;
+
+  return {
+    id,
+    title,
+    description:
+      typeof record.description === "string" ? record.description : "",
+    category: typeof record.category === "string" ? record.category : null,
+    audience: typeof record.audience === "string" ? record.audience : null,
+    status: normalizeSurveyStatus(record.status),
+    currentStep:
+      typeof record.currentStep === "string" ? record.currentStep : null,
+    creationMethod:
+      record.creationMethod === "AI_ASSISTED" || record.creationMethod === "MANUAL"
+        ? record.creationMethod
+        : null,
+    estimatedCompletionDays:
+      typeof record.estimatedCompletionDays === "number"
+        ? record.estimatedCompletionDays
+        : null,
+    responseCount:
+      toNumber(record.responseCount) ||
+      toNumber(record.totalResponses) ||
+      toNumber(record.responsesCount) ||
+      toNumber(nestedCount?.responses) ||
+      toNumber(nestedCount?.surveyResponses),
+    createdAt: typeof record.createdAt === "string" ? record.createdAt : null,
+    updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : null,
+  };
+}
+
+function normalizeCreatorSurveysResponse(
+  payload: unknown,
+  fallbackLimit: number
+): GetCreatorSurveysResponse {
+  const record =
+    payload && typeof payload === "object"
+      ? (payload as Record<string, unknown>)
+      : null;
+
+  const surveyCandidates = Array.isArray(payload)
+    ? payload
+    : Array.isArray(record?.surveys)
+      ? record.surveys
+      : Array.isArray(record?.items)
+        ? record.items
+        : Array.isArray(record?.data)
+          ? record.data
+          : [];
+
+  const surveys = surveyCandidates
+    .map(normalizeCreatorSurveyListItem)
+    .filter((item): item is CreatorSurveyListItem => Boolean(item));
+
+  const total =
+    toNumber(record?.total) ||
+    toNumber(record?.count) ||
+    toNumber(record?.totalCount) ||
+    surveys.length;
+  const limit = toNumber(record?.limit) || fallbackLimit;
+
+  return {
+    surveys,
+    total,
+    limit,
+  };
+}
+
 function getErrorMessage(error: unknown) {
   if (axios.isAxiosError(error)) {
     const message = error.response?.data?.message;
@@ -492,6 +629,50 @@ export async function publishSurvey(
         creatorId: payload.creatorId,
         publishOption: payload.publishOption,
         scheduledPublishAt: payload.scheduledPublishAt,
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function getCreatorSurveys(
+  params: GetCreatorSurveysParams
+) {
+  try {
+    const response = await api.get(
+      "/creator/surveys",
+      {
+        params: {
+          creatorId: params.creatorId,
+          status: params.status && params.status !== "ALL" ? params.status : undefined,
+          limit: params.limit,
+        },
+      }
+    );
+
+    return normalizeCreatorSurveysResponse(
+      response.data,
+      params.limit ?? 10
+    );
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function deleteCreatorSurvey(
+  creatorId: string,
+  surveyId: string
+) {
+  try {
+    const response = await api.delete<{ message: string }>(
+      `/surveys/${surveyId}`,
+      {
+        data: {
+          creatorId,
+        },
       }
     );
 
