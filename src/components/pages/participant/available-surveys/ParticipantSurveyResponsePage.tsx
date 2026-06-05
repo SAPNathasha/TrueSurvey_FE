@@ -34,6 +34,7 @@ import {
   type ParticipantSurveyDetail,
   type ParticipantSurveyQuestion,
   type ParticipantSurveyQuestionType,
+  type SubmitParticipantSurveyResponsePayload,
 } from "@/services/participantSurveyService";
 
 type ParticipantSurveyResponsePageProps = {
@@ -342,11 +343,48 @@ function QuestionField({
 function buildSubmissionAnswers(
   survey: ParticipantSurveyDetail,
   answers: Record<string, AnswerValue>
-) {
-  return survey.questions.map((question) => ({
-    questionId: question.id,
-    answer: answers[question.id] ?? null,
-  }));
+): SubmitParticipantSurveyResponsePayload[] {
+  return survey.questions.map((question) => {
+    const value = answers[question.id];
+    const basePayload: SubmitParticipantSurveyResponsePayload = {
+      questionId: question.id,
+    };
+
+    if (question.type === "MULTIPLE_CHOICE") {
+      return {
+        ...basePayload,
+        selectedOptionIds: Array.isArray(value)
+          ? value.filter((item): item is string => typeof item === "string")
+          : [],
+      };
+    }
+
+    if (question.type === "SINGLE_SELECT") {
+      return {
+        ...basePayload,
+        selectedOptionId: typeof value === "string" ? value : undefined,
+      };
+    }
+
+    if (question.type === "RATING_SCALE") {
+      return {
+        ...basePayload,
+        ratingValue: typeof value === "number" ? value : undefined,
+      };
+    }
+
+    if (question.type === "YES_NO") {
+      return {
+        ...basePayload,
+        yesNoValue: typeof value === "boolean" ? value : undefined,
+      };
+    }
+
+    return {
+      ...basePayload,
+      answerText: typeof value === "string" ? value.trim() : undefined,
+    };
+  });
 }
 
 function validateAnswers(

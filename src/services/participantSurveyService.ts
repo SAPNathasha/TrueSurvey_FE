@@ -116,7 +116,11 @@ export type ParticipantSurveyDetailResponse = {
 
 export type SubmitParticipantSurveyResponsePayload = {
   questionId: string;
-  answer?: string | string[] | number | boolean | null;
+  answerText?: string;
+  selectedOptionId?: string;
+  selectedOptionIds?: string[];
+  ratingValue?: number;
+  yesNoValue?: boolean;
 };
 
 export type SubmitParticipantSurveyResponseRequest = {
@@ -127,11 +131,20 @@ export type SubmitParticipantSurveyResponseRequest = {
 
 export type SubmitParticipantSurveyResponseResult = {
   message: string;
-  response?: {
+  submission?: {
     id: string;
     status?: string;
-    submittedAt?: string;
+    rewardAmount?: number;
+    rewardStatus?: string;
+    completedAt?: string;
   };
+  summary?: {
+    surveyTitle?: string;
+    answerCount?: number;
+    completedResponses?: number;
+    requiredResponses?: number;
+  };
+  note?: string;
 };
 
 export type AvailableSurveysResponse = {
@@ -222,7 +235,7 @@ export async function submitParticipantSurveyResponse(
 ) {
   try {
     const response = await api.post<SubmitParticipantSurveyResponseResult>(
-      `/participant/available-surveys/${payload.surveyId}/responses`,
+      `/participant/available-surveys/${payload.surveyId}/submit`,
       {
         participantId: payload.participantId,
         answers: payload.answers,
