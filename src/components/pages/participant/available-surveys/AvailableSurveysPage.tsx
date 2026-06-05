@@ -614,6 +614,7 @@ export default function AvailableSurveysPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [data, setData] = useState<AvailableSurveysResponse | null>(null);
+  console.log(data);
   const [lastCompletedQueryKey, setLastCompletedQueryKey] = useState("");
   const [error, setError] = useState("");
 

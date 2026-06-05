@@ -1,6 +1,26 @@
 "use client";
 
-import { Box, HStack, Text, VStack } from "@chakra-ui/react";
+import NextLink from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import {
+  Box,
+  Button,
+  DialogBackdrop,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogPositioner,
+  DialogRoot,
+  DialogTitle,
+  HStack,
+  Text,
+  VStack,
+} from "@chakra-ui/react";
+import { useState } from "react";
+import { logoutUser } from "@/services/authService";
+import { clearStoredAccessToken } from "@/lib/axios";
+import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
   FiBell,
   FiClipboard,
@@ -24,16 +44,20 @@ type SidebarItem = {
   icon: React.ReactNode;
   badge?: string;
   statusBadge?: string;
+  href?: string;
+  onClick?: () => void;
 };
 
 const sidebarItems: SidebarItem[] = [
   {
     label: "Dashboard",
     icon: <FiGrid />,
+    href: "/participant/dashboard",
   },
   {
     label: "Available Surveys",
     icon: <FiSearch />,
+    href: "/participant/available-surveys",
   },
   {
     label: "My Surveys",
@@ -46,28 +70,20 @@ const sidebarItems: SidebarItem[] = [
   {
     label: "Wallet",
     icon: <FiUser />,
+    href: "/participant/wallet",
   },
   {
     label: "Transactions",
     icon: <FiClipboard />,
   },
   {
-    label: "Profile",
-    icon: <FiUser />,
-  },
-  {
-    label: "Verification",
-    icon: <FiShield />,
-    statusBadge: "Not Verified",
-  },
-  {
     label: "Notifications",
     icon: <FiBell />,
-    badge: "3",
   },
   {
     label: "Settings",
     icon: <FiSettings />,
+    href: "/participant/settings",
   },
   {
     label: "Help & Support",
@@ -86,8 +102,11 @@ function SidebarItemCard({
   item: SidebarItem;
   active: boolean;
 }) {
-  return (
-    <HStack
+  const isInteractive = Boolean(item.href || item.onClick);
+
+  const itemContent = (
+    <Box
+      onClick={item.onClick}
       w="100%"
       px="4"
       py="3"
@@ -95,55 +114,101 @@ function SidebarItemCard({
       bg={active ? "brand.primary" : "transparent"}
       color={active ? "white" : "brand.dark"}
       fontWeight={active ? "bold" : "medium"}
-      justify="space-between"
-      cursor="pointer"
-      _hover={{
-        bg: active ? "brand.primary" : "brand.lightBlue",
-        color: active ? "white" : "brand.primary",
-      }}
+      cursor={isInteractive ? "pointer" : "default"}
+      _hover={
+        isInteractive
+          ? {
+              bg: active ? "brand.primary" : "brand.lightBlue",
+              color: active ? "white" : "brand.primary",
+            }
+          : undefined
+      }
     >
-      <HStack gap="3">
-        <Box fontSize="20px">{item.icon}</Box>
-        <Text fontSize="sm">{item.label}</Text>
+      <HStack justify="space-between" align="center">
+        <HStack gap="3">
+          <Box fontSize="20px">{item.icon}</Box>
+          <Text fontSize="sm">{item.label}</Text>
+        </HStack>
+
+        {item.badge && (
+          <Box
+            w="24px"
+            h="24px"
+            borderRadius="full"
+            bg={active ? "white" : "#FFEB00"}
+            color={active ? "brand.primary" : "brand.dark"}
+            fontSize="xs"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            fontWeight="bold"
+          >
+            {item.badge}
+          </Box>
+        )}
+
+        {item.statusBadge && (
+          <Box
+            px="3"
+            py="1"
+            borderRadius="999px"
+            bg={active ? "whiteAlpha.300" : "#EEF2FF"}
+            color={active ? "white" : "brand.primary"}
+            fontSize="xs"
+            fontWeight="bold"
+          >
+            {item.statusBadge}
+          </Box>
+        )}
       </HStack>
+    </Box>
+  );
 
-      {item.badge && (
-        <Box
-          w="24px"
-          h="24px"
-          borderRadius="full"
-          bg={active ? "white" : "#FFEB00"}
-          color={active ? "brand.primary" : "brand.dark"}
-          fontSize="xs"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          fontWeight="bold"
-        >
-          {item.badge}
-        </Box>
-      )}
+  if (!item.href) {
+    return itemContent;
+  }
 
-      {item.statusBadge && (
-        <Box
-          px="3"
-          py="1"
-          borderRadius="999px"
-          bg={active ? "whiteAlpha.300" : "#EEF2FF"}
-          color={active ? "white" : "brand.primary"}
-          fontSize="xs"
-          fontWeight="bold"
-        >
-          {item.statusBadge}
-        </Box>
-      )}
-    </HStack>
+  return (
+    <NextLink href={item.href} style={{ textDecoration: "none" }}>
+      {itemContent}
+    </NextLink>
   );
 }
 
 export default function ParticipantSidebar({
   activeItem = "Dashboard",
 }: ParticipantSidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const participantId = getStoredParticipantId();
+
+  async function handleLogoutConfirm() {
+    if (!participantId) {
+      window.alert("Unable to determine your user identity.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await logoutUser({ userId: participantId });
+      clearStoredAccessToken();
+      window.localStorage.removeItem("userId");
+      window.localStorage.removeItem("participantId");
+      window.localStorage.removeItem("creatorId");
+      window.localStorage.removeItem("user");
+      // Logout succeeded. Redirecting to login page.
+      router.push("/login");
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Unable to logout.");
+    } finally {
+      setIsSubmitting(false);
+      setLogoutDialogOpen(false);
+    }
+  }
+
   return (
     <Box
       w="300px"
@@ -157,13 +222,24 @@ export default function ParticipantSidebar({
       flexShrink="0"
     >
       <VStack align="stretch" gap="2">
-        {sidebarItems.map((item) => (
-          <SidebarItemCard
-            key={item.label}
-            item={item}
-            active={activeItem === item.label}
-          />
-        ))}
+        {sidebarItems.map((item) => {
+                  const itemWithAction =
+            item.label === "Logout"
+              ? { ...item, onClick: () => setLogoutDialogOpen(true) }
+              : item;
+
+          const active = itemWithAction.href
+            ? pathname?.startsWith(itemWithAction.href)
+            : activeItem === itemWithAction.label;
+
+          return (
+            <SidebarItemCard
+              key={itemWithAction.label}
+              item={itemWithAction}
+              active={active}
+            />
+          );
+        })}
       </VStack>
 
       <Box
@@ -211,6 +287,46 @@ export default function ParticipantSidebar({
           Verify Now
         </Box>
       </Box>
+
+      <DialogRoot
+        open={logoutDialogOpen}
+        onOpenChange={(details) => setLogoutDialogOpen(details.open)}
+      >
+        <DialogBackdrop />
+        <DialogPositioner>
+          <DialogContent
+            bg="white"
+            borderRadius="16px"
+            boxShadow="0 10px 30px rgba(15, 23, 42, 0.08)"
+            maxW="420px"
+            mx="auto"
+            p="6"
+          >
+            <DialogHeader>
+              <DialogTitle>Confirm Logout</DialogTitle>
+            </DialogHeader>
+            <DialogBody mt="4">
+              <Text>Do you want to logout?</Text>
+            </DialogBody>
+            <DialogFooter mt="6" display="flex" justifyContent="flex-end" gap="3">
+              <Button
+                variant="outline"
+                onClick={() => setLogoutDialogOpen(false)}
+                disabled={isSubmitting}
+              >
+                No
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={handleLogoutConfirm}
+                loading={isSubmitting}
+              >
+                Yes, Logout
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </DialogPositioner>
+      </DialogRoot>
     </Box>
   );
 }

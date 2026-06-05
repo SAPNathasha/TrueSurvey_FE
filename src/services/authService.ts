@@ -100,3 +100,16 @@ export async function resetPassword(payload: ResetPasswordPayload) {
     throw new Error(getErrorMessage(error));
   }
 }
+
+export interface LogoutPayload {
+  userId: string;
+}
+
+export async function logoutUser(payload: LogoutPayload) {
+  try {
+    const response = await api.post("/auth/logout", payload);
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}

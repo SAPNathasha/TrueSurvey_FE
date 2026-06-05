@@ -69,33 +69,48 @@ export type ParticipantSurveyQuestion = {
   id: string;
   questionText: string;
   type: ParticipantSurveyQuestionType;
+  source?: string;
   order: number;
   isRequired: boolean;
   options: ParticipantSurveyQuestionOption[];
 };
 
 export type ParticipantSurveyDetail = AvailableSurvey & {
+  audience?: string | null;
+  targetAudience?: {
+    minimumAge?: number | null;
+    maximumAge?: number | null;
+    gender?: string | null;
+    city?: string | null;
+    district?: string | null;
+    educationLevel?: string | null;
+    occupation?: string | null;
+    sampleBase?: string | null;
+    estimatedReach?: number | null;
+  } | null;
+  sampleBudget?: {
+    requiredResponses: number;
+    rewardPerParticipant: number;
+    currency: string;
+    totalBudget: number;
+    participantRewardBudget: number;
+    rewardDistribution?: string | null;
+  } | null;
   questions: ParticipantSurveyQuestion[];
 };
 
 export type ParticipantSurveyDetailResponse = {
-  survey: ParticipantSurveyDetail;
-  participant?: {
+  participant: {
     id: string;
-    username?: string;
-    isVerified?: boolean;
+    username: string;
+    isVerified: boolean;
   };
-  existingResponse?: {
-    id: string;
-    status?: string;
-    answers?: Array<{
-      questionId: string;
-      answer?: string | string[] | number | boolean | null;
-      selectedOptionIds?: string[];
-      textAnswer?: string;
-      ratingValue?: number;
-      booleanAnswer?: boolean;
-    }>;
+  survey: ParticipantSurveyDetail;
+  submission: {
+    participantId: string;
+    surveyId: string;
+    questionCount: number;
+    canSubmit: boolean;
   };
 };
 

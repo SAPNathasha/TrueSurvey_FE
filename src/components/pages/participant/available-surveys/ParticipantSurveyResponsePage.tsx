@@ -92,41 +92,9 @@ function formatQuestionType(type: ParticipantSurveyQuestionType) {
 }
 
 function getInitialAnswers(
-  survey: ParticipantSurveyDetail,
-  existingAnswers?: Array<{
-    questionId: string;
-    answer?: string | string[] | number | boolean | null;
-    selectedOptionIds?: string[];
-    textAnswer?: string;
-    ratingValue?: number;
-    booleanAnswer?: boolean;
-  }>
+  survey: ParticipantSurveyDetail
 ) {
   const mapped = new Map<string, AnswerValue>();
-
-  existingAnswers?.forEach((answer) => {
-    if (answer.selectedOptionIds?.length) {
-      mapped.set(answer.questionId, answer.selectedOptionIds);
-      return;
-    }
-
-    if (typeof answer.ratingValue === "number") {
-      mapped.set(answer.questionId, answer.ratingValue);
-      return;
-    }
-
-    if (typeof answer.booleanAnswer === "boolean") {
-      mapped.set(answer.questionId, answer.booleanAnswer);
-      return;
-    }
-
-    if (typeof answer.textAnswer === "string") {
-      mapped.set(answer.questionId, answer.textAnswer);
-      return;
-    }
-
-    mapped.set(answer.questionId, answer.answer ?? null);
-  });
 
   survey.questions.forEach((question) => {
     if (!mapped.has(question.id)) {
@@ -427,6 +395,8 @@ export default function ParticipantSurveyResponsePage({
   const router = useRouter();
   const [participantId] = useState(() => getStoredParticipantId());
   const [survey, setSurvey] = useState<ParticipantSurveyDetail | null>(null);
+  const [participantName, setParticipantName] = useState("");
+  const [canSubmit, setCanSubmit] = useState(true);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(Boolean(participantId && surveyId));
@@ -446,9 +416,9 @@ export default function ParticipantSurveyResponsePage({
         }
 
         setSurvey(response.survey);
-        setAnswers(
-          getInitialAnswers(response.survey, response.existingResponse?.answers)
-        );
+        setParticipantName(response.participant.username);
+        setCanSubmit(response.submission.canSubmit);
+        setAnswers(getInitialAnswers(response.survey));
         setError("");
       })
       .catch((requestError) => {
@@ -503,6 +473,15 @@ export default function ParticipantSurveyResponsePage({
 
   const handleSubmit = async () => {
     if (!participantId || !survey) {
+      return;
+    }
+
+    if (!canSubmit) {
+      toaster.create({
+        type: "error",
+        title: "Survey unavailable",
+        description: "This survey is not currently accepting responses.",
+      });
       return;
     }
 
@@ -607,6 +586,12 @@ export default function ParticipantSurveyResponsePage({
             <Text color="brand.mutedText" mt="3" fontSize="lg" maxW="840px">
               {survey.description}
             </Text>
+
+            <Text color="brand.mutedText" mt="3" fontSize="sm">
+              {participantName
+                ? `${participantName}, review the questions below and submit your response when you're ready.`
+                : "Review the questions below and submit your response when you're ready."}
+            </Text>
           </Box>
 
           <DashboardCard p="5" minW={{ base: "100%", xl: "340px" }}>
@@ -661,7 +646,7 @@ export default function ParticipantSurveyResponsePage({
                   <Text>Status</Text>
                 </HStack>
                 <Text fontWeight="bold" color="brand.dark" mt="1">
-                  {survey.isLocked ? "Locked" : "Ready"}
+                  {canSubmit ? "Ready" : "Unavailable"}
                 </Text>
               </Box>
             </Grid>
@@ -730,6 +715,7 @@ export default function ParticipantSurveyResponsePage({
             <Button
               h="48px"
               color="white"
+              disabled={!canSubmit}
               loading={isSubmitting}
               onClick={() => {
                 void handleSubmit();
