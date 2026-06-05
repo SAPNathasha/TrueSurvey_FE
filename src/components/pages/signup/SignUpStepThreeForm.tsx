@@ -18,11 +18,19 @@ import { useSignupStore } from "@/store/useSignupStore";
 import { useFormikContext } from "formik";
 import type { SignupFormValues } from "./SignUpForm";
 import InputField from "@/components/common/InputField";
+import Link from "next/link";
 
 export default function SignUprStepThreeForm() {
   const prevStep = useSignupStore((state) => state.prevStep);
-  const { values, errors, touched, setFieldValue, isSubmitting, submitForm, status } =
-    useFormikContext<SignupFormValues>();
+  const {
+    values,
+    errors,
+    touched,
+    setFieldValue,
+    isSubmitting,
+    submitForm,
+    status,
+  } = useFormikContext<SignupFormValues>();
 
   return (
     <Flex justify="center">
@@ -182,11 +190,13 @@ export default function SignUprStepThreeForm() {
             </Button>
           </HStack>
 
-          <Text textAlign="center" fontSize="13px" color="#A0A0A0">
+          <Text textStyle="smallText" textAlign="center" maxW="360px">
             Already have an account?{" "}
-            <Text as="span" color="#0015D6" fontWeight="700" cursor="pointer">
-              Sign in
-            </Text>
+            <Link href="/login">
+              <Text as="span" textStyle="link">
+                Sign in
+              </Text>
+            </Link>
           </Text>
         </VStack>
       </Box>

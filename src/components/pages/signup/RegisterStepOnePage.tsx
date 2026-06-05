@@ -18,7 +18,9 @@ export default function RegisterStepOnePage() {
             textLineThree="surveys that matter."
           />
 
-          <SignUpStepOneForm />
+          <SignUpStepOneForm onNext={function (): Promise<void> {
+            throw new Error("Function not implemented.");
+          } } />
         </Flex>
       </Container>
     </Box>

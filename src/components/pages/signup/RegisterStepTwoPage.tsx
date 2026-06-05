@@ -17,7 +17,9 @@ export default function RegisterStepTwoPage() {
             textLineTwo="You can always change this later in your settings."
           />
 
-          <SignUpStepTwoForm />
+          <SignUpStepTwoForm onNext={function (): Promise<void> {
+            throw new Error("Function not implemented.");
+          } } />
         </Flex>
       </Container>
     </Box>

@@ -223,6 +223,7 @@ export default function LoginForm() {
 
                 <Button
                   width="100%"
+                  color={"black"}
                   maxW="360px"
                   variant="outline"
                   type="button"

@@ -13,6 +13,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { useFormikContext } from "formik";
+import Link from "next/link";
 
 import StepItem from "@/components/common/StepItem";
 import { useSignupStore } from "@/store/useSignupStore";
@@ -105,9 +106,11 @@ export default function SignUpStepTwoForm({ onNext }: SignUpStepTwoFormProps) {
 
           <Text textStyle="smallText" textAlign="center" maxW="360px">
             Already have an account?{" "}
-            <Text as="span" textStyle="link">
-              Sign in
-            </Text>
+            <Link href="/login">
+              <Text as="span" textStyle="link">
+                Sign in
+              </Text>
+            </Link>
           </Text>
         </VStack>
       </Box>
