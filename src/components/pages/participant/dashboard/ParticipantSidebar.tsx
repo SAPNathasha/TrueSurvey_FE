@@ -66,6 +66,7 @@ const sidebarItems: SidebarItem[] = [
   {
     label: "Earnings",
     icon: <FiCreditCard />,
+    href: "/participant/earnings",
   },
   {
     label: "Wallet",

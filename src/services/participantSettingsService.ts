@@ -61,6 +61,27 @@ export type UpdateParticipantProfilePhotoResponse = {
   };
 };
 
+export type VerifyParticipantNicResponse = {
+  message: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+    nicImagePath: string | null;
+    selfiePath: string | null;
+    isIdentityVerified: boolean;
+    updatedAt: string;
+  };
+  verification: {
+    nicNumberProvided: boolean;
+    identityFrontImageUploaded: boolean;
+    selfieImageUploaded: boolean;
+    queueJobId: string | number;
+    queueStatus: string;
+  };
+};
+
 function getErrorMessage(error: unknown) {
   if (axios.isAxiosError(error)) {
     const message = error.response?.data?.message;
@@ -118,6 +139,33 @@ export async function updateParticipantProfilePhoto(
 
     const response = await api.patch<UpdateParticipantProfilePhotoResponse>(
       "/participant/settings/profile-photo",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function verifyParticipantNic(
+  nicNumber: string,
+  identityFrontImage: File,
+  selfieImage: File
+) {
+  try {
+    const formData = new FormData();
+    formData.append("nicNumber", nicNumber);
+    formData.append("identityFrontImage", identityFrontImage);
+    formData.append("selfieImage", selfieImage);
+
+    const response = await api.post<VerifyParticipantNicResponse>(
+      "/participant/verify-nic",
       formData,
       {
         headers: {

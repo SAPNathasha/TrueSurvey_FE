@@ -38,6 +38,7 @@ import {
   type UpdateParticipantProfilePayload,
   updateParticipantProfilePhoto,
   updateParticipantProfileSettings,
+  verifyParticipantNic,
 } from "@/services/participantSettingsService";
 
 type SettingsTab =
@@ -778,11 +779,17 @@ function UploadBox({
   title,
   description,
   acceptText,
+  fileName,
+  onClick,
+  isDisabled = false,
 }: {
   icon: ReactNode;
   title: string;
   description: string;
   acceptText: string;
+  fileName?: string;
+  onClick?: () => void;
+  isDisabled?: boolean;
 }) {
   return (
     <Box mt="5">
@@ -805,10 +812,12 @@ function UploadBox({
         alignItems="center"
         justifyContent="center"
         textAlign="center"
-        cursor="pointer"
+        cursor={isDisabled ? "not-allowed" : "pointer"}
+        opacity={isDisabled ? 0.65 : 1}
+        onClick={isDisabled ? undefined : onClick}
         _hover={{
-          borderColor: "brand.primary",
-          bg: "brand.lightBlue",
+          borderColor: isDisabled ? "#BFD0FF" : "brand.primary",
+          bg: isDisabled ? "#FBFCFF" : "brand.lightBlue",
         }}
       >
         <Box>
@@ -829,6 +838,12 @@ function UploadBox({
           <Text fontSize="sm" color="brand.mutedText" mt="1">
             {acceptText}
           </Text>
+
+          {fileName ? (
+            <Text fontSize="sm" color="brand.dark" fontWeight="semibold" mt="3">
+              Selected: {fileName}
+            </Text>
+          ) : null}
         </Box>
       </Box>
     </Box>
@@ -870,6 +885,115 @@ function AccountVerificationCard({
   data: ParticipantProfileSettingsResponse;
 }) {
   const isVerified = data.accountOverview.verificationStatus === "VERIFIED";
+  const [nicNumber, setNicNumber] = useState("");
+  const [identityFrontImage, setIdentityFrontImage] = useState<File | null>(null);
+  const [selfieImage, setSelfieImage] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isQueued, setIsQueued] = useState(false);
+  const identityFrontInputRef = useRef<HTMLInputElement | null>(null);
+  const selfieInputRef = useRef<HTMLInputElement | null>(null);
+
+  const allowedMimeTypes = new Set([
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+  ]);
+
+  const handleVerificationFileSelect =
+    (type: "identity" | "selfie") => (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      if (!allowedMimeTypes.has(file.type)) {
+        toaster.create({
+          type: "error",
+          title: "Invalid file type",
+          description: "Please upload a JPG, JPEG, PNG, or WEBP image.",
+        });
+        event.target.value = "";
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        toaster.create({
+          type: "error",
+          title: "File too large",
+          description: "Verification images must be 5MB or smaller.",
+        });
+        event.target.value = "";
+        return;
+      }
+
+      if (type === "identity") {
+        setIdentityFrontImage(file);
+      } else {
+        setSelfieImage(file);
+      }
+    };
+
+  const handleSubmitVerification = async () => {
+    if (isVerified) {
+      return;
+    }
+
+    if (!nicNumber.trim()) {
+      toaster.create({
+        type: "error",
+        title: "NIC number required",
+        description: "Please enter your NIC number before continuing.",
+      });
+      return;
+    }
+
+    if (!identityFrontImage) {
+      toaster.create({
+        type: "error",
+        title: "Identity image required",
+        description: "Please upload the front image of your NIC or licence.",
+      });
+      return;
+    }
+
+    if (!selfieImage) {
+      toaster.create({
+        type: "error",
+        title: "Selfie required",
+        description: "Please upload a clear selfie to continue.",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await verifyParticipantNic(
+        nicNumber.trim(),
+        identityFrontImage,
+        selfieImage
+      );
+
+      setIsQueued(true);
+      toaster.create({
+        type: "success",
+        title: "Verification submitted",
+        description: response.message,
+      });
+    } catch (verificationError) {
+      toaster.create({
+        type: "error",
+        title: "Verification failed",
+        description:
+          verificationError instanceof Error
+            ? verificationError.message
+            : "Could not submit NIC verification",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <DashboardCard p={{ base: "5", lg: "6" }}>
@@ -915,13 +1039,42 @@ function AccountVerificationCard({
         </Box>
       </HStack>
 
-      <VerificationStepTracker isVerified={isVerified} />
+      {/* <VerificationStepTracker isVerified={isVerified} /> */}
+
+      <Input
+        ref={identityFrontInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        display="none"
+        onChange={handleVerificationFileSelect("identity")}
+      />
+
+      <Input
+        ref={selfieInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        display="none"
+        onChange={handleVerificationFileSelect("selfie")}
+      />
+
+      <Box mt="6" maxW={{ base: "100%", md: "420px" }}>
+        <FormField label="NIC Number">
+          <SettingsInput
+            value={nicNumber}
+            onChange={(event) => setNicNumber(event.target.value)}
+            placeholder="Enter your NIC number"
+          />
+        </FormField>
+      </Box>
 
       <UploadBox
         icon={<FiKey />}
         title="Upload NIC / Driving Licence (Front)"
         description="Drag and drop your file here, or click to browse"
-        acceptText="JPG, PNG or PDF"
+        acceptText="JPG, JPEG, PNG, or WEBP"
+        fileName={identityFrontImage?.name}
+        onClick={() => identityFrontInputRef.current?.click()}
+        isDisabled={isVerified || isSubmitting}
       />
 
       <UploadBox
@@ -929,12 +1082,26 @@ function AccountVerificationCard({
         title="Upload a Selfie"
         description="Drag and drop your file here, or click to browse"
         acceptText="Make sure your face is clearly visible"
+        fileName={selfieImage?.name}
+        onClick={() => selfieInputRef.current?.click()}
+        isDisabled={isVerified || isSubmitting}
       />
 
       <VerificationInfoBox />
 
-      <Button mt="6" color="white" px="8">
-        {isVerified ? "Verification Complete" : "Start Verification"}
+      <Button
+        mt="6"
+        color="white"
+        px="8"
+        onClick={handleSubmitVerification}
+        loading={isSubmitting}
+        disabled={isVerified || isSubmitting}
+      >
+        {isVerified
+          ? "Verification Complete"
+          : isQueued
+            ? "Verification Submitted"
+            : "Start Verification"}
       </Button>
     </DashboardCard>
   );
@@ -999,7 +1166,7 @@ function ProfileTabContent({
   isUploadingPhoto: boolean;
 }) {
   return (
-    <Grid templateColumns={{ base: "1fr", xl: "1.15fr 1fr" }} gap="5">
+    <Grid templateColumns={{ base: "1fr", xl: "1fr" }} gap="5">
       <VStack align="stretch" gap="5">
         <ProfileInformationCard
           data={data}
@@ -1012,8 +1179,6 @@ function ProfileTabContent({
         />
         <AccountOverviewCard data={data} />
       </VStack>
-
-      <AccountVerificationCard data={data} />
     </Grid>
   );
 }

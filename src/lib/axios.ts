@@ -1,5 +1,9 @@
 import axios from "axios";
-import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import type {
+  AxiosError,
+  AxiosRequestHeaders,
+  InternalAxiosRequestConfig,
+} from "axios";
 
 const ACCESS_TOKEN_KEY = "accessToken";
 const REFRESH_ENDPOINT = "/refresh";
@@ -103,7 +107,16 @@ api.interceptors.request.use((config) => {
   const accessToken = getStoredAccessToken();
 
   if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`;
+    const authorizationHeader = `Bearer ${accessToken}`;
+
+    if (config.headers && typeof config.headers.set === "function") {
+      config.headers.set("Authorization", authorizationHeader);
+    } else {
+      config.headers = {
+        ...(config.headers ?? {}),
+        Authorization: authorizationHeader,
+      } as AxiosRequestHeaders;
+    }
   }
 
   return config;
@@ -129,7 +142,20 @@ api.interceptors.response.use(
 
     try {
       const newAccessToken = await refreshAccessToken();
-      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      const authorizationHeader = `Bearer ${newAccessToken}`;
+
+      if (
+        originalRequest.headers &&
+        typeof originalRequest.headers.set === "function"
+      ) {
+        originalRequest.headers.set("Authorization", authorizationHeader);
+      } else {
+        originalRequest.headers = {
+          ...(originalRequest.headers ?? {}),
+          Authorization: authorizationHeader,
+        } as AxiosRequestHeaders;
+      }
+
       return api(originalRequest);
     } catch (refreshError) {
       clearStoredAccessToken();
