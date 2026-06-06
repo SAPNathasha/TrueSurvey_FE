@@ -17,11 +17,7 @@ export type SurveyQuestionType =
   | "LONG_ANSWER"
   | "RATING_SCALE"
   | "YES_NO";
-export type AudienceGender =
-  | "ALL"
-  | "MALE"
-  | "FEMALE"
-  | "OTHER";
+export type AudienceGender = "ALL" | "MALE" | "FEMALE" | "OTHER";
 export type SurveyAudienceType =
   | "GENERAL"
   | "CUSTOMERS"
@@ -148,7 +144,13 @@ export type SetTargetAudienceResponse = {
   message: string;
   survey: Pick<
     SurveyDraft,
-    "id" | "title" | "audience" | "currentStep" | "status" | "creationMethod" | "updatedAt"
+    | "id"
+    | "title"
+    | "audience"
+    | "currentStep"
+    | "status"
+    | "creationMethod"
+    | "updatedAt"
   >;
   targetAudience: SurveyTargetAudience;
   nextStep: "SAMPLE_BUDGET";
@@ -223,7 +225,13 @@ export type SetSampleBudgetResponse = {
   message: string;
   survey: Pick<
     SurveyDraft,
-    "id" | "title" | "currentStep" | "status" | "creationMethod" | "audience" | "updatedAt"
+    | "id"
+    | "title"
+    | "currentStep"
+    | "status"
+    | "creationMethod"
+    | "audience"
+    | "updatedAt"
   >;
   sampleBudget: SurveySampleBudget;
   budgetBreakdown: BudgetBreakdown;
@@ -270,10 +278,7 @@ export type GetSurveyPreviewResponse = {
   canPublish: boolean;
 };
 
-export type SurveyPublishOption =
-  | "PUBLISH_NOW"
-  | "SCHEDULE"
-  | "SAVE_DRAFT";
+export type SurveyPublishOption = "PUBLISH_NOW" | "SCHEDULE" | "SAVE_DRAFT";
 
 export type PublishSurveyPayload = {
   creatorId: string;
@@ -326,6 +331,94 @@ export type GetCreatorSurveysResponse = {
   limit: number;
 };
 
+export const RewardStatus = {
+  PENDING: "PENDING",
+  RELEASED: "RELEASED",
+  REJECTED: "REJECTED",
+  WITHDRAWN: "WITHDRAWN",
+} as const;
+
+export type CreatorSurveySubmissionStatus = string;
+export type RewardStatus = (typeof RewardStatus)[keyof typeof RewardStatus];
+
+export type CreatorSurveySubmissionRow = {
+  submissionId: string;
+  submissionNumber: number;
+  submittedAt: string | null;
+  status: RewardStatus;
+};
+
+export type CreatorSurveySubmissionsPagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  showingFrom: number;
+  showingTo: number;
+};
+
+export type GetCreatorSurveySubmissionsResponse = {
+  survey: {
+    id: string;
+    title: string;
+  };
+  pagination: CreatorSurveySubmissionsPagination;
+  submissions: CreatorSurveySubmissionRow[];
+};
+
+export type CreatorSubmissionParticipant = {
+  id: string | null;
+  username: string | null;
+  email: string | null;
+  verificationStatus: "VERIFIED" | "NOT_VERIFIED";
+  isIdentityVerified: boolean;
+};
+
+export type CreatorSubmissionAnswer = {
+  answerId: string;
+  questionId: string;
+  questionText: string;
+  questionOrder: number;
+  questionType: SurveyQuestionType;
+  answerType: SurveyQuestionType;
+  answer: {
+    answerText: string | null;
+    selectedOptionId: string | null;
+    selectedOptionIds: string[] | null;
+    ratingValue: number | null;
+    booleanValue: boolean | null;
+  };
+  options: SurveyQuestionOption[];
+};
+
+export type GetCreatorSingleSubmissionResponse = {
+  survey: {
+    id: string;
+    title: string;
+  };
+  submission: {
+    id: string;
+    submittedAt: string | null;
+    status: string;
+    isAccepted: boolean | null;
+  };
+  participant: CreatorSubmissionParticipant;
+  answers: CreatorSubmissionAnswer[];
+};
+
+export type ReviewCreatorSubmissionResponse = {
+  message: string;
+  submission: {
+    id: string;
+    surveyId: string;
+    participantId: string | null;
+    status: string;
+    rewardStatus: RewardStatus;
+    rewardAmount: number;
+    completedAt: string | null;
+  };
+};
+
 function normalizeSurveyStatus(status: unknown): CreatorSurveyStatus {
   if (status === "ACTIVE" || status === "CLOSED") {
     return status;
@@ -350,7 +443,9 @@ function toNumber(value: unknown) {
   return 0;
 }
 
-function normalizeCreatorSurveyListItem(item: unknown): CreatorSurveyListItem | null {
+function normalizeCreatorSurveyListItem(
+  item: unknown,
+): CreatorSurveyListItem | null {
   if (!item || typeof item !== "object") {
     return null;
   }
@@ -379,7 +474,8 @@ function normalizeCreatorSurveyListItem(item: unknown): CreatorSurveyListItem | 
     currentStep:
       typeof record.currentStep === "string" ? record.currentStep : null,
     creationMethod:
-      record.creationMethod === "AI_ASSISTED" || record.creationMethod === "MANUAL"
+      record.creationMethod === "AI_ASSISTED" ||
+      record.creationMethod === "MANUAL"
         ? record.creationMethod
         : null,
     estimatedCompletionDays:
@@ -399,7 +495,7 @@ function normalizeCreatorSurveyListItem(item: unknown): CreatorSurveyListItem | 
 
 function normalizeCreatorSurveysResponse(
   payload: unknown,
-  fallbackLimit: number
+  fallbackLimit: number,
 ): GetCreatorSurveysResponse {
   const record =
     payload && typeof payload === "object"
@@ -449,12 +545,12 @@ function getErrorMessage(error: unknown) {
 }
 
 export async function createSurveyBasicDetails(
-  payload: CreateSurveyBasicDetailsPayload
+  payload: CreateSurveyBasicDetailsPayload,
 ) {
   try {
     const response = await api.post<CreateSurveyBasicDetailsResponse>(
       "/surveys/basic-details",
-      payload
+      payload,
     );
 
     return response.data;
@@ -463,16 +559,14 @@ export async function createSurveyBasicDetails(
   }
 }
 
-export async function selectSurveyMethod(
-  payload: SelectSurveyMethodPayload
-) {
+export async function selectSurveyMethod(payload: SelectSurveyMethodPayload) {
   try {
     const response = await api.patch<SelectSurveyMethodResponse>(
       `/surveys/${payload.surveyId}/method`,
       {
         creatorId: payload.creatorId,
         creationMethod: payload.creationMethod,
-      }
+      },
     );
 
     return response.data;
@@ -482,7 +576,7 @@ export async function selectSurveyMethod(
 }
 
 export async function createManualQuestion(
-  payload: CreateManualQuestionPayload
+  payload: CreateManualQuestionPayload,
 ) {
   try {
     const response = await api.post<CreateManualQuestionResponse>(
@@ -493,7 +587,7 @@ export async function createManualQuestion(
         type: payload.type,
         isRequired: payload.isRequired,
         options: payload.options,
-      }
+      },
     );
 
     return response.data;
@@ -510,7 +604,7 @@ export async function getSurveyQuestions(creatorId: string, surveyId: string) {
         params: {
           creatorId,
         },
-      }
+      },
     );
 
     return response.data;
@@ -524,7 +618,7 @@ export async function updateManualQuestion(
     questionId: string;
     questionText?: string;
     type?: SurveyQuestionType;
-  }
+  },
 ) {
   try {
     const response = await api.patch<CreateManualQuestionResponse>(
@@ -535,7 +629,7 @@ export async function updateManualQuestion(
         type: payload.type,
         isRequired: payload.isRequired,
         options: payload.options,
-      }
+      },
     );
 
     return response.data;
@@ -547,7 +641,7 @@ export async function updateManualQuestion(
 export async function deleteSurveyQuestion(
   creatorId: string,
   surveyId: string,
-  questionId: string
+  questionId: string,
 ) {
   try {
     const response = await api.delete<{ message: string }>(
@@ -556,7 +650,7 @@ export async function deleteSurveyQuestion(
         data: {
           creatorId,
         },
-      }
+      },
     );
 
     return response.data;
@@ -567,14 +661,14 @@ export async function deleteSurveyQuestion(
 
 export async function completeQuestionStep(
   creatorId: string,
-  surveyId: string
+  surveyId: string,
 ) {
   try {
     const response = await api.patch<CompleteQuestionStepResponse>(
       `/surveys/${surveyId}/questions/complete`,
       {
         creatorId,
-      }
+      },
     );
 
     return response.data;
@@ -583,9 +677,7 @@ export async function completeQuestionStep(
   }
 }
 
-export async function setTargetAudience(
-  payload: SetTargetAudiencePayload
-) {
+export async function setTargetAudience(payload: SetTargetAudiencePayload) {
   try {
     const response = await api.patch<SetTargetAudienceResponse>(
       `/surveys/${payload.surveyId}/target-audience`,
@@ -599,7 +691,7 @@ export async function setTargetAudience(
         educationLevel: payload.educationLevel,
         occupation: payload.occupation,
         sampleBase: payload.sampleBase,
-      }
+      },
     );
 
     return response.data;
@@ -609,7 +701,7 @@ export async function setTargetAudience(
 }
 
 export async function getEstimatedAudienceReach(
-  payload: EstimateAudienceReachPayload
+  payload: EstimateAudienceReachPayload,
 ) {
   try {
     const response = await api.get<EstimateAudienceReachResponse>(
@@ -626,7 +718,7 @@ export async function getEstimatedAudienceReach(
           occupation: payload.occupation,
           sampleBase: payload.sampleBase,
         },
-      }
+      },
     );
 
     return response.data;
@@ -635,9 +727,7 @@ export async function getEstimatedAudienceReach(
   }
 }
 
-export async function setSampleBudget(
-  payload: SetSampleBudgetPayload
-) {
+export async function setSampleBudget(payload: SetSampleBudgetPayload) {
   try {
     const response = await api.patch<SetSampleBudgetResponse>(
       `/surveys/${payload.surveyId}/sample-budget`,
@@ -649,7 +739,7 @@ export async function setSampleBudget(
         rewardDistribution: payload.rewardDistribution,
         currency: payload.currency,
         budgetNotes: payload.budgetNotes,
-      }
+      },
     );
 
     return response.data;
@@ -666,7 +756,7 @@ export async function getSurveyPreview(creatorId: string, surveyId: string) {
         params: {
           creatorId,
         },
-      }
+      },
     );
 
     return response.data;
@@ -675,9 +765,7 @@ export async function getSurveyPreview(creatorId: string, surveyId: string) {
   }
 }
 
-export async function publishSurvey(
-  payload: PublishSurveyPayload
-) {
+export async function publishSurvey(payload: PublishSurveyPayload) {
   try {
     const response = await api.patch<PublishSurveyResponse>(
       `/surveys/${payload.surveyId}/publish`,
@@ -685,7 +773,7 @@ export async function publishSurvey(
         creatorId: payload.creatorId,
         publishOption: payload.publishOption,
         scheduledPublishAt: payload.scheduledPublishAt,
-      }
+      },
     );
 
     return response.data;
@@ -694,34 +782,24 @@ export async function publishSurvey(
   }
 }
 
-export async function getCreatorSurveys(
-  params: GetCreatorSurveysParams
-) {
+export async function getCreatorSurveys(params: GetCreatorSurveysParams) {
   try {
-    const response = await api.get(
-      "/creator/surveys",
-      {
-        params: {
-          creatorId: params.creatorId,
-          status: params.status && params.status !== "ALL" ? params.status : undefined,
-          limit: params.limit,
-        },
-      }
-    );
+    const response = await api.get("/creator/surveys", {
+      params: {
+        creatorId: params.creatorId,
+        status:
+          params.status && params.status !== "ALL" ? params.status : undefined,
+        limit: params.limit,
+      },
+    });
 
-    return normalizeCreatorSurveysResponse(
-      response.data,
-      params.limit ?? 10
-    );
+    return normalizeCreatorSurveysResponse(response.data, params.limit ?? 10);
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
 }
 
-export async function deleteCreatorSurvey(
-  creatorId: string,
-  surveyId: string
-) {
+export async function deleteCreatorSurvey(creatorId: string, surveyId: string) {
   try {
     const response = await api.delete<{ message: string }>(
       `/surveys/${surveyId}`,
@@ -729,7 +807,75 @@ export async function deleteCreatorSurvey(
         data: {
           creatorId,
         },
-      }
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function getCreatorSurveySubmissions(
+  surveyId: string,
+  page = 1,
+  limit = 10,
+) {
+  try {
+    const response = await api.get<GetCreatorSurveySubmissionsResponse>(
+      "/creator/survey-submissions",
+      {
+        params: {
+          surveyId,
+          page,
+          limit,
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function getCreatorSingleSubmission(
+  surveyId: string,
+  submissionId: string,
+) {
+  try {
+    const response = await api.get<GetCreatorSingleSubmissionResponse>(
+      `/creator/surveys/${surveyId}/submissions/${submissionId}`,
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function acceptCreatorSubmission(
+  surveyId: string,
+  submissionId: string,
+) {
+  try {
+    const response = await api.patch<ReviewCreatorSubmissionResponse>(
+      `/creator/surveys/${surveyId}/submissions/${submissionId}/accept`,
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function rejectCreatorSubmission(
+  surveyId: string,
+  submissionId: string,
+) {
+  try {
+    const response = await api.patch<ReviewCreatorSubmissionResponse>(
+      `/creator/surveys/${surveyId}/submissions/${submissionId}/reject`,
     );
 
     return response.data;

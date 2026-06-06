@@ -18,6 +18,7 @@ import {
   FiFileText,
   FiFilter,
   FiGrid,
+  FiList,
   FiPlusCircle,
   FiTrash2,
 } from "react-icons/fi";
@@ -363,7 +364,7 @@ export default function CreatorSurveysPage() {
             <Box overflowX="auto">
               <Box minW="980px">
                 <Grid
-                  templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 1.3fr"
+                  templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 1.9fr"
                   px="5"
                   py="3"
                   bg="#FAFBFF"
@@ -409,7 +410,7 @@ export default function CreatorSurveysPage() {
                   surveys.map((survey) => (
                     <Grid
                       key={survey.id}
-                      templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 1.3fr"
+                      templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 1.9fr"
                       px="5"
                       py="3"
                       alignItems="center"
@@ -467,6 +468,18 @@ export default function CreatorSurveysPage() {
                       </Text>
 
                       <HStack gap="2">
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          h="34px"
+                        >
+                          <NextLink href={`/creator/surveys/${survey.id}/submissions`}>
+                            <FiList />
+                            Submissions
+                          </NextLink>
+                        </Button>
+
                         {survey.status === "DRAFT" ? (
                           <Button
                             size="sm"
@@ -477,11 +490,7 @@ export default function CreatorSurveysPage() {
                             <FiEdit2 />
                             Edit
                           </Button>
-                        ) : (
-                          <Text fontSize="sm" color="brand.mutedText">
-                            No actions
-                          </Text>
-                        )}
+                        ) : null}
 
                         <Button
                           size="sm"
