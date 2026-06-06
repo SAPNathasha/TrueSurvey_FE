@@ -98,6 +98,31 @@ export type CreateManualQuestionResponse = {
   question: SurveyQuestion;
 };
 
+export type GenerateAiQuestionsPayload = {
+  surveyId: string;
+  title: string;
+  description: string;
+  maxNumberOfQuestions: number;
+};
+
+export type GenerateAiQuestionItem = {
+  id: string;
+  order: number;
+  questionText: string;
+  type: SurveyQuestionType;
+  options: string[];
+  isRequired: boolean;
+  source: string;
+};
+
+export type GenerateAiQuestionsResponse = {
+  message: string;
+  surveyId: string;
+  surveyTitle: string;
+  currentStep: string;
+  questions: GenerateAiQuestionItem[];
+};
+
 export type GetSurveyQuestionsResponse = {
   surveyId: string;
   questions: SurveyQuestion[];
@@ -587,6 +612,25 @@ export async function createManualQuestion(
         type: payload.type,
         isRequired: payload.isRequired,
         options: payload.options,
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function generateAiQuestions(
+  payload: GenerateAiQuestionsPayload,
+) {
+  try {
+    const response = await api.post<GenerateAiQuestionsResponse>(
+      `/surveys/${payload.surveyId}/questions/ai`,
+      {
+        title: payload.title,
+        description: payload.description,
+        maxNumberOfQuestions: payload.maxNumberOfQuestions,
       },
     );
 

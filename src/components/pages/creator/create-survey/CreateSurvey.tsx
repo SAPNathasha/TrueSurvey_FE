@@ -33,7 +33,9 @@ import PreviewSubmitRightPanel from "./preview-submit/PreviewSubmitRightPanel";
 
 import type { SurveyMethodId } from "./select-method/selectMethodTypes";
 import {
+  generateAiQuestions,
   selectSurveyMethod,
+  type GenerateAiQuestionItem,
   type SurveyCreationMethod,
   type SurveyDraft,
 } from "@/services/creatorSurveyService";
@@ -45,6 +47,15 @@ const initialBasicDetailsValues: BasicDetailsFormValues = {
   completionDays: "7",
 };
 const creatorWizardStepKey = "creatorCurrentStep";
+const creatorAiQuestionDraftKey = "creatorAiQuestionDraft";
+const defaultAiQuestionCount = 10;
+
+type StoredAiQuestionDraft = {
+  surveyTitle: string;
+  description: string;
+  maxNumberOfQuestions: number;
+  questions: GenerateAiQuestionItem[];
+};
 
 function getStepFromSurveyCreationStep(currentStep?: string | null) {
   if (currentStep === "SELECT_METHOD") {
@@ -115,6 +126,15 @@ function clearStoredDraftState() {
   window.localStorage.removeItem("creatorSurveyDraftId");
   window.localStorage.removeItem("creatorSurveyDraft");
   window.localStorage.removeItem(creatorWizardStepKey);
+  window.localStorage.removeItem(creatorAiQuestionDraftKey);
+}
+
+function persistAiQuestionDraft(draft: StoredAiQuestionDraft) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(creatorAiQuestionDraftKey, JSON.stringify(draft));
 }
 
 export default function CreateSurvey({
@@ -214,18 +234,42 @@ export default function CreateSurvey({
 
     try {
       setIsSavingMethod(true);
-      const response = await selectSurveyMethod({
+      const methodResponse = await selectSurveyMethod({
         creatorId,
         surveyId: createdDraftId,
         creationMethod: toCreationMethod(selectedMethod),
       });
 
-      persistDraft(response.survey);
+      persistDraft(methodResponse.survey);
+
+      if (advanceToNextStep && selectedMethod === "ai") {
+        const aiResponse = await generateAiQuestions({
+          surveyId: createdDraftId,
+          title: basicDetails.surveyTitle.trim(),
+          description: basicDetails.description.trim(),
+          maxNumberOfQuestions: defaultAiQuestionCount,
+        });
+
+        persistAiQuestionDraft({
+          surveyTitle: aiResponse.surveyTitle,
+          description: basicDetails.description.trim(),
+          maxNumberOfQuestions: defaultAiQuestionCount,
+          questions: aiResponse.questions,
+        });
+      }
 
       toaster.create({
         type: "success",
-        title: advanceToNextStep ? "Method saved" : "Draft updated",
-        description: response.message,
+        title:
+          advanceToNextStep && selectedMethod === "ai"
+            ? "AI questions generated"
+            : advanceToNextStep
+              ? "Method saved"
+              : "Draft updated",
+        description:
+          advanceToNextStep && selectedMethod === "ai"
+            ? "Your AI survey draft is ready to review."
+            : methodResponse.message,
       });
 
       if (advanceToNextStep) {
@@ -274,6 +318,8 @@ export default function CreateSurvey({
     if (currentStep === 3 && selectedMethod === "ai") {
       return (
         <CreateQuestionsAIStep
+          defaultTitle={basicDetails.surveyTitle}
+          defaultDescription={basicDetails.description}
           onBack={() => goToStep(2)}
           onNext={() => goToStep(4)}
         />

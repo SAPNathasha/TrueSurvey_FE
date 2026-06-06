@@ -1,587 +1,515 @@
 "use client";
 
+import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
+import { toaster } from "@/components/ui/toaster";
+import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import {
+  completeQuestionStep,
+  generateAiQuestions,
+  type GenerateAiQuestionItem,
+  type SurveyQuestionType,
+} from "@/services/creatorSurveyService";
+import {
+  Badge,
   Box,
   Button,
   Grid,
   HStack,
-  IconButton,
   Input,
-  NativeSelect,
   Text,
   Textarea,
   VStack,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import {
-  FiArrowLeft,
-  FiArrowRight,
-  FiCopy,
-  FiEdit2,
-  FiFileText,
-  FiMoreVertical,
-  FiPlus,
-  FiRefreshCw,
-  FiTrash2,
-  FiZap,
-} from "react-icons/fi";
-
-import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-
-type QuestionType = "rating" | "multiple" | "single" | "short";
-
-type GeneratedQuestion = {
-  id: string;
-  code: string;
-  title: string;
-  type: QuestionType;
-  options?: string[];
-};
+import { FiArrowLeft, FiArrowRight, FiRefreshCw, FiSave } from "react-icons/fi";
 
 type CreateQuestionsAIStepProps = {
+  defaultTitle: string;
+  defaultDescription: string;
   onBack: () => void;
   onNext: () => void;
 };
 
-const focusOptions = [
-  "Customer Experience",
-  "Delivery",
-  "Support",
-  "Product Quality",
-  "Pricing",
-];
+type StoredAiQuestionDraft = {
+  surveyTitle: string;
+  description: string;
+  maxNumberOfQuestions: number;
+  questions: GenerateAiQuestionItem[];
+};
 
-const initialQuestions: GeneratedQuestion[] = [
-  {
-    id: "1",
-    code: "Q1",
-    title: "How satisfied are you with your overall shopping experience?",
-    type: "rating",
-  },
-  {
-    id: "2",
-    code: "Q2",
-    title: "Which part of our service are you most satisfied with?",
-    type: "multiple",
-    options: [
-      "Product Quality",
-      "Delivery Speed",
-      "Customer Support",
-      "Pricing",
-      "Website Experience",
-    ],
-  },
-  {
-    id: "3",
-    code: "Q3",
-    title: "How likely are you to recommend our service to others?",
-    type: "single",
-  },
-  {
-    id: "4",
-    code: "Q4",
-    title: "What could we improve to better serve you?",
-    type: "short",
-  },
-];
+const creatorAiQuestionDraftKey = "creatorAiQuestionDraft";
+const defaultQuestionCount = 10;
 
-function getQuestionTypeStyle(type: QuestionType) {
-  if (type === "rating") {
-    return {
-      label: "Rating Scale",
-      bg: "#EAF2FF",
-      color: "#0015D6",
-    };
+const questionTypeLabels: Record<SurveyQuestionType, string> = {
+  MULTIPLE_CHOICE: "Multiple Choice",
+  SINGLE_SELECT: "Single Select",
+  SHORT_ANSWER: "Short Answer",
+  LONG_ANSWER: "Long Answer",
+  RATING_SCALE: "Rating Scale",
+  YES_NO: "Yes / No",
+};
+
+function getStoredDraftId() {
+  if (typeof window === "undefined") {
+    return null;
   }
 
-  if (type === "multiple") {
-    return {
-      label: "Multiple Choice",
-      bg: "#EEF0FF",
-      color: "#0015D6",
-    };
-  }
-
-  if (type === "single") {
-    return {
-      label: "Single Select",
-      bg: "#FFF3C4",
-      color: "#9A6B00",
-    };
-  }
-
-  return {
-    label: "Short Answer",
-    bg: "#DDFBEA",
-    color: "#0A7A3D",
-  };
+  return window.localStorage.getItem("creatorSurveyDraftId");
 }
 
-function AnswerPreview({ question }: { question: GeneratedQuestion }) {
-  if (question.type === "rating") {
-    return (
-      <Box>
-        <HStack gap="7" color="brand.dark" fontSize="sm" fontWeight="semibold">
-          {[1, 2, 3, 4, 5].map((item) => (
-            <Text key={item}>{item}</Text>
-          ))}
-        </HStack>
-
-        <HStack justify="space-between" mt="1" maxW="260px">
-          <Text fontSize="xs" color="brand.mutedText">
-            Very Dissatisfied
-          </Text>
-          <Text fontSize="xs" color="brand.mutedText">
-            Very Satisfied
-          </Text>
-        </HStack>
-      </Box>
-    );
+function getStoredAiQuestionDraft() {
+  if (typeof window === "undefined") {
+    return null;
   }
 
-  if (question.type === "multiple") {
-    return (
-      <Text fontSize="sm" color="brand.dark" lineHeight="1.5">
-        {question.options?.join(", ")}
-      </Text>
-    );
+  const storedDraft = window.localStorage.getItem(creatorAiQuestionDraftKey);
+
+  if (!storedDraft) {
+    return null;
   }
 
-  if (question.type === "single") {
-    return (
-      <Box>
-        <HStack gap="5" color="brand.dark" fontSize="sm" fontWeight="semibold">
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((item) => (
-            <Text key={item}>{item}</Text>
-          ))}
-        </HStack>
-
-        <HStack justify="space-between" mt="1" maxW="310px">
-          <Text fontSize="xs" color="brand.mutedText">
-            Not at all likely
-          </Text>
-          <Text fontSize="xs" color="brand.mutedText">
-            Extremely likely
-          </Text>
-        </HStack>
-      </Box>
-    );
+  try {
+    return JSON.parse(storedDraft) as StoredAiQuestionDraft;
+  } catch {
+    return null;
   }
-
-  return (
-    <Box
-      h="36px"
-      maxW="340px"
-      borderRadius="8px"
-      borderWidth="1px"
-      borderStyle="dashed"
-      borderColor="brand.border"
-      bg="#F8FAFC"
-      display="flex"
-      alignItems="center"
-      px="4"
-    >
-      <Text fontSize="sm" color="brand.mutedText">
-        Text response
-      </Text>
-    </Box>
-  );
 }
 
-function QuestionRow({ question }: { question: GeneratedQuestion }) {
-  const typeStyle = getQuestionTypeStyle(question.type);
+function persistAiQuestionDraft(draft: StoredAiQuestionDraft) {
+  if (typeof window === "undefined") {
+    return;
+  }
 
-  return (
-    <Grid
-      templateColumns={{
-        base: "1fr",
-        lg: "28px 54px minmax(260px, 1fr) 130px minmax(260px, 340px) 120px",
-      }}
-      gap="3"
-      alignItems="center"
-      px="4"
-      py="3"
-      borderBottomWidth="1px"
-      borderColor="brand.border"
-    >
-      <Box display={{ base: "none", lg: "block" }} color="brand.mutedText">
-        <FiMoreVertical />
-      </Box>
+  window.localStorage.setItem(creatorAiQuestionDraftKey, JSON.stringify(draft));
+}
 
-      <Box
-        w="42px"
-        h="30px"
-        borderRadius="8px"
-        bg="#EEF2FF"
-        color="brand.primary"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        fontSize="sm"
-        fontWeight="bold"
-      >
-        {question.code}
-      </Box>
+function updateStoredDraftStep(surveyId: string, currentStep: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
 
-      <Text fontSize="sm" fontWeight="semibold" color="brand.dark">
-        {question.title}
-      </Text>
+  const storedDraft = window.localStorage.getItem("creatorSurveyDraft");
 
-      <Box
-        w="fit-content"
-        px="3"
-        py="1"
-        borderRadius="999px"
-        bg={typeStyle.bg}
-        color={typeStyle.color}
-        fontSize="xs"
-        fontWeight="bold"
-      >
-        {typeStyle.label}
-      </Box>
+  if (!storedDraft) {
+    return;
+  }
 
-      <AnswerPreview question={question} />
+  try {
+    const parsedDraft = JSON.parse(storedDraft) as Record<string, unknown>;
 
-      <HStack justify={{ base: "flex-start", lg: "flex-end" }} gap="2">
-        <IconButton aria-label="Edit question" variant="outline" size="sm">
-          <FiEdit2 />
-        </IconButton>
+    if (parsedDraft.id !== surveyId) {
+      return;
+    }
 
-        <IconButton aria-label="Duplicate question" variant="outline" size="sm">
-          <FiCopy />
-        </IconButton>
+    window.localStorage.setItem(
+      "creatorSurveyDraft",
+      JSON.stringify({
+        ...parsedDraft,
+        currentStep,
+      })
+    );
+  } catch {
+    // Ignore malformed local draft payloads.
+  }
+}
 
-        <IconButton
-          aria-label="Delete question"
-          variant="outline"
-          size="sm"
-          color="red.500"
-        >
-          <FiTrash2 />
-        </IconButton>
-      </HStack>
-    </Grid>
-  );
+function toQuestionPreview(question: GenerateAiQuestionItem) {
+  if (question.type === "SHORT_ANSWER" || question.type === "LONG_ANSWER") {
+    return "Open text response";
+  }
+
+  if (question.type === "RATING_SCALE") {
+    return "1, 2, 3, 4, 5";
+  }
+
+  if (question.type === "YES_NO") {
+    return "Yes / No";
+  }
+
+  if (question.options.length > 0) {
+    return question.options.join(" | ");
+  }
+
+  return "Response options will appear here";
 }
 
 export default function CreateQuestionsAIStep({
+  defaultTitle,
+  defaultDescription,
   onBack,
   onNext,
 }: CreateQuestionsAIStepProps) {
-  const [surveyTitle, setSurveyTitle] = useState("Customer Satisfaction Survey");
+  const storedAiDraft = getStoredAiQuestionDraft();
+  const creatorId = getStoredCreatorId();
+  const surveyId = getStoredDraftId();
+  const [surveyTitle, setSurveyTitle] = useState(
+    storedAiDraft?.surveyTitle || defaultTitle
+  );
   const [description, setDescription] = useState(
-    "Generate questions to measure customer satisfaction with our online shopping experience, delivery quality, and support service."
+    storedAiDraft?.description || defaultDescription
   );
-  const [selectedFocus, setSelectedFocus] = useState<string[]>([
-    "Customer Experience",
-    "Delivery",
-    "Support",
-    "Product Quality",
-  ]);
-  const [questionCount, setQuestionCount] = useState("10");
-  const [answerStyle, setAnswerStyle] = useState("Multiple Choice");
-  const [tone, setTone] = useState("Professional & Friendly");
-  const [instructions, setInstructions] = useState(
-    "Include a mix of rating-scale and multiple-choice questions."
+  const [questionCount, setQuestionCount] = useState(
+    String(storedAiDraft?.maxNumberOfQuestions ?? defaultQuestionCount)
   );
-  const [questions] = useState<GeneratedQuestion[]>(initialQuestions);
+  const [questions, setQuestions] = useState<GenerateAiQuestionItem[]>(
+    storedAiDraft?.questions ?? []
+  );
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isContinuing, setIsContinuing] = useState(false);
 
-  const toggleFocus = (option: string) => {
-    setSelectedFocus((current) =>
-      current.includes(option)
-        ? current.filter((item) => item !== option)
-        : [...current, option]
-    );
+  const persistCurrentDraft = () => {
+    const parsedQuestionCount = Number(questionCount);
+
+    persistAiQuestionDraft({
+      surveyTitle: surveyTitle.trim(),
+      description: description.trim(),
+      maxNumberOfQuestions: Number.isFinite(parsedQuestionCount)
+        ? parsedQuestionCount
+        : defaultQuestionCount,
+      questions,
+    });
+  };
+
+  const handleGenerateQuestions = async () => {
+    if (!surveyId) {
+      toaster.create({
+        type: "error",
+        title: "Survey draft not found",
+        description: "Please save the survey basics first and try again.",
+      });
+      return;
+    }
+
+    const trimmedTitle = surveyTitle.trim();
+    const trimmedDescription = description.trim();
+    const parsedQuestionCount = Number(questionCount);
+
+    if (!trimmedTitle) {
+      toaster.create({
+        type: "error",
+        title: "Survey title is required",
+        description: "Add a title so AI can generate relevant questions.",
+      });
+      return;
+    }
+
+    if (!trimmedDescription) {
+      toaster.create({
+        type: "error",
+        title: "Description is required",
+        description: "Add a short description to guide the AI generation.",
+      });
+      return;
+    }
+
+    if (
+      !Number.isInteger(parsedQuestionCount) ||
+      parsedQuestionCount < 1 ||
+      parsedQuestionCount > 50
+    ) {
+      toaster.create({
+        type: "error",
+        title: "Invalid question count",
+        description: "Choose a question count between 1 and 50.",
+      });
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+
+      const response = await generateAiQuestions({
+        surveyId,
+        title: trimmedTitle,
+        description: trimmedDescription,
+        maxNumberOfQuestions: parsedQuestionCount,
+      });
+
+      const nextQuestions = [...response.questions].sort(
+        (left, right) => left.order - right.order
+      );
+
+      setSurveyTitle(response.surveyTitle || trimmedTitle);
+      setQuestions(nextQuestions);
+
+      persistAiQuestionDraft({
+        surveyTitle: response.surveyTitle || trimmedTitle,
+        description: trimmedDescription,
+        maxNumberOfQuestions: parsedQuestionCount,
+        questions: nextQuestions,
+      });
+
+      toaster.create({
+        type: "success",
+        title: "AI questions generated",
+        description: response.message,
+      });
+    } catch (error) {
+      toaster.create({
+        type: "error",
+        title: "Could not generate questions",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again in a moment.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveDraft = () => {
+    persistCurrentDraft();
+
+    toaster.create({
+      type: "success",
+      title: "Draft saved locally",
+      description: "Your AI question draft is ready when you come back.",
+    });
+  };
+
+  const handleContinue = async () => {
+    if (!surveyId || !creatorId) {
+      toaster.create({
+        type: "error",
+        title: "Survey draft not ready",
+        description: "Please log in again and reopen this survey draft.",
+      });
+      return;
+    }
+
+    if (questions.length === 0) {
+      toaster.create({
+        type: "error",
+        title: "Generate questions first",
+        description: "Create at least one AI question before continuing.",
+      });
+      return;
+    }
+
+    try {
+      setIsContinuing(true);
+      persistCurrentDraft();
+
+      const response = await completeQuestionStep(creatorId, surveyId);
+      updateStoredDraftStep(surveyId, response.survey.currentStep);
+
+      onNext();
+    } catch (error) {
+      toaster.create({
+        type: "error",
+        title: "Could not continue",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again in a moment.",
+      });
+    } finally {
+      setIsContinuing(false);
+    }
   };
 
   return (
-    <Box>
-      <Box
-        bg="brand.lightBlue"
-        borderWidth="1px"
-        borderColor="#D7E3FF"
-        borderRadius="12px"
-        px="5"
-        py="4"
-        mb="5"
-      >
-        <HStack gap="3" align="start">
-          <Box color="brand.primary" pt="1">
-            <FiZap />
+    <VStack align="stretch" gap="6">
+      <DashboardCard>
+        <VStack align="stretch" gap="5">
+          <Box>
+            <Text fontSize="xl" fontWeight="bold" color="brand.dark">
+              Generate Questions with AI
+            </Text>
+            <Text mt="1" color="brand.mutedText">
+              We&apos;ll use your survey details to generate a first draft of
+              questions you can review and refine.
+            </Text>
           </Box>
 
-          <Text fontSize="sm" color="brand.mutedText">
-            Describe the survey you want to create, and AI will generate a first
-            draft of questions and answer choices. You can review and edit
-            everything before submitting.
-          </Text>
-        </HStack>
-      </Box>
-
-      <DashboardCard p="0">
-        <Box p={{ base: "5", lg: "6" }}>
-          <VStack align="stretch" gap="5">
+          <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap="5">
             <Box>
-              <HStack gap="2" mb="1">
-                <Box color="brand.primary">
-                  <FiZap />
-                </Box>
-                <Text fontSize="xl" fontWeight="bold" color="brand.dark">
-                  AI Question Generator
-                </Text>
-              </HStack>
-
-              <Text fontSize="sm" color="brand.mutedText">
-                Provide a few details so AI can draft relevant survey questions
-                and answer options.
+              <Text mb="2" fontSize="sm" fontWeight="semibold" color="brand.dark">
+                Survey Title
               </Text>
-            </Box>
-
-            <Grid templateColumns={{ base: "1fr", lg: "1fr 1.35fr" }} gap="4">
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
-                  Survey Title
-                </Text>
-
-                <Input
-                  value={surveyTitle}
-                  onChange={(event) => setSurveyTitle(event.target.value)}
-                  h="46px"
-                  borderColor="brand.border"
-                  px="4"
-                  _focus={{
-                    borderColor: "brand.primary",
-                    boxShadow: "0 0 0 1px #0015D6",
-                  }}
-                />
-              </Box>
-
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
-                  Survey Goal / Description
-                </Text>
-
-                <Textarea
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  minH="78px"
-                  resize="none"
-                  borderColor="brand.border"
-                  px="4"
-                  py="3"
-                  _focus={{
-                    borderColor: "brand.primary",
-                    boxShadow: "0 0 0 1px #0015D6",
-                  }}
-                />
-              </Box>
-            </Grid>
-
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
-                What should the AI focus on?{" "}
-                <Text as="span" color="brand.mutedText" fontWeight="normal">
-                  Select all that apply
-                </Text>
-              </Text>
-
-              <HStack gap="3" flexWrap="wrap">
-                {focusOptions.map((option) => {
-                  const selected = selectedFocus.includes(option);
-
-                  return (
-                    <Button
-                      key={option}
-                      size="sm"
-                      variant="outline"
-                      borderRadius="999px"
-                      bg={selected ? "#EEF2FF" : "white"}
-                      borderColor={selected ? "#C7D2FE" : "brand.border"}
-                      color={selected ? "brand.primary" : "brand.mutedText"}
-                      onClick={() => toggleFocus(option)}
-                    >
-                      {selected && <FiZap />}
-                      {option}
-                    </Button>
-                  );
-                })}
-              </HStack>
-            </Box>
-
-            <Grid templateColumns={{ base: "1fr", lg: "0.8fr 0.8fr 1.1fr" }} gap="4">
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
-                  Number of Questions
-                </Text>
-
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={questionCount}
-                    onChange={(event) => setQuestionCount(event.target.value)}
-                    h="46px"
-                    borderColor="brand.border"
-                  >
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="15">15</option>
-                    <option value="20">20</option>
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator />
-                </NativeSelect.Root>
-              </Box>
-
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
-                  Preferred Answer Style
-                </Text>
-
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={answerStyle}
-                    onChange={(event) => setAnswerStyle(event.target.value)}
-                    h="46px"
-                    borderColor="brand.border"
-                  >
-                    <option value="Multiple Choice">Multiple Choice</option>
-                    <option value="Rating Scale">Rating Scale</option>
-                    <option value="Short Answer">Short Answer</option>
-                    <option value="Mixed">Mixed</option>
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator />
-                </NativeSelect.Root>
-              </Box>
-
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
-                  Tone / Style
-                </Text>
-
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={tone}
-                    onChange={(event) => setTone(event.target.value)}
-                    h="46px"
-                    borderColor="brand.border"
-                  >
-                    <option value="Professional & Friendly">
-                      Professional & Friendly
-                    </option>
-                    <option value="Formal">Formal</option>
-                    <option value="Simple & Clear">Simple & Clear</option>
-                    <option value="Friendly">Friendly</option>
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator />
-                </NativeSelect.Root>
-              </Box>
-            </Grid>
-
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
-                Additional Instructions{" "}
-                <Text as="span" color="brand.mutedText" fontWeight="normal">
-                  Optional
-                </Text>
-              </Text>
-
               <Input
-                value={instructions}
-                onChange={(event) => setInstructions(event.target.value)}
-                h="46px"
-                borderColor="brand.border"
-                px="4"
-                _focus={{
-                  borderColor: "brand.primary",
-                  boxShadow: "0 0 0 1px #0015D6",
-                }}
+                value={surveyTitle}
+                onChange={(event) => setSurveyTitle(event.target.value)}
+                placeholder="Customer Satisfaction Survey"
+                borderColor="#D9E2F2"
+                bg="white"
               />
             </Box>
 
-            <Grid templateColumns={{ base: "1fr", lg: "1fr 0.52fr" }} gap="4">
-              <Button h="46px" color="white">
-                <FiZap />
-                Generate Questions with AI
-              </Button>
-
-              <Button h="46px" variant="outline">
-                <FiFileText />
-                Save as Draft
-              </Button>
-            </Grid>
-          </VStack>
-        </Box>
-      </DashboardCard>
-
-      <DashboardCard mt="5" p="0" overflow="hidden">
-        <Box px={{ base: "5", lg: "6" }} py="4">
-          <HStack justify="space-between" flexWrap="wrap" gap="3">
             <Box>
-              <Text fontSize="xl" fontWeight="bold" color="brand.dark">
-                Generated Questions
+              <Text mb="2" fontSize="sm" fontWeight="semibold" color="brand.dark">
+                Max Number of Questions
               </Text>
-
-              <Text fontSize="sm" color="brand.mutedText">
-                Review, edit, reorder, or remove any question before continuing.
-              </Text>
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                value={questionCount}
+                onChange={(event) => setQuestionCount(event.target.value)}
+                borderColor="#D9E2F2"
+                bg="white"
+              />
             </Box>
+          </Grid>
 
-            <Box
-              px="4"
-              py="2"
-              borderRadius="999px"
-              bg="#E7FBEF"
-              color="#087A35"
-              fontSize="sm"
-              fontWeight="bold"
+          <Box>
+            <Text mb="2" fontSize="sm" fontWeight="semibold" color="brand.dark">
+              Survey Description
+            </Text>
+            <Textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="Describe the purpose of this survey and what you want to learn."
+              minH="140px"
+              resize="vertical"
+              borderColor="#D9E2F2"
+              bg="white"
+            />
+          </Box>
+
+          <HStack justify="space-between" flexWrap="wrap" gap="3">
+            <Text fontSize="sm" color="brand.mutedText">
+              Generated questions: {questions.length}
+            </Text>
+
+            <Button
+              bg="brand.primary"
+              color="white"
+              _hover={{ bg: "brand.primary" }}
+              loading={isGenerating}
+              onClick={handleGenerateQuestions}
             >
-              AI Draft Ready
-            </Box>
+              <FiRefreshCw />
+              Generate Questions with AI
+            </Button>
           </HStack>
-        </Box>
-
-        <Box borderTopWidth="1px" borderColor="brand.border">
-          {questions.map((question) => (
-            <QuestionRow key={question.id} question={question} />
-          ))}
-        </Box>
-
-        <Grid
-          templateColumns={{ base: "1fr", lg: "1fr 1fr 1fr" }}
-          gap="4"
-          p={{ base: "5", lg: "4" }}
-        >
-          <Button variant="outline">
-            <FiPlus />
-            Add New Question
-          </Button>
-
-          <Button variant="outline">
-            <FiRefreshCw />
-            Regenerate Draft
-          </Button>
-
-          <Button variant="outline">
-            <FiEdit2 />
-            Edit AI Prompt
-          </Button>
-        </Grid>
+        </VStack>
       </DashboardCard>
 
-      <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr 1fr" }} gap="4" mt="5">
-        <Button h="46px" variant="outline" justifyContent="center" onClick={onBack}>
+      <DashboardCard>
+        <VStack align="stretch" gap="4">
+          <HStack justify="space-between" align="start" gap="4">
+            <Box>
+              <Text fontSize="lg" fontWeight="bold" color="brand.dark">
+                AI Question Draft
+              </Text>
+              <Text fontSize="sm" color="brand.mutedText" mt="1">
+                Review the generated questions before moving to target audience.
+              </Text>
+            </Box>
+
+            <Badge
+              borderRadius="full"
+              px="3"
+              py="1"
+              bg="#EEF2FF"
+              color="brand.primary"
+            >
+              {questions.length} Questions
+            </Badge>
+          </HStack>
+
+          {questions.length === 0 ? (
+            <Box
+              borderWidth="1px"
+              borderStyle="dashed"
+              borderColor="#D9E2F2"
+              borderRadius="16px"
+              px="6"
+              py="10"
+              textAlign="center"
+            >
+              <Text fontWeight="semibold" color="brand.dark">
+                No AI questions yet
+              </Text>
+              <Text mt="2" color="brand.mutedText">
+                Generate a draft to see suggested questions here.
+              </Text>
+            </Box>
+          ) : (
+            <VStack align="stretch" gap="4">
+              {questions.map((question) => (
+                <Box
+                  key={question.id}
+                  borderWidth="1px"
+                  borderColor="#E7EEF7"
+                  borderRadius="16px"
+                  px="5"
+                  py="4"
+                  bg="#FCFDFE"
+                >
+                  <HStack justify="space-between" align="start" gap="4">
+                    <Box>
+                      <Text fontSize="sm" color="brand.mutedText">
+                        Question {question.order}
+                      </Text>
+                      <Text mt="1" fontWeight="semibold" color="brand.dark">
+                        {question.questionText}
+                      </Text>
+                    </Box>
+
+                    <VStack align="end" gap="2">
+                      <Badge bg="#F3F4F6" color="#374151" borderRadius="full" px="3">
+                        {questionTypeLabels[question.type]}
+                      </Badge>
+                      <Badge
+                        bg={question.isRequired ? "#E6F7EC" : "#F9FAFB"}
+                        color={question.isRequired ? "#166534" : "#6B7280"}
+                        borderRadius="full"
+                        px="3"
+                      >
+                        {question.isRequired ? "Required" : "Optional"}
+                      </Badge>
+                    </VStack>
+                  </HStack>
+
+                  <Box mt="4" bg="white" borderRadius="12px" px="4" py="3">
+                    <Text fontSize="sm" color="brand.mutedText">
+                      {toQuestionPreview(question)}
+                    </Text>
+                  </Box>
+                </Box>
+              ))}
+            </VStack>
+          )}
+        </VStack>
+      </DashboardCard>
+
+      <HStack justify="space-between" flexWrap="wrap" gap="3">
+        <Button
+          variant="outline"
+          borderColor="#D9E2F2"
+          color="brand.dark"
+          onClick={onBack}
+        >
           <FiArrowLeft />
-          Back to Select Method
+          Back
         </Button>
 
-        <Button h="46px" variant="outline" justifyContent="center">
-          <FiFileText />
-          Save as Draft
-        </Button>
+        <HStack gap="3" flexWrap="wrap">
+          <Button
+            variant="outline"
+            borderColor="#D9E2F2"
+            color="brand.dark"
+            onClick={handleSaveDraft}
+          >
+            <FiSave />
+            Save as Draft
+          </Button>
 
-        <Button h="46px" color="white" justifyContent="center" onClick={onNext}>
-          Continue
-          <FiArrowRight />
-        </Button>
-      </Grid>
-    </Box>
+          <Button
+            bg="brand.primary"
+            color="white"
+            _hover={{ bg: "brand.primary" }}
+            loading={isContinuing}
+            onClick={handleContinue}
+          >
+            Continue to Target Audience
+            <FiArrowRight />
+          </Button>
+        </HStack>
+      </HStack>
+    </VStack>
   );
 }
