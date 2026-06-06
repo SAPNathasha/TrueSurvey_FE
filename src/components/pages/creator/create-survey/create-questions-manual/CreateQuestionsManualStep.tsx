@@ -49,12 +49,14 @@ type QuestionType = "multiple-choice" | "single-choice" | "short-answer" | "rati
 type ManualQuestion = {
   id: string;
   savedQuestionId?: string | null;
+  replacesSavedQuestionId?: string | null;
   questionText: string;
   questionType: QuestionType;
   options: string[];
   required: boolean;
   isSaved: boolean;
   hasChanges: boolean;
+  source?: string | null;
 };
 
 type CreateQuestionsManualStepProps = {
@@ -125,6 +127,11 @@ function getStoredManualQuestions(surveyId: string | null) {
             ? question.id
             : crypto.randomUUID(),
         savedQuestionId: inferredSavedQuestionId,
+        replacesSavedQuestionId:
+          typeof question.replacesSavedQuestionId === "string" &&
+          question.replacesSavedQuestionId
+            ? question.replacesSavedQuestionId
+            : null,
         questionText:
           typeof question.questionText === "string" ? question.questionText : "",
         questionType:
@@ -141,6 +148,7 @@ function getStoredManualQuestions(surveyId: string | null) {
         required: Boolean(question.required),
         isSaved,
         hasChanges: Boolean(question.hasChanges) && !isSaved ? true : Boolean(question.hasChanges),
+        source: typeof question.source === "string" ? question.source : null,
       } satisfies ManualQuestion;
     });
   } catch {
@@ -157,6 +165,15 @@ function persistManualQuestions(surveyId: string | null, questions: ManualQuesti
     `${manualQuestionsStoragePrefix}:${surveyId}`,
     JSON.stringify(questions)
   );
+}
+
+function currentStoredQuestionIds(questions: ManualQuestion[]) {
+  return questions
+    .map((question) => question.replacesSavedQuestionId)
+    .filter(
+      (questionId): questionId is string =>
+        typeof questionId === "string" && questionId.length > 0
+    );
 }
 
 function updateStoredDraftStep(surveyId: string, currentStep: string) {
@@ -225,13 +242,19 @@ function toManualQuestion(question: SurveyQuestion): ManualQuestion {
   return {
     id: `saved-${question.id}`,
     savedQuestionId: question.id,
+    replacesSavedQuestionId: null,
     questionText: question.questionText,
     questionType: toManualQuestionType(question.type),
     options: question.options.map((option) => option.optionText),
     required: question.isRequired,
     isSaved: true,
     hasChanges: false,
+    source: question.source,
   };
+}
+
+function isAiGeneratedQuestion(question: ManualQuestion) {
+  return question.source === "AI_GENERATED";
 }
 
 function validateQuestion(question: ManualQuestion) {
@@ -626,15 +649,22 @@ export default function CreateQuestionsManualStep({
           return;
         }
 
-        const savedQuestions = response.questions.map(toManualQuestion);
-
         setQuestions((currentQuestions) => {
+          const nextReplacedSavedQuestionIds = new Set(
+            currentStoredQuestionIds(currentQuestions)
+          );
+          const filteredSavedQuestions = response.questions
+            .map(toManualQuestion)
+            .filter(
+              (question) =>
+                !nextReplacedSavedQuestionIds.has(question.savedQuestionId ?? "")
+            );
           const unsavedQuestions = currentQuestions.filter(
             (question) => !question.isSaved && !question.savedQuestionId
           );
           const nextQuestions =
-            savedQuestions.length > 0
-              ? [...savedQuestions, ...unsavedQuestions]
+            filteredSavedQuestions.length > 0
+              ? [...filteredSavedQuestions, ...unsavedQuestions]
               : unsavedQuestions.length > 0
                 ? unsavedQuestions
                 : initialQuestions;
@@ -667,15 +697,23 @@ export default function CreateQuestionsManualStep({
     };
   }, [creatorId, surveyId]);
 
-  const updateQuestion = (
-    questionId: string,
-    changes: Partial<ManualQuestion>
-  ) => {
+  const updateQuestion = (questionId: string, changes: Partial<ManualQuestion>) => {
     setQuestions((currentQuestions) => {
       const nextQuestions = currentQuestions.map((question) =>
         question.id === questionId
           ? question.isSaved
-            ? { ...question, ...changes, hasChanges: true }
+            ? isAiGeneratedQuestion(question)
+              ? {
+                  ...question,
+                  ...changes,
+                  id: crypto.randomUUID(),
+                  replacesSavedQuestionId: question.savedQuestionId ?? null,
+                  savedQuestionId: null,
+                  isSaved: false,
+                  hasChanges: true,
+                  source: "MANUAL",
+                }
+              : { ...question, ...changes, hasChanges: true }
             : {
                 ...question,
                 ...changes,
@@ -704,9 +742,11 @@ export default function CreateQuestionsManualStep({
           ...questionToDuplicate,
           id: crypto.randomUUID(),
           savedQuestionId: null,
+          replacesSavedQuestionId: null,
           questionText: `${questionToDuplicate.questionText} Copy`,
           isSaved: false,
           hasChanges: true,
+          source: "MANUAL",
         },
       ];
       persistManualQuestions(surveyId, nextQuestions);
@@ -721,7 +761,20 @@ export default function CreateQuestionsManualStep({
       return;
     }
 
-    if (!question.isSaved) {
+    if (!creatorId) {
+      toaster.create({
+        type: "error",
+        title: "Creator not found",
+        description: "Please log in again to continue editing your survey.",
+      });
+      return;
+    }
+
+    if (!surveyId) {
+      return;
+    }
+
+    if (!question.isSaved && !question.replacesSavedQuestionId) {
       setQuestions((currentQuestions) => {
         const nextQuestions = currentQuestions.filter(
           (currentQuestion) => currentQuestion.id !== questionId
@@ -732,16 +785,9 @@ export default function CreateQuestionsManualStep({
       return;
     }
 
-    if (!creatorId) {
-      toaster.create({
-        type: "error",
-        title: "Creator not found",
-        description: "Please log in again to continue editing your survey.",
-      });
-      return;
-    }
+    const deleteQuestionId = question.savedQuestionId ?? question.replacesSavedQuestionId;
 
-    if (!surveyId || !question.savedQuestionId) {
+    if (!deleteQuestionId) {
       toaster.create({
         type: "error",
         title: "Question could not be deleted",
@@ -755,7 +801,7 @@ export default function CreateQuestionsManualStep({
       const response = await deleteSurveyQuestion(
         creatorId,
         surveyId,
-        question.savedQuestionId
+        deleteQuestionId
       );
 
       setQuestions((currentQuestions) => {
@@ -863,12 +909,14 @@ export default function CreateQuestionsManualStep({
       const nextQuestion: ManualQuestion = {
         id: crypto.randomUUID(),
         savedQuestionId: null,
+        replacesSavedQuestionId: null,
         questionText: "",
         questionType: "multiple-choice",
         options: ["", ""],
         required: true,
         isSaved: false,
         hasChanges: true,
+        source: "MANUAL",
       };
 
       const nextQuestions: ManualQuestion[] = [
@@ -980,6 +1028,14 @@ export default function CreateQuestionsManualStep({
 
         const response = await createManualQuestion(payload);
         savedQuestionIds.set(question.id, response.question.id);
+
+        if (question.replacesSavedQuestionId) {
+          await deleteSurveyQuestion(
+            creatorId,
+            surveyId,
+            question.replacesSavedQuestionId
+          );
+        }
       }
 
       for (const question of changedSavedQuestions) {
@@ -1081,7 +1137,7 @@ export default function CreateQuestionsManualStep({
         </HStack>
       </Box>
 
-      <DashboardCard p="0" overflow="hidden" >
+      {/* <DashboardCard p="0" overflow="hidden" >
         <Box h="5px" bg="brand.primary" />
 
         <Box p={{ base: "5", lg: "7" }}>
@@ -1129,7 +1185,7 @@ export default function CreateQuestionsManualStep({
             </Box>
           </VStack>
         </Box>
-      </DashboardCard>
+      </DashboardCard> */}
 
       <VStack align="stretch" gap="5">
         {questions.map((question, index) => (

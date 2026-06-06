@@ -16,7 +16,6 @@ import BasicDetailsRightPanel from "./basic-details/CreateSurveyRightPanel";
 import SelectMethodStep from "./select-method/SelectMethodStep";
 import SelectMethodRightPanel from "./select-method/SelectMethodRightPanel";
 
-import CreateQuestionsAIStep from "./create-questions-ai/CreateQuestionsAIStep";
 import CreateQuestionsAIRightPanel from "./create-questions-ai/CreateQuestionsAIRightPanel";
 
 import CreateQuestionsManualStep from "./create-questions-manual/CreateQuestionsManualStep";
@@ -317,9 +316,7 @@ export default function CreateSurvey({
 
     if (currentStep === 3 && selectedMethod === "ai") {
       return (
-        <CreateQuestionsAIStep
-          defaultTitle={basicDetails.surveyTitle}
-          defaultDescription={basicDetails.description}
+        <CreateQuestionsManualStep
           onBack={() => goToStep(2)}
           onNext={() => goToStep(4)}
         />
