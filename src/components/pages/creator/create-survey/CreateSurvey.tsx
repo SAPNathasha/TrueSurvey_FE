@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, Flex, Grid } from "@chakra-ui/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Sidebar from "@/components/pages/creator/dashboard/Sidebar";
 import CreateSurveyStepper from "./shared/CreateSurveyStepper";
@@ -103,10 +103,26 @@ function getStoredWizardStep() {
   return parsedStep;
 }
 
-export default function CreateSurvey() {
+type CreateSurveyProps = {
+  resumeDraft?: boolean;
+};
+
+function clearStoredDraftState() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem("creatorSurveyDraftId");
+  window.localStorage.removeItem("creatorSurveyDraft");
+  window.localStorage.removeItem(creatorWizardStepKey);
+}
+
+export default function CreateSurvey({
+  resumeDraft = false,
+}: CreateSurveyProps) {
   const creatorId = getStoredCreatorId();
-  const initialDraft = getStoredDraft();
-  const storedWizardStep = getStoredWizardStep();
+  const initialDraft = resumeDraft ? getStoredDraft() : null;
+  const storedWizardStep = resumeDraft ? getStoredWizardStep() : null;
   const [currentStep, setCurrentStep] = useState(() =>
     Math.max(
       getStepFromSurveyCreationStep(initialDraft?.currentStep),
@@ -137,6 +153,12 @@ export default function CreateSurvey() {
     initialDraft?.id || null
   );
   const [isSavingMethod, setIsSavingMethod] = useState(false);
+
+  useEffect(() => {
+    if (!resumeDraft) {
+      clearStoredDraftState();
+    }
+  }, [resumeDraft]);
 
   const goToStep = (step: number) => {
     setCurrentStep(step);

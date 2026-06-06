@@ -268,7 +268,7 @@ export default function CreatorSurveySubmissionsPage({
 
       updateSubmissionRowStatus(
         row.submissionId,
-        response.submission.rewardStatus,
+        action === "accept" ? RewardStatus.RELEASED : RewardStatus.REJECTED,
       );
 
       setSelectedSubmission((current) =>
@@ -547,25 +547,21 @@ export default function CreatorSurveySubmissionsPage({
                                 <FiX />
                                 Reject
                               </Button>
-
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                h="34px"
-                                disabled={Boolean(submissionActionState)}
-                                onClick={() => {
-                                  void handleViewSubmission(row.submissionId);
-                                }}
-                              >
-                                <FiEye />
-                                View Submission
-                              </Button>
                             </>
-                          ) : (
-                            <Text fontSize="sm" color="brand.mutedText">
-                              No actions
-                            </Text>
-                          )}
+                          ) : null}
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            h="34px"
+                            disabled={Boolean(submissionActionState)}
+                            onClick={() => {
+                              void handleViewSubmission(row.submissionId);
+                            }}
+                          >
+                            <FiEye />
+                            View Submission
+                          </Button>
                         </HStack>
                       </Grid>
                     );

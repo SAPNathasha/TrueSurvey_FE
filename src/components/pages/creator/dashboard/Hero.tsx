@@ -33,7 +33,7 @@ export default function Hero() {
 
           <HStack mt="6" gap="3" flexWrap="wrap">
             <Button asChild py={5} px={3} color={"white"}>
-              <NextLink href="/creator/surveys/create">
+              <NextLink href="/creator/create-survey">
                 <FiPlus color="white"/>
                 Create New Survey
               </NextLink>

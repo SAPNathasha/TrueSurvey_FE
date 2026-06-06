@@ -24,7 +24,7 @@ export const menuItems: MenuItem[] = [
   { label: "Dashboard", href: "/creator/dashboard", icon: FiGrid },
   {
     label: "Create Survey",
-    href: "/creator/surveys/create",
+    href: "/creator/create-survey",
     icon: FiPlusCircle,
   },
   { label: "My Surveys", href: "/creator/surveys", icon: FiFileText },

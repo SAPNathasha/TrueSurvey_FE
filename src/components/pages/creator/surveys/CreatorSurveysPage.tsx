@@ -281,7 +281,7 @@ export default function CreatorSurveysPage() {
                 </Box>
 
                 <Button asChild color="white" h="44px" px="5">
-                  <NextLink href="/creator/surveys/create">
+                  <NextLink href="/creator/create-survey">
                     <FiPlusCircle />
                     Create Survey
                   </NextLink>

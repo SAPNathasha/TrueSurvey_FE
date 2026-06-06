@@ -141,7 +141,7 @@ export default function RightPanel() {
           <QuickAction
             icon={FiPlusCircle}
             label="Create Survey"
-            href="/creator/surveys/create"
+            href="/creator/create-survey"
           />
 
           <QuickAction
