@@ -1,44 +1,18 @@
 import {
   FiAward,
   FiBarChart2,
-  FiBell,
   FiClipboard,
   FiDownload,
   FiFileText,
-  FiGrid,
-  FiPlusCircle,
-  FiSettings,
   FiTrendingUp,
-  FiUser,
   FiUsers,
 } from "react-icons/fi";
 
 import type {
-  MenuItem,
   NotificationItem,
   ProgressItem,
   Survey,
 } from "./dashboardTypes";
-
-export const menuItems: MenuItem[] = [
-  { label: "Dashboard", href: "/creator/dashboard", icon: FiGrid },
-  {
-    label: "Create Survey",
-    href: "/creator/create-survey",
-    icon: FiPlusCircle,
-  },
-  { label: "My Surveys", href: "/creator/surveys", icon: FiFileText },
-  { label: "Analytics", href: "/creator/analytics", icon: FiBarChart2 },
-  { label: "Responses", href: "/creator/responses", icon: FiUsers },
-  {
-    label: "Notifications",
-    href: "/creator/notifications",
-    icon: FiBell,
-    badge: 3,
-  },
-  { label: "Profile", href: "/creator/profile", icon: FiUser },
-  { label: "Settings", href: "/creator/settings", icon: FiSettings },
-];
 
 export const surveys: Survey[] = [
   {

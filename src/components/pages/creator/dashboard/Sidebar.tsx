@@ -3,20 +3,20 @@
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Badge,
   Box,
-  Button,
   HStack,
   Icon,
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { FiArrowRight } from "react-icons/fi";
 
-import { creatorPlanIcon, menuItems } from "./dashboardData";
-import type { MenuItem } from "./dashboardTypes";
+import { getSidebarMenuItems, type SidebarMenuItem } from "@/lib/sidebarMenu";
+import { getStoredUserRole } from "@/lib/userRole";
 
 export default function Sidebar() {
+  const userRole = getStoredUserRole();
+  const menuItems = getSidebarMenuItems("creator", userRole);
+
   return (
     <Box
       w={{ base: "82px", lg: "270px" }}
@@ -39,7 +39,7 @@ export default function Sidebar() {
 
       <Box flex="1" />
 
-      <Box
+      {/* <Box
         display={{ base: "none", lg: "block" }}
         bg="white"
         borderWidth="1px"
@@ -64,9 +64,9 @@ export default function Sidebar() {
         <Button variant="ghost" size="sm" mt="2">
           View Creator Stats <FiArrowRight />
         </Button>
-      </Box>
+      </Box> */}
 
-      <Box
+      {/* <Box
         display={{ base: "none", lg: "block" }}
         bg="white"
         borderWidth="1px"
@@ -110,13 +110,17 @@ export default function Sidebar() {
         <Button variant="ghost" w="full" mt="5">
           Upgrade Plan
         </Button>
-      </Box>
+      </Box> */}
     </Box>
   );
 }
 
-function SidebarItem({ item }: { item: MenuItem }) {
+function SidebarItem({ item }: { item: SidebarMenuItem }) {
   const pathname = usePathname();
+
+  if (!item.href) {
+    return null;
+  }
 
   const active =
     pathname === item.href ||

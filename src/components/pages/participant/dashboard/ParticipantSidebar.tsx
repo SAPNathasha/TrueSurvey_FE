@@ -14,6 +14,7 @@ import {
   DialogRoot,
   DialogTitle,
   HStack,
+  Icon,
   Text,
   VStack,
 } from "@chakra-ui/react";
@@ -21,17 +22,10 @@ import { useState } from "react";
 import { logoutUser } from "@/services/authService";
 import { clearStoredAccessToken } from "@/lib/axios";
 import { getStoredParticipantId } from "@/lib/participantIdentity";
+import { getSidebarMenuItems, type SidebarMenuItem } from "@/lib/sidebarMenu";
+import { getStoredUserRole } from "@/lib/userRole";
 import {
-  FiBell,
-  FiClipboard,
-  FiGrid,
-  FiHelpCircle,
-  FiList,
-  FiLogOut,
-  FiSearch,
-  FiSettings,
   FiShield,
-  FiUser,
 } from "react-icons/fi";
 
 type ParticipantSidebarProps = {
@@ -40,58 +34,15 @@ type ParticipantSidebarProps = {
 
 const PARTICIPANT_VERIFICATION_STATUS_KEY = "participantVerificationStatus";
 
-type SidebarItem = {
+export type SidebarItem = {
+  id: string;
   label: string;
-  icon: React.ReactNode;
-  badge?: string;
+  icon: SidebarMenuItem["icon"];
+  badge?: string | number;
   statusBadge?: string;
   href?: string;
   onClick?: () => void;
 };
-
-const sidebarItems: SidebarItem[] = [
-  {
-    label: "Dashboard",
-    icon: <FiGrid />,
-    href: "/participant/dashboard",
-  },
-  {
-    label: "Available Surveys",
-    icon: <FiSearch />,
-    href: "/participant/available-surveys",
-  },
-  {
-    label: "My Surveys",
-    icon: <FiList />,
-  },
-  {
-    label: "Wallet",
-    icon: <FiUser />,
-    href: "/participant/wallet",
-  },
-  {
-    label: "Transactions",
-    icon: <FiClipboard />,
-    href: "/participant/earnings",
-  },
-  {
-    label: "Notifications",
-    icon: <FiBell />,
-  },
-  {
-    label: "Settings",
-    icon: <FiSettings />,
-    href: "/participant/settings",
-  },
-  {
-    label: "Help & Support",
-    icon: <FiHelpCircle />,
-  },
-  {
-    label: "Logout",
-    icon: <FiLogOut />,
-  },
-];
 
 function getStoredParticipantVerificationStatus() {
   if (typeof window === "undefined") {
@@ -168,7 +119,9 @@ function SidebarItemCard({
     >
       <HStack justify="space-between" align="center">
         <HStack gap="3">
-          <Box fontSize="20px">{item.icon}</Box>
+          <Box fontSize="20px">
+            <Icon as={item.icon} />
+          </Box>
           <Text fontSize="sm">{item.label}</Text>
         </HStack>
 
@@ -225,6 +178,8 @@ export default function ParticipantSidebar({
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const participantId = getStoredParticipantId();
+  const userRole = getStoredUserRole();
+  const sidebarItems = getSidebarMenuItems("participant", userRole);
   const verificationStatus = getStoredParticipantVerificationStatus();
   const shouldShowVerificationNotice = verificationStatus !== "VERIFIED";
 
@@ -265,10 +220,10 @@ export default function ParticipantSidebar({
       display={{ base: "none", lg: "block" }}
       flexShrink="0"
     >
-      <VStack align="stretch" gap="2">
-        {sidebarItems.map((item) => {
-                  const itemWithAction =
-            item.label === "Logout"
+        <VStack align="stretch" gap="2">
+          {sidebarItems.map((item) => {
+            const itemWithAction =
+              item.id === "participant-logout"
               ? { ...item, onClick: () => setLogoutDialogOpen(true) }
               : item;
 
@@ -278,7 +233,7 @@ export default function ParticipantSidebar({
 
           return (
             <SidebarItemCard
-              key={itemWithAction.label}
+              key={itemWithAction.id}
               item={itemWithAction}
               active={active}
             />
