@@ -41,6 +41,8 @@ import {
   verifyParticipantNic,
 } from "@/services/participantSettingsService";
 
+const PARTICIPANT_VERIFICATION_STATUS_KEY = "participantVerificationStatus";
+
 type SettingsTab =
   | "Profile"
   | "Verification"
@@ -1205,6 +1207,10 @@ export default function ParticipantSettingsPage() {
     getParticipantProfileSettings(participantId)
       .then((response) => {
         if (isMounted) {
+          window.localStorage.setItem(
+            PARTICIPANT_VERIFICATION_STATUS_KEY,
+            response.accountOverview.verificationStatus
+          );
           setData(response);
           setFormValues(createProfileFormValues(response.profile));
           setError("");

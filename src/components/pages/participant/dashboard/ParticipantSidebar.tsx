@@ -39,6 +39,8 @@ type ParticipantSidebarProps = {
   activeItem?: string;
 };
 
+const PARTICIPANT_VERIFICATION_STATUS_KEY = "participantVerificationStatus";
+
 type SidebarItem = {
   label: string;
   icon: React.ReactNode;
@@ -95,6 +97,50 @@ const sidebarItems: SidebarItem[] = [
     icon: <FiLogOut />,
   },
 ];
+
+function getStoredParticipantVerificationStatus() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const storedStatus = window.localStorage.getItem(
+    PARTICIPANT_VERIFICATION_STATUS_KEY
+  );
+
+  if (storedStatus === "VERIFIED" || storedStatus === "NOT_VERIFIED") {
+    return storedStatus;
+  }
+
+  const storedUser = window.localStorage.getItem("user");
+
+  if (!storedUser) {
+    return null;
+  }
+
+  try {
+    const parsedUser = JSON.parse(storedUser) as Record<string, unknown>;
+
+    if (parsedUser.verificationStatus === "VERIFIED") {
+      return "VERIFIED";
+    }
+
+    if (parsedUser.verificationStatus === "NOT_VERIFIED") {
+      return "NOT_VERIFIED";
+    }
+
+    if (parsedUser.isIdentityVerified === true) {
+      return "VERIFIED";
+    }
+
+    if (parsedUser.isIdentityVerified === false) {
+      return "NOT_VERIFIED";
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
 
 function SidebarItemCard({
   item,
@@ -184,6 +230,8 @@ export default function ParticipantSidebar({
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const participantId = getStoredParticipantId();
+  const verificationStatus = getStoredParticipantVerificationStatus();
+  const shouldShowVerificationNotice = verificationStatus !== "VERIFIED";
 
   async function handleLogoutConfirm() {
     if (!participantId) {
@@ -243,51 +291,54 @@ export default function ParticipantSidebar({
         })}
       </VStack>
 
-      <Box
-        mt="16"
-        borderWidth="1px"
-        borderColor="#C7D2FE"
-        borderRadius="16px"
-        p="5"
-        bg="brand.lightBlue"
-      >
+      {shouldShowVerificationNotice ? (
         <Box
-          w="52px"
-          h="52px"
-          borderRadius="14px"
-          bg="brand.primary"
-          color="white"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          fontSize="26px"
-          mb="4"
+          mt="16"
+          borderWidth="1px"
+          borderColor="#C7D2FE"
+          borderRadius="16px"
+          p="5"
+          bg="brand.lightBlue"
         >
-          <FiShield />
+          <Box
+            w="52px"
+            h="52px"
+            borderRadius="14px"
+            bg="brand.primary"
+            color="white"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            fontSize="26px"
+            mb="4"
+          >
+            <FiShield />
+          </Box>
+
+          <Text fontWeight="bold" color="brand.dark">
+            Unlock more surveys
+          </Text>
+
+          <Text fontSize="sm" color="brand.mutedText" mt="3">
+            Verify your identity to access high paying surveys.
+          </Text>
+
+          <Box
+            as="button"
+            w="100%"
+            h="44px"
+            mt="5"
+            borderRadius="10px"
+            bg="brand.primary"
+            color="white"
+            fontWeight="bold"
+            fontSize="sm"
+            onClick={() => router.push("/participant/settings")}
+          >
+            Verify Now
+          </Box>
         </Box>
-
-        <Text fontWeight="bold" color="brand.dark">
-          Unlock more surveys
-        </Text>
-
-        <Text fontSize="sm" color="brand.mutedText" mt="3">
-          Verify your identity to access high paying surveys.
-        </Text>
-
-        <Box
-          as="button"
-          w="100%"
-          h="44px"
-          mt="5"
-          borderRadius="10px"
-          bg="brand.primary"
-          color="white"
-          fontWeight="bold"
-          fontSize="sm"
-        >
-          Verify Now
-        </Box>
-      </Box>
+      ) : null}
 
       <DialogRoot
         open={logoutDialogOpen}

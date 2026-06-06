@@ -6,7 +6,7 @@ import type {
 } from "axios";
 
 const ACCESS_TOKEN_KEY = "accessToken";
-const REFRESH_ENDPOINT = "/refresh";
+const REFRESH_ENDPOINT = "/auth/refresh";
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
@@ -77,14 +77,39 @@ const api = axios.create({
   },
 });
 
+const refreshApi = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
 let refreshRequest: Promise<string> | null = null;
+
+function setAuthorizationHeader(
+  headers: InternalAxiosRequestConfig["headers"] | undefined,
+  accessToken: string
+) {
+  const authorizationHeader = `Bearer ${accessToken}`;
+
+  if (headers && typeof headers.set === "function") {
+    headers.set("Authorization", authorizationHeader);
+    return headers;
+  }
+
+  return {
+    ...(headers ?? {}),
+    Authorization: authorizationHeader,
+  } as AxiosRequestHeaders;
+}
 
 async function refreshAccessToken() {
   if (refreshRequest) {
     return refreshRequest;
   }
 
-  refreshRequest = api
+  refreshRequest = refreshApi
     .post(REFRESH_ENDPOINT)
     .then((response) => {
       const newAccessToken = extractAccessToken(response.data);
@@ -106,17 +131,8 @@ async function refreshAccessToken() {
 api.interceptors.request.use((config) => {
   const accessToken = getStoredAccessToken();
 
-  if (accessToken) {
-    const authorizationHeader = `Bearer ${accessToken}`;
-
-    if (config.headers && typeof config.headers.set === "function") {
-      config.headers.set("Authorization", authorizationHeader);
-    } else {
-      config.headers = {
-        ...(config.headers ?? {}),
-        Authorization: authorizationHeader,
-      } as AxiosRequestHeaders;
-    }
+  if (accessToken && !config.url?.includes(REFRESH_ENDPOINT)) {
+    config.headers = setAuthorizationHeader(config.headers, accessToken);
   }
 
   return config;
@@ -142,20 +158,10 @@ api.interceptors.response.use(
 
     try {
       const newAccessToken = await refreshAccessToken();
-      const authorizationHeader = `Bearer ${newAccessToken}`;
-
-      if (
-        originalRequest.headers &&
-        typeof originalRequest.headers.set === "function"
-      ) {
-        originalRequest.headers.set("Authorization", authorizationHeader);
-      } else {
-        originalRequest.headers = {
-          ...(originalRequest.headers ?? {}),
-          Authorization: authorizationHeader,
-        } as AxiosRequestHeaders;
-      }
-
+      originalRequest.headers = setAuthorizationHeader(
+        originalRequest.headers,
+        newAccessToken
+      );
       return api(originalRequest);
     } catch (refreshError) {
       clearStoredAccessToken();
