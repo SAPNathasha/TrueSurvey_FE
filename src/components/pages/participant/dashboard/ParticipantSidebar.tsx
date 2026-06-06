@@ -24,7 +24,6 @@ import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
   FiBell,
   FiClipboard,
-  FiCreditCard,
   FiGrid,
   FiHelpCircle,
   FiList,
@@ -66,11 +65,6 @@ const sidebarItems: SidebarItem[] = [
     icon: <FiList />,
   },
   {
-    label: "Earnings",
-    icon: <FiCreditCard />,
-    href: "/participant/earnings",
-  },
-  {
     label: "Wallet",
     icon: <FiUser />,
     href: "/participant/wallet",
@@ -78,6 +72,7 @@ const sidebarItems: SidebarItem[] = [
   {
     label: "Transactions",
     icon: <FiClipboard />,
+    href: "/participant/earnings",
   },
   {
     label: "Notifications",
