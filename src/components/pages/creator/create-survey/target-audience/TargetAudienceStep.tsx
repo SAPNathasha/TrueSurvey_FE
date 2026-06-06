@@ -9,7 +9,7 @@ import {
   NativeSelect,
   Text,
 } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiArrowRight,
@@ -26,8 +26,10 @@ import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
 import { toaster } from "@/components/ui/toaster";
 import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import {
+  getEstimatedAudienceReach,
   setTargetAudience,
   type AudienceGender,
+  type EstimateAudienceReachPayload,
   type SetTargetAudiencePayload,
   type SurveyAudienceType,
 } from "@/services/creatorSurveyService";
@@ -202,6 +204,7 @@ export default function TargetAudienceStep({
   const storedAudience = getStoredTargetAudience(surveyId);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingEstimatedReach, setIsCheckingEstimatedReach] = useState(false);
   const [formValues, setFormValues] = useState<TargetAudienceFormValues>(
     storedAudience
       ? {
@@ -257,7 +260,7 @@ export default function TargetAudienceStep({
     }));
   };
 
-  const buildPayload = (): SetTargetAudiencePayload | string => {
+  const buildTargetAudiencePayload = (): SetTargetAudiencePayload | string => {
     if (!creatorId) {
       return "Creator id was not found. Please log in again.";
     }
@@ -331,8 +334,71 @@ export default function TargetAudienceStep({
     return payload;
   };
 
+  const buildEstimatePayload = (): EstimateAudienceReachPayload | string => {
+    const payload = buildTargetAudiencePayload();
+
+    if (typeof payload === "string") {
+      return payload;
+    }
+
+    return {
+      ...payload,
+      userId: payload.creatorId,
+    };
+  };
+
+  const checkEstimatedReach = async (showErrorToast = true) => {
+    const payload = buildEstimatePayload();
+
+    if (typeof payload === "string") {
+      if (showErrorToast) {
+        toaster.create({
+          type: "error",
+          title: "Estimated audience unavailable",
+          description: payload,
+        });
+      }
+      return;
+    }
+
+    try {
+      setIsCheckingEstimatedReach(true);
+      const response = await getEstimatedAudienceReach(payload);
+      setServerEstimatedReach(response.estimatedReach);
+      persistTargetAudience(payload.surveyId, formValues, response.estimatedReach);
+    } catch (error) {
+      if (showErrorToast) {
+        toaster.create({
+          type: "error",
+          title: "Could not check estimated audience",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Please try again in a moment.",
+        });
+      }
+    } finally {
+      setIsCheckingEstimatedReach(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!creatorId || !surveyId) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void checkEstimatedReach(false);
+    }, 0);
+
+    // We only want this when the step is entered for the current draft.
+    // The manual button handles recalculation after field edits.
+    return () => window.clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [creatorId, surveyId]);
+
   const submitTargetAudience = async (advanceToNextStep: boolean) => {
-    const payload = buildPayload();
+    const payload = buildTargetAudiencePayload();
 
     if (typeof payload === "string") {
       toaster.create({
@@ -704,9 +770,24 @@ export default function TargetAudienceStep({
                 <FiTrendingUp />
               </Box>
 
-              <Text fontSize="sm" maxW="230px">
-                Based on your current audience filters
-              </Text>
+              <Box>
+                <Text fontSize="sm" maxW="230px">
+                  Based on your current audience filters
+                </Text>
+
+                <Button
+                  mt="3"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    void checkEstimatedReach(true);
+                  }}
+                  loading={isCheckingEstimatedReach}
+                  disabled={isSubmitting}
+                >
+                  Check Estimated Audience
+                </Button>
+              </Box>
             </HStack>
           </HStack>
         </Box>

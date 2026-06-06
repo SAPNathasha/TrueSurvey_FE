@@ -154,6 +154,35 @@ export type SetTargetAudienceResponse = {
   nextStep: "SAMPLE_BUDGET";
 };
 
+export type EstimateAudienceReachPayload = {
+  userId: string;
+  surveyId: string;
+  minimumAge?: number;
+  maximumAge?: number;
+  gender?: AudienceGender;
+  city?: string;
+  district?: string;
+  educationLevel?: string;
+  occupation?: string;
+  sampleBase: SurveyAudienceType;
+};
+
+export type EstimateAudienceReachResponse = {
+  surveyId: string;
+  estimatedReach: number;
+  targetAudience: {
+    minimumAge: number | null;
+    maximumAge: number | null;
+    gender: AudienceGender;
+    city: string | null;
+    district: string | null;
+    educationLevel: string | null;
+    occupation: string | null;
+    sampleBase: SurveyAudienceType;
+  };
+  calculatedAt: string;
+};
+
 export type SetSampleBudgetPayload = {
   creatorId: string;
   surveyId: string;
@@ -570,6 +599,33 @@ export async function setTargetAudience(
         educationLevel: payload.educationLevel,
         occupation: payload.occupation,
         sampleBase: payload.sampleBase,
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function getEstimatedAudienceReach(
+  payload: EstimateAudienceReachPayload
+) {
+  try {
+    const response = await api.get<EstimateAudienceReachResponse>(
+      `/surveys/${payload.surveyId}/estimated-reach`,
+      {
+        params: {
+          userId: payload.userId,
+          minimumAge: payload.minimumAge,
+          maximumAge: payload.maximumAge,
+          gender: payload.gender,
+          city: payload.city,
+          district: payload.district,
+          educationLevel: payload.educationLevel,
+          occupation: payload.occupation,
+          sampleBase: payload.sampleBase,
+        },
       }
     );
 
