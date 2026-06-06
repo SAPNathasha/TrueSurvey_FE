@@ -625,10 +625,6 @@ export default function CreateQuestionsManualStep({
   const surveyId = getStoredDraftId();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
-  const [sectionTitle, setSectionTitle] = useState("Survey Basic Information");
-  const [sectionDescription, setSectionDescription] = useState(
-    "Create your survey questions manually. Add question types, options, and required fields."
-  );
   const [questions, setQuestions] = useState<ManualQuestion[]>(
     () => getStoredManualQuestions(surveyId) || initialQuestions
   );

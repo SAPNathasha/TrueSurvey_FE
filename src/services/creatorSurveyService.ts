@@ -444,6 +444,47 @@ export type ReviewCreatorSubmissionResponse = {
   };
 };
 
+export type SurveyAnalyticsSurvey = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  totalCompletedSubmissions: number;
+};
+
+export type SurveyAnalyticsAnswer = {
+  answerId: string;
+  submissionId: string;
+  participantId: string | null;
+  submittedAt: string | null;
+  answerText: string | null;
+  selectedOptionId: string | null;
+  selectedOptionIds: string[];
+  ratingValue: number | null;
+  booleanValue: boolean | null;
+};
+
+export type SurveyAnalyticsQuestion = {
+  questionId: string;
+  question: string;
+  questionType: SurveyQuestionType;
+  order: number;
+  isRequired: boolean;
+  totalAnswers: number;
+  options: Array<{
+    id: string;
+    optionText: string;
+    order: number;
+    selectionCount: number;
+  }>;
+  answers: SurveyAnalyticsAnswer[];
+};
+
+export type GetSurveyAnalyticsResponse = {
+  survey: SurveyAnalyticsSurvey;
+  questions: SurveyAnalyticsQuestion[];
+};
+
 function normalizeSurveyStatus(status: unknown): CreatorSurveyStatus {
   if (status === "ACTIVE" || status === "CLOSED") {
     return status;
@@ -920,6 +961,18 @@ export async function rejectCreatorSubmission(
   try {
     const response = await api.patch<ReviewCreatorSubmissionResponse>(
       `/creator/surveys/${surveyId}/submissions/${submissionId}/reject`,
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+export async function getSurveyAnalytics(surveyId: string) {
+  try {
+    const response = await api.get<GetSurveyAnalyticsResponse>(
+      `/surveys/${surveyId}/analytics`,
     );
 
     return response.data;

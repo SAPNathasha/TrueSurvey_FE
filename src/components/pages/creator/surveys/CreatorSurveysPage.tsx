@@ -21,6 +21,7 @@ import {
   FiList,
   FiPlusCircle,
   FiTrash2,
+  FiBarChart2,
 } from "react-icons/fi";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
@@ -364,7 +365,7 @@ export default function CreatorSurveysPage() {
             <Box overflowX="auto">
               <Box minW="980px">
                 <Grid
-                  templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 1.9fr"
+                  templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 2.4fr"
                   px="5"
                   py="3"
                   bg="#FAFBFF"
@@ -410,7 +411,7 @@ export default function CreatorSurveysPage() {
                   surveys.map((survey) => (
                     <Grid
                       key={survey.id}
-                      templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 1.9fr"
+                      templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 2.4fr"
                       px="5"
                       py="3"
                       alignItems="center"
@@ -468,6 +469,18 @@ export default function CreatorSurveysPage() {
                       </Text>
 
                       <HStack gap="2">
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          h="34px"
+                        >
+                          <NextLink href={`/creator/surveys/${survey.id}/analytics`}>
+                            <FiBarChart2 />
+                            Analytics
+                          </NextLink>
+                        </Button>
+
                         <Button
                           asChild
                           size="sm"
