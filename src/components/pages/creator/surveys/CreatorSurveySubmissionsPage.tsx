@@ -8,6 +8,7 @@ import {
   DialogBody,
   DialogCloseTrigger,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogPositioner,
   DialogRoot,
@@ -15,6 +16,7 @@ import {
   Grid,
   HStack,
   NativeSelect,
+  SimpleGrid,
   Text,
   VStack,
 } from "@chakra-ui/react";
@@ -611,6 +613,8 @@ export default function CreatorSurveySubmissionsPage({
 
       <DialogRoot
         open={isSubmissionModalOpen}
+        size="xl"
+        scrollBehavior="inside"
         onOpenChange={(details) => {
           setIsSubmissionModalOpen(details.open);
 
@@ -619,27 +623,52 @@ export default function CreatorSurveySubmissionsPage({
           }
         }}
       >
-        <DialogBackdrop />
-        <DialogPositioner>
-          <DialogContent maxW="820px" bg="white" borderRadius="20px">
-            <DialogHeader pb="0">
-              <DialogTitle>
+        <DialogBackdrop bg="blackAlpha.600" />
+        <DialogPositioner p={{ base: "4", md: "8" }} alignItems="center">
+          <DialogContent
+            w="full"
+            maxW={{ base: "calc(100vw - 32px)", lg: "960px" }}
+            maxH="calc(100vh - 64px)"
+            bg="white"
+            borderRadius="20px"
+            overflow="hidden"
+          >
+            <DialogHeader
+              px="6"
+              py="4"
+              borderBottomWidth="1px"
+              borderColor="brand.border"
+            >
+              <DialogTitle fontSize="xl" fontWeight="bold" color="brand.dark">
                 {selectedSubmission?.survey.title || "Submission Details"}
               </DialogTitle>
+              {selectedSubmission?.submission.id ? (
+                <Text mt="1" fontSize="sm" color="brand.mutedText">
+                  Submission #{selectedSubmission.submission.id.slice(0, 8)}
+                </Text>
+              ) : null}
             </DialogHeader>
-            <DialogCloseTrigger />
-            <DialogBody pb="6">
+            <DialogCloseTrigger
+              top="4"
+              right="4"
+              _focus={{ boxShadow: "none" }}
+              _focusVisible={{ boxShadow: "outline" }}
+            />
+            <DialogBody px="6" py="5">
               {isLoadingSubmission ? (
-                <Box py="8">
+                <VStack py="10" gap="3" align="center">
                   <Text color="brand.mutedText">Loading submission...</Text>
-                </Box>
+                </VStack>
               ) : selectedSubmission ? (
-                <VStack align="stretch" gap="5">
-                  <Grid
-                    templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
-                    gap="4"
-                  >
-                    <DashboardCard p="4">
+                <VStack align="stretch" gap="6">
+                  <SimpleGrid columns={{ base: 1, md: 3 }} gap="4">
+                    <Box
+                      p="4"
+                      borderWidth="1px"
+                      borderColor="brand.border"
+                      borderRadius="16px"
+                      bg="#FAFBFF"
+                    >
                       <Text fontSize="xs" fontWeight="bold" color="brand.mutedText">
                         Participant
                       </Text>
@@ -649,18 +678,30 @@ export default function CreatorSurveySubmissionsPage({
                       <Text fontSize="sm" color="brand.mutedText" mt="1">
                         {selectedSubmission.participant.email || "-"}
                       </Text>
-                    </DashboardCard>
+                    </Box>
 
-                    <DashboardCard p="4">
+                    <Box
+                      p="4"
+                      borderWidth="1px"
+                      borderColor="brand.border"
+                      borderRadius="16px"
+                      bg="#FAFBFF"
+                    >
                       <Text fontSize="xs" fontWeight="bold" color="brand.mutedText">
                         Submitted At
                       </Text>
                       <Text mt="2" fontWeight="bold" color="brand.dark">
                         {formatDateTime(selectedSubmission.submission.submittedAt)}
                       </Text>
-                    </DashboardCard>
+                    </Box>
 
-                    <DashboardCard p="4">
+                    <Box
+                      p="4"
+                      borderWidth="1px"
+                      borderColor="brand.border"
+                      borderRadius="16px"
+                      bg="#FAFBFF"
+                    >
                       <Text fontSize="xs" fontWeight="bold" color="brand.mutedText">
                         Verification
                       </Text>
@@ -670,13 +711,18 @@ export default function CreatorSurveySubmissionsPage({
                           ? "Verified"
                           : "Not Verified"}
                       </Text>
-                    </DashboardCard>
-                  </Grid>
+                    </Box>
+                  </SimpleGrid>
 
-                  <DashboardCard p="0" overflow="hidden">
+                  <Box
+                    borderWidth="1px"
+                    borderColor="brand.border"
+                    borderRadius="16px"
+                    overflow="hidden"
+                  >
                     <Box
                       px="5"
-                      py="3"
+                      py="4"
                       bg="#FAFBFF"
                       borderBottomWidth="1px"
                       borderColor="brand.border"
@@ -696,22 +742,22 @@ export default function CreatorSurveySubmissionsPage({
                             px="5"
                             py="4"
                             borderBottomWidth="1px"
-                            borderColor="brand.border"
+                            borderColor="gray.100"
+                            _last={{ borderBottomWidth: "0" }}
                           >
-                            <HStack justify="space-between" align="start" gap="4">
-                              <Box flex="1">
+                            <SimpleGrid columns={{ base: 1, md: 2 }} gap="5">
+                              <Box>
                                 <Text
-                                  fontSize="xs"
-                                  fontWeight="bold"
+                                  fontSize="sm"
                                   color="brand.mutedText"
-                                  mb="2"
+                                  fontWeight="semibold"
                                 >
                                   Question {answer.questionOrder}
                                 </Text>
-                                <Text fontWeight="bold" color="brand.dark">
+                                <Text mt="1" fontWeight="bold" color="brand.dark">
                                   {answer.questionText}
                                 </Text>
-                                <Text fontSize="sm" color="brand.mutedText" mt="1">
+                                <Text fontSize="sm" color="brand.mutedText" mt="2">
                                   {answer.questionType
                                     .toLowerCase()
                                     .split("_")
@@ -722,42 +768,23 @@ export default function CreatorSurveySubmissionsPage({
                                 </Text>
                               </Box>
 
-                              <Box
-                                minW={{ base: "100%", md: "240px" }}
-                                bg="brand.lightBlue"
-                                borderRadius="12px"
-                                px="4"
-                                py="3"
-                              >
+                              <Box>
                                 <Text
-                                  fontSize="xs"
-                                  fontWeight="bold"
+                                  fontSize="sm"
                                   color="brand.mutedText"
-                                  mb="1"
+                                  fontWeight="semibold"
                                 >
                                   Submitted Answer
                                 </Text>
-                                <Text color="brand.dark">
+                                <Text mt="1" color="brand.dark" whiteSpace="pre-wrap">
                                   {getAnswerDisplayValue(answer)}
                                 </Text>
                               </Box>
-                            </HStack>
+                            </SimpleGrid>
                           </Box>
                         ))}
                     </VStack>
-                  </DashboardCard>
-
-                  <HStack justify="end">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsSubmissionModalOpen(false);
-                        setSelectedSubmission(null);
-                      }}
-                    >
-                      Close
-                    </Button>
-                  </HStack>
+                  </Box>
                 </VStack>
               ) : (
                 <Box py="8">
@@ -767,6 +794,22 @@ export default function CreatorSurveySubmissionsPage({
                 </Box>
               )}
             </DialogBody>
+            <DialogFooter
+              px="6"
+              py="4"
+              borderTopWidth="1px"
+              borderColor="brand.border"
+            >
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsSubmissionModalOpen(false);
+                  setSelectedSubmission(null);
+                }}
+              >
+                Close
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </DialogPositioner>
       </DialogRoot>
