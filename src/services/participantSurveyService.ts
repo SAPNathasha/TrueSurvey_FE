@@ -30,7 +30,6 @@ export type ParticipantSurveyQuestionType =
   | "YES_NO";
 
 export type AvailableSurveysQuery = {
-  participantId: string;
   search?: string;
   tab?: AvailableSurveyTab;
   sortBy?: AvailableSurveySortBy;
@@ -124,7 +123,6 @@ export type SubmitParticipantSurveyResponsePayload = {
 };
 
 export type SubmitParticipantSurveyResponseRequest = {
-  participantId: string;
   surveyId: string;
   answers: SubmitParticipantSurveyResponsePayload[];
 };
@@ -194,7 +192,6 @@ export async function getAvailableSurveys(query: AvailableSurveysQuery) {
       "/participant/available-surveys",
       {
         params: {
-          participantId: query.participantId,
           search: query.search || undefined,
           tab: query.tab,
           sortBy: query.sortBy,
@@ -211,17 +208,11 @@ export async function getAvailableSurveys(query: AvailableSurveysQuery) {
 }
 
 export async function getParticipantSurveyDetail(
-  participantId: string,
   surveyId: string
 ) {
   try {
     const response = await api.get<ParticipantSurveyDetailResponse>(
-      `/participant/available-surveys/${surveyId}`,
-      {
-        params: {
-          participantId,
-        },
-      }
+      `/participant/available-surveys/${surveyId}`
     );
 
     return response.data;
@@ -237,7 +228,6 @@ export async function submitParticipantSurveyResponse(
     const response = await api.post<SubmitParticipantSurveyResponseResult>(
       `/participant/available-surveys/${payload.surveyId}/submit`,
       {
-        participantId: payload.participantId,
         answers: payload.answers,
       }
     );

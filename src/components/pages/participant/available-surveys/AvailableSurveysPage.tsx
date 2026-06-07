@@ -32,7 +32,6 @@ import {
 } from "react-icons/fi";
 
 import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
-import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
   getAvailableSurveys,
   type AvailableSurvey,
@@ -605,7 +604,6 @@ function PageSizeSelect({
 
 export default function AvailableSurveysPage() {
   const router = useRouter();
-  const [participantId] = useState(() => getStoredParticipantId());
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<AvailableSurveyTab>("ALL");
@@ -613,21 +611,17 @@ export default function AvailableSurveysPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [data, setData] = useState<AvailableSurveysResponse | null>(null);
-  console.log(data);
   const [lastCompletedQueryKey, setLastCompletedQueryKey] = useState("");
   const [error, setError] = useState("");
 
-  const queryKey = participantId
-    ? JSON.stringify({
-        participantId,
-        search,
-        tab,
-        sortBy,
-        page,
-        limit,
-      })
-    : "";
-  const isLoading = Boolean(participantId) && queryKey !== lastCompletedQueryKey;
+  const queryKey = JSON.stringify({
+    search,
+    tab,
+    sortBy,
+    page,
+    limit,
+  });
+  const isLoading = queryKey !== lastCompletedQueryKey;
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -641,12 +635,7 @@ export default function AvailableSurveysPage() {
   useEffect(() => {
     let isMounted = true;
 
-    if (!participantId) {
-      return;
-    }
-
     getAvailableSurveys({
-      participantId,
       search,
       tab,
       sortBy,
@@ -674,11 +663,7 @@ export default function AvailableSurveysPage() {
     return () => {
       isMounted = false;
     };
-  }, [limit, page, participantId, queryKey, search, sortBy, tab]);
-
-  const missingParticipantIdError = participantId
-    ? ""
-    : "Participant id was not found. Please log in again.";
+  }, [limit, page, queryKey, search, sortBy, tab]);
 
   const handleSurveyAction = (survey: AvailableSurvey) => {
     const status = getSurveyStatus(survey);
@@ -706,7 +691,7 @@ export default function AvailableSurveysPage() {
     );
   }
 
-  if (missingParticipantIdError || (!data && error) || !data) {
+  if ((!data && error) || !data) {
     return (
       <AuthenticatedShell activeItem="Available Surveys">
         <Flex flex="1" align="center" justify="center" p="6">
@@ -715,7 +700,7 @@ export default function AvailableSurveysPage() {
               We could not load available surveys.
             </Text>
             <Text color="brand.mutedText" mt="2">
-              {missingParticipantIdError || error || "Please try again later."}
+              {error || "Please try again later."}
             </Text>
           </DashboardCard>
         </Flex>
@@ -729,7 +714,7 @@ export default function AvailableSurveysPage() {
         <Box>
           <Text
             fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
-            fontWeight="extrabold"
+            fontWeight="bold"
             color="brand.dark"
             lineHeight="1.1"
             wordBreak="break-word"

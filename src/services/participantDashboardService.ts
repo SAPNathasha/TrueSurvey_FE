@@ -83,10 +83,10 @@ function getErrorMessage(error: unknown) {
   return "Request failed";
 }
 
-export async function getParticipantDashboard(participantId: string) {
+export async function getParticipantDashboard() {
   try {
     const response = await api.get<ParticipantDashboardData>(
-      `/participant/dashboard?participantId=${participantId}`
+      "/participant/dashboard"
     );
 
     return response.data;

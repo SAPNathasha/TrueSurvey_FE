@@ -509,7 +509,7 @@ export default function ParticipantSubmissionsPage() {
         <Box mb="6">
           <Text
             fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
-            fontWeight="extrabold"
+            fontWeight="bold"
             color="brand.dark"
             lineHeight="1"
             wordBreak="break-word"

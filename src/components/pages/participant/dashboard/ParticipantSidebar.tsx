@@ -58,6 +58,18 @@ export type SidebarItem = {
   onClick?: () => void;
 };
 
+function normalizePath(path: string | null | undefined) {
+  if (!path) {
+    return "";
+  }
+
+  if (path === "/") {
+    return path;
+  }
+
+  return path.replace(/\/+$/, "");
+}
+
 function getStoredParticipantVerificationStatus() {
   if (typeof window === "undefined") {
     return null;
@@ -204,6 +216,17 @@ export default function ParticipantSidebar({
   const shouldShowVerificationNotice =
     userRole !== "CREATOR" && verificationStatus !== "VERIFIED";
 
+  function isNavItemActive(href: string) {
+    const currentPath = normalizePath(pathname);
+    const navPath = normalizePath(href);
+
+    if (navPath === "/dashboard") {
+      return currentPath === "/dashboard";
+    }
+
+    return currentPath === navPath || currentPath.startsWith(`${navPath}/`);
+  }
+
   function handleNavigate(href: string) {
     setDrawerOpen(false);
     router.push(href);
@@ -230,7 +253,7 @@ export default function ParticipantSidebar({
                 : item;
 
           const active = itemWithAction.href
-            ? pathname?.startsWith(itemWithAction.href)
+            ? isNavItemActive(itemWithAction.href)
             : activeItem === itemWithAction.label;
 
           return (

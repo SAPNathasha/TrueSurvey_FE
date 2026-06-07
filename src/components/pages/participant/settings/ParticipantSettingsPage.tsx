@@ -31,7 +31,6 @@ import {
 } from "react-icons/fi";
 
 import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
-import { getStoredParticipantId } from "@/lib/participantIdentity";
 import { getStoredUserRole } from "@/lib/userRole";
 import { toaster } from "@/components/ui/toaster";
 import {
@@ -274,11 +273,10 @@ function normalizeChangedString(
 }
 
 function buildUpdatePayload(
-  participantId: string,
   formValues: ProfileFormValues,
   previousProfile: ParticipantProfileSettingsResponse["profile"]
 ): UpdateParticipantProfilePayload {
-  const payload: UpdateParticipantProfilePayload = { participantId };
+  const payload: UpdateParticipantProfilePayload = {};
 
   const fullName = normalizeChangedString(formValues.fullName, previousProfile.fullName);
   const username = normalizeChangedString(formValues.username, previousProfile.username);
@@ -1273,13 +1271,12 @@ function ProfileTabContent({
 
 export default function ParticipantSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("Profile");
-  const [participantId] = useState(() => getStoredParticipantId());
   const userRole = getStoredUserRole();
   const [data, setData] = useState<ParticipantProfileSettingsResponse | null>(
     null
   );
   const [formValues, setFormValues] = useState<ProfileFormValues | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(participantId));
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [error, setError] = useState("");
@@ -1287,11 +1284,7 @@ export default function ParticipantSettingsPage() {
   useEffect(() => {
     let isMounted = true;
 
-    if (!participantId) {
-      return;
-    }
-
-    getParticipantProfileSettings(participantId)
+    getParticipantProfileSettings()
       .then((response) => {
         if (isMounted) {
           window.localStorage.setItem(
@@ -1321,11 +1314,7 @@ export default function ParticipantSettingsPage() {
     return () => {
       isMounted = false;
     };
-  }, [participantId]);
-
-  const missingParticipantIdError = participantId
-    ? ""
-    : "Participant id was not found. Please log in again.";
+  }, []);
   const showVerificationTab = userRole !== "CREATOR";
   const resolvedActiveTab =
     !showVerificationTab && activeTab === "Verification" ? "Profile" : activeTab;
@@ -1341,7 +1330,7 @@ export default function ParticipantSettingsPage() {
     );
   }
 
-  if (missingParticipantIdError || error || !data || !formValues) {
+  if (error || !data || !formValues) {
     return (
       <AuthenticatedShell activeItem="Settings">
         <Flex flex="1" align="center" justify="center" p="6">
@@ -1350,7 +1339,7 @@ export default function ParticipantSettingsPage() {
               We could not load settings.
             </Text>
             <Text color="brand.mutedText" mt="2">
-              {missingParticipantIdError || error || "Please try again later."}
+              {error || "Please try again later."}
             </Text>
           </DashboardCard>
         </Flex>
@@ -1366,13 +1355,9 @@ export default function ParticipantSettingsPage() {
   };
 
   const handleSaveProfile = async () => {
-    if (!participantId) {
-      return;
-    }
+    const payload = buildUpdatePayload(formValues, data.profile);
 
-    const payload = buildUpdatePayload(participantId, formValues, data.profile);
-
-    if (Object.keys(payload).length === 1) {
+    if (Object.keys(payload).length === 0) {
       toaster.create({
         type: "info",
         title: "No changes to save",
@@ -1411,10 +1396,6 @@ export default function ParticipantSettingsPage() {
   };
 
   const handleProfilePhotoUpload = async (file: File) => {
-    if (!participantId) {
-      return;
-    }
-
     const allowedMimeTypes = new Set([
       "image/jpeg",
       "image/jpg",
@@ -1442,7 +1423,7 @@ export default function ParticipantSettingsPage() {
 
     try {
       setIsUploadingPhoto(true);
-      const response = await updateParticipantProfilePhoto(participantId, file);
+      const response = await updateParticipantProfilePhoto(file);
 
       setData((current) =>
         current
@@ -1482,7 +1463,7 @@ export default function ParticipantSettingsPage() {
           <Box mb="7">
             <Text
               fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
-              fontWeight="extrabold"
+              fontWeight="bold"
               color="brand.dark"
               lineHeight="1"
               wordBreak="break-word"

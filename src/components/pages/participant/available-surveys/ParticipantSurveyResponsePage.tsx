@@ -27,7 +27,6 @@ import {
 
 import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import { toaster } from "@/components/ui/toaster";
-import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
   getParticipantSurveyDetail,
   submitParticipantSurveyResponse,
@@ -431,23 +430,22 @@ export default function ParticipantSurveyResponsePage({
   surveyId,
 }: ParticipantSurveyResponsePageProps) {
   const router = useRouter();
-  const [participantId] = useState(() => getStoredParticipantId());
   const [survey, setSurvey] = useState<ParticipantSurveyDetail | null>(null);
   const [participantName, setParticipantName] = useState("");
   const [canSubmit, setCanSubmit] = useState(true);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(Boolean(participantId && surveyId));
+  const [isLoading, setIsLoading] = useState(Boolean(surveyId));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (!participantId || !surveyId) {
+    if (!surveyId) {
       return;
     }
 
-    getParticipantSurveyDetail(participantId, surveyId)
+    getParticipantSurveyDetail(surveyId)
       .then((response) => {
         if (!isMounted) {
           return;
@@ -477,11 +475,7 @@ export default function ParticipantSurveyResponsePage({
     return () => {
       isMounted = false;
     };
-  }, [participantId, surveyId]);
-
-  const missingParticipantIdError = participantId
-    ? ""
-    : "Participant id was not found. Please log in again.";
+  }, [surveyId]);
 
   const progress = useMemo(() => {
     if (!survey || survey.questions.length === 0) {
@@ -510,7 +504,7 @@ export default function ParticipantSurveyResponsePage({
   }, [answers, survey]);
 
   const handleSubmit = async () => {
-    if (!participantId || !survey) {
+    if (!survey) {
       return;
     }
 
@@ -537,7 +531,6 @@ export default function ParticipantSurveyResponsePage({
     try {
       setIsSubmitting(true);
       const response = await submitParticipantSurveyResponse({
-        participantId,
         surveyId: survey.id,
         answers: buildSubmissionAnswers(survey, answers),
       });
@@ -574,7 +567,7 @@ export default function ParticipantSurveyResponsePage({
     );
   }
 
-  if (missingParticipantIdError || error || !survey) {
+  if (error || !survey) {
     return (
       <AuthenticatedShell activeItem="Available Surveys">
         <Flex flex="1" align="center" justify="center" p="6">
@@ -584,7 +577,7 @@ export default function ParticipantSurveyResponsePage({
             </Text>
 
             <Text color="brand.mutedText" mt="2">
-              {missingParticipantIdError || error || "Please try again later."}
+              {error || "Please try again later."}
             </Text>
           </DashboardCard>
         </Flex>

@@ -2,6 +2,7 @@ import type { IconType } from "react-icons";
 import {
   FiClipboard,
   FiFileText,
+  FiGrid,
   FiList,
   FiLogOut,
   FiSearch,
@@ -21,6 +22,13 @@ export type SidebarMenuItem = {
 };
 
 export const sidebarMenuItems: SidebarMenuItem[] = [
+    {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: FiGrid,
+    allowedRoles: ["CREATOR","PARTICIPANT", "BOTH"],
+    href: "/dashboard",
+  },
   {
     id: "surveys",
     label: "My Surveys",

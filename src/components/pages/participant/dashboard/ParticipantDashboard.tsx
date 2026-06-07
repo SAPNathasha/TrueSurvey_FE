@@ -26,7 +26,6 @@ import {
 } from "react-icons/fa";
 import { MdOutlineSlowMotionVideo } from "react-icons/md";
 
-import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
   getParticipantDashboard,
   type DashboardActivity,
@@ -924,19 +923,14 @@ function QuickAction({
 }
 
 export default function ParticipantDashboard() {
-  const [participantId] = useState(() => getStoredParticipantId());
   const [data, setData] = useState<ParticipantDashboardData | null>(null);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(Boolean(participantId));
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (!participantId) {
-      return;
-    }
-
-    getParticipantDashboard(participantId)
+    getParticipantDashboard()
       .then((dashboardData) => {
         if (isMounted) {
           setData(dashboardData);
@@ -960,7 +954,7 @@ export default function ParticipantDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [participantId]);
+  }, []);
 
   const currency = data?.wallet.currency || DEFAULT_CURRENCY;
   const surveyVisuals = useMemo(
@@ -1000,11 +994,7 @@ export default function ParticipantDashboard() {
     );
   }
 
-  const missingParticipantIdError = participantId
-    ? ""
-    : "Participant id was not found. Please log in again.";
-
-  if (missingParticipantIdError || error || !data) {
+  if (error || !data) {
     return (
       <AuthenticatedShell>
         <Flex flex="1" align="center" justify="center" p="6">
@@ -1013,7 +1003,7 @@ export default function ParticipantDashboard() {
               We could not load your dashboard.
             </Text>
             <Text color="brand.mutedText" mt="2">
-              {missingParticipantIdError || error || "Please try again later."}
+              {error || "Please try again later."}
             </Text>
           </DashboardCard>
         </Flex>
@@ -1029,7 +1019,7 @@ export default function ParticipantDashboard() {
             <DashboardCard overflow="hidden" mb="5">
               <Grid templateColumns={{ base: "1fr", lg: "1fr" }}>
                 <Box p={{ base: "5", lg: "8" }}>
-                  <Text fontSize={{ base: "2xl", lg: "3xl" }} fontWeight="extrabold">
+                  <Text fontSize={{ base: "2xl", lg: "3xl" }} fontWeight="bold">
                     Welcome back, {data.welcome.username}!
                   </Text>
 

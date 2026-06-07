@@ -25,7 +25,6 @@ import {
 } from "react-icons/fi";
 
 import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
-import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
   type EarningsBreakdownMap,
   getParticipantWallet,
@@ -638,21 +637,14 @@ function RightPanel({
 }
 
 export default function ParticipantWalletPage() {
-  const [participantId] = useState(() => getStoredParticipantId());
   const [data, setData] = useState<ParticipantWalletResponse | null>(null);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(Boolean(participantId));
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (!participantId) {
-      return;
-    }
-
-    getParticipantWallet({
-      participantId,
-    })
+    getParticipantWallet({})
       .then((response) => {
         if (isMounted) {
           setData(response);
@@ -677,11 +669,7 @@ export default function ParticipantWalletPage() {
     return () => {
       isMounted = false;
     };
-  }, [participantId]);
-
-  const missingParticipantIdError = participantId
-    ? ""
-    : "Participant id was not found. Please log in again.";
+  }, []);
 
   if (isLoading) {
     return (
@@ -694,7 +682,7 @@ export default function ParticipantWalletPage() {
     );
   }
 
-  if (missingParticipantIdError || (!data && error) || !data) {
+  if ((!data && error) || !data) {
     return (
       <AuthenticatedShell activeItem="Wallet">
         <Flex flex="1" align="center" justify="center" p="6">
@@ -703,7 +691,7 @@ export default function ParticipantWalletPage() {
               We could not load your wallet.
             </Text>
             <Text color="brand.mutedText" mt="2">
-              {missingParticipantIdError || error || "Please try again later."}
+              {error || "Please try again later."}
             </Text>
           </DashboardCard>
         </Flex>
@@ -720,7 +708,7 @@ export default function ParticipantWalletPage() {
             <Box mb="6">
               <Text
                 fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
-                fontWeight="extrabold"
+                fontWeight="bold"
                 color="brand.dark"
                 lineHeight="1"
                 wordBreak="break-word"

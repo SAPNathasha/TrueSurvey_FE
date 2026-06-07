@@ -43,18 +43,6 @@ type StatCardProps = {
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
-function getStoredUserId() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return (
-    window.localStorage.getItem("userId") ||
-    window.localStorage.getItem("participantId") ||
-    window.localStorage.getItem("creatorId")
-  );
-}
-
 function DashboardCard({ children, ...props }: ComponentProps<typeof Box>) {
   return (
     <Box
@@ -455,21 +443,13 @@ function Pagination({
 }
 
 export default function ParticipantEarningsPage() {
-  const userId = getStoredUserId();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [isLoading, setIsLoading] = useState(Boolean(userId));
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TransactionRecordsResponse | null>(null);
-  const missingUserIdError = userId
-    ? null
-    : "User id was not found. Please log in again.";
 
   useEffect(() => {
-    if (!userId) {
-      return;
-    }
-
     let isMounted = true;
 
     void (async () => {
@@ -507,7 +487,7 @@ export default function ParticipantEarningsPage() {
     return () => {
       isMounted = false;
     };
-  }, [userId, page, limit]);
+  }, [page, limit]);
 
   const currency = data?.summary.currency || "LKR";
   const pageSummary = useMemo(() => {
@@ -533,7 +513,7 @@ export default function ParticipantEarningsPage() {
     );
   }
 
-  if (missingUserIdError || error || !data) {
+  if (error || !data) {
     return (
       <AuthenticatedShell activeItem="Transactions">
         <Flex flex="1" align="center" justify="center" p="6">
@@ -542,7 +522,7 @@ export default function ParticipantEarningsPage() {
               We could not load transactions.
             </Text>
             <Text color="brand.mutedText" mt="2">
-              {missingUserIdError || error || "Please try again later."}
+              {error || "Please try again later."}
             </Text>
           </DashboardCard>
         </Flex>
@@ -556,7 +536,7 @@ export default function ParticipantEarningsPage() {
         <Box mb="6">
           <Text
             fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
-            fontWeight="extrabold"
+            fontWeight="bold"
             color="brand.dark"
             lineHeight="1"
             wordBreak="break-word"

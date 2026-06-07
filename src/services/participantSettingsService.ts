@@ -30,7 +30,6 @@ export type ParticipantProfileSettingsResponse = {
 };
 
 export type UpdateParticipantProfilePayload = {
-  participantId: string;
   fullName?: string;
   username?: string;
   phoneCountryCode?: string;
@@ -97,15 +96,10 @@ function getErrorMessage(error: unknown) {
   return "Request failed";
 }
 
-export async function getParticipantProfileSettings(participantId: string) {
+export async function getParticipantProfileSettings() {
   try {
     const response = await api.get<ParticipantProfileSettingsResponse>(
-      "/participant/profile-settings",
-      {
-        params: {
-          participantId,
-        },
-      }
+      "/participant/profile-settings"
     );
 
     return response.data;
@@ -129,13 +123,9 @@ export async function updateParticipantProfileSettings(
   }
 }
 
-export async function updateParticipantProfilePhoto(
-  participantId: string,
-  profilePhoto: File
-) {
+export async function updateParticipantProfilePhoto(profilePhoto: File) {
   try {
     const formData = new FormData();
-    formData.append("participantId", participantId);
     formData.append("profilePhoto", profilePhoto);
 
     const response = await api.patch<UpdateParticipantProfilePhotoResponse>(

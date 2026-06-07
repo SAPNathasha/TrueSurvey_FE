@@ -15,7 +15,6 @@ export type ParticipantWalletSortBy =
   | "AMOUNT_LOW";
 
 export type ParticipantWalletQuery = {
-  participantId: string;
   search?: string;
   status?: ParticipantWalletStatus;
   sortBy?: ParticipantWalletSortBy;
@@ -129,7 +128,6 @@ export async function getParticipantWallet(query: ParticipantWalletQuery) {
       "/participant/wallet",
       {
         params: {
-          participantId: query.participantId,
           search: query.search || undefined,
           status: query.status,
           sortBy: query.sortBy,
