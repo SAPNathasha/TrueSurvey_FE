@@ -2,7 +2,6 @@ import api from "@/lib/axios";
 import axios from "axios";
 
 export type CreateSurveyBasicDetailsPayload = {
-  creatorId: string;
   title: string;
   description: string;
   category: string;
@@ -51,7 +50,6 @@ export type CreateSurveyBasicDetailsResponse = {
 };
 
 export type SelectSurveyMethodPayload = {
-  creatorId: string;
   surveyId: string;
   creationMethod: SurveyCreationMethod;
 };
@@ -67,7 +65,6 @@ export type ManualQuestionOptionPayload = {
 };
 
 export type CreateManualQuestionPayload = {
-  creatorId: string;
   surveyId: string;
   questionText: string;
   type: SurveyQuestionType;
@@ -138,7 +135,6 @@ export type CompleteQuestionStepResponse = {
 };
 
 export type SetTargetAudiencePayload = {
-  creatorId: string;
   surveyId: string;
   minimumAge?: number;
   maximumAge?: number;
@@ -182,7 +178,6 @@ export type SetTargetAudienceResponse = {
 };
 
 export type EstimateAudienceReachPayload = {
-  userId: string;
   surveyId: string;
   minimumAge?: number;
   maximumAge?: number;
@@ -211,7 +206,6 @@ export type EstimateAudienceReachResponse = {
 };
 
 export type SetSampleBudgetPayload = {
-  creatorId: string;
   surveyId: string;
   requiredResponses: number;
   totalBudget: number;
@@ -306,7 +300,6 @@ export type GetSurveyPreviewResponse = {
 export type SurveyPublishOption = "PUBLISH_NOW" | "SCHEDULE" | "SAVE_DRAFT";
 
 export type PublishSurveyPayload = {
-  creatorId: string;
   surveyId: string;
   publishOption: SurveyPublishOption;
   scheduledPublishAt?: string;
@@ -345,7 +338,6 @@ export type CreatorSurveyListItem = {
 };
 
 export type GetCreatorSurveysParams = {
-  creatorId: string;
   status?: CreatorSurveyStatus | "ALL";
   limit?: number;
 };
@@ -630,7 +622,6 @@ export async function selectSurveyMethod(payload: SelectSurveyMethodPayload) {
     const response = await api.patch<SelectSurveyMethodResponse>(
       `/surveys/${payload.surveyId}/method`,
       {
-        creatorId: payload.creatorId,
         creationMethod: payload.creationMethod,
       },
     );
@@ -648,7 +639,6 @@ export async function createManualQuestion(
     const response = await api.post<CreateManualQuestionResponse>(
       `/surveys/${payload.surveyId}/questions/manual`,
       {
-        creatorId: payload.creatorId,
         questionText: payload.questionText,
         type: payload.type,
         isRequired: payload.isRequired,
@@ -681,15 +671,10 @@ export async function generateAiQuestions(
   }
 }
 
-export async function getSurveyQuestions(creatorId: string, surveyId: string) {
+export async function getSurveyQuestions(surveyId: string) {
   try {
     const response = await api.get<GetSurveyQuestionsResponse>(
       `/surveys/${surveyId}/questions`,
-      {
-        params: {
-          creatorId,
-        },
-      },
     );
 
     return response.data;
@@ -709,7 +694,6 @@ export async function updateManualQuestion(
     const response = await api.patch<CreateManualQuestionResponse>(
       `/surveys/${payload.surveyId}/questions/${payload.questionId}`,
       {
-        creatorId: payload.creatorId,
         questionText: payload.questionText,
         type: payload.type,
         isRequired: payload.isRequired,
@@ -724,18 +708,12 @@ export async function updateManualQuestion(
 }
 
 export async function deleteSurveyQuestion(
-  creatorId: string,
   surveyId: string,
   questionId: string,
 ) {
   try {
     const response = await api.delete<{ message: string }>(
       `/surveys/${surveyId}/questions/${questionId}`,
-      {
-        data: {
-          creatorId,
-        },
-      },
     );
 
     return response.data;
@@ -745,15 +723,11 @@ export async function deleteSurveyQuestion(
 }
 
 export async function completeQuestionStep(
-  creatorId: string,
   surveyId: string,
 ) {
   try {
     const response = await api.patch<CompleteQuestionStepResponse>(
       `/surveys/${surveyId}/questions/complete`,
-      {
-        creatorId,
-      },
     );
 
     return response.data;
@@ -767,7 +741,6 @@ export async function setTargetAudience(payload: SetTargetAudiencePayload) {
     const response = await api.patch<SetTargetAudienceResponse>(
       `/surveys/${payload.surveyId}/target-audience`,
       {
-        creatorId: payload.creatorId,
         minimumAge: payload.minimumAge,
         maximumAge: payload.maximumAge,
         gender: payload.gender,
@@ -793,7 +766,6 @@ export async function getEstimatedAudienceReach(
       `/surveys/${payload.surveyId}/estimated-reach`,
       {
         params: {
-          userId: payload.userId,
           minimumAge: payload.minimumAge,
           maximumAge: payload.maximumAge,
           gender: payload.gender,
@@ -817,7 +789,6 @@ export async function setSampleBudget(payload: SetSampleBudgetPayload) {
     const response = await api.patch<SetSampleBudgetResponse>(
       `/surveys/${payload.surveyId}/sample-budget`,
       {
-        creatorId: payload.creatorId,
         requiredResponses: payload.requiredResponses,
         totalBudget: payload.totalBudget,
         platformCommissionPercentage: payload.platformCommissionPercentage,
@@ -833,15 +804,10 @@ export async function setSampleBudget(payload: SetSampleBudgetPayload) {
   }
 }
 
-export async function getSurveyPreview(creatorId: string, surveyId: string) {
+export async function getSurveyPreview(surveyId: string) {
   try {
     const response = await api.get<GetSurveyPreviewResponse>(
       `/surveys/${surveyId}/preview`,
-      {
-        params: {
-          creatorId,
-        },
-      },
     );
 
     return response.data;
@@ -855,7 +821,6 @@ export async function publishSurvey(payload: PublishSurveyPayload) {
     const response = await api.patch<PublishSurveyResponse>(
       `/surveys/${payload.surveyId}/publish`,
       {
-        creatorId: payload.creatorId,
         publishOption: payload.publishOption,
         scheduledPublishAt: payload.scheduledPublishAt,
       },
@@ -871,7 +836,6 @@ export async function getCreatorSurveys(params: GetCreatorSurveysParams) {
   try {
     const response = await api.get("/creator/surveys", {
       params: {
-        creatorId: params.creatorId,
         status:
           params.status && params.status !== "ALL" ? params.status : undefined,
         limit: params.limit,

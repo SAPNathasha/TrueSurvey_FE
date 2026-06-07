@@ -24,7 +24,6 @@ import { LuGraduationCap } from "react-icons/lu";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
 import { toaster } from "@/components/ui/toaster";
-import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import {
   getEstimatedAudienceReach,
   setTargetAudience,
@@ -199,7 +198,6 @@ export default function TargetAudienceStep({
   onBack,
   onNext,
 }: TargetAudienceStepProps) {
-  const creatorId = getStoredCreatorId();
   const surveyId = getStoredDraftId();
   const storedAudience = getStoredTargetAudience(surveyId);
 
@@ -261,16 +259,11 @@ export default function TargetAudienceStep({
   };
 
   const buildTargetAudiencePayload = (): SetTargetAudiencePayload | string => {
-    if (!creatorId) {
-      return "Creator id was not found. Please log in again.";
-    }
-
     if (!surveyId) {
       return "Survey draft was not found. Please complete the previous steps first.";
     }
 
     const payload: SetTargetAudiencePayload = {
-      creatorId,
       surveyId,
       sampleBase: formValues.sampleBase,
     };
@@ -341,10 +334,7 @@ export default function TargetAudienceStep({
       return payload;
     }
 
-    return {
-      ...payload,
-      userId: payload.creatorId,
-    };
+    return payload;
   };
 
   const checkEstimatedReach = async (showErrorToast = true) => {
@@ -383,7 +373,7 @@ export default function TargetAudienceStep({
   };
 
   useEffect(() => {
-    if (!creatorId || !surveyId) {
+    if (!surveyId) {
       return;
     }
 
@@ -395,7 +385,7 @@ export default function TargetAudienceStep({
     // The manual button handles recalculation after field edits.
     return () => window.clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [creatorId, surveyId]);
+  }, [surveyId]);
 
   const submitTargetAudience = async (advanceToNextStep: boolean) => {
     const payload = buildTargetAudiencePayload();

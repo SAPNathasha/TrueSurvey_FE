@@ -19,7 +19,6 @@ import {
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
 import { toaster } from "@/components/ui/toaster";
-import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import {
   getSurveyPreview,
   publishSurvey,
@@ -218,15 +217,14 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 export default function PreviewSubmitRightPanel({
   selectedMethod,
 }: PreviewSubmitRightPanelProps) {
-  const creatorId = getStoredCreatorId();
   const surveyId = getStoredDraftId();
   const missingDraftError =
-    !creatorId || !surveyId
+    !surveyId
       ? "Survey draft was not found. Please complete the previous steps first."
       : "";
   const [publishOption, setPublishOption] = useState<PublishOption>("now");
   const [scheduledPublishAt, setScheduledPublishAt] = useState("");
-  const [isLoading, setIsLoading] = useState(Boolean(creatorId && surveyId));
+  const [isLoading, setIsLoading] = useState(Boolean(surveyId));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(missingDraftError);
   const [previewResponse, setPreviewResponse] =
@@ -235,11 +233,11 @@ export default function PreviewSubmitRightPanel({
   useEffect(() => {
     let isMounted = true;
 
-    if (!creatorId || !surveyId) {
+    if (!surveyId) {
       return;
     }
 
-    getSurveyPreview(creatorId, surveyId)
+    getSurveyPreview(surveyId)
       .then((response) => {
         if (isMounted) {
           setPreviewResponse(response);
@@ -264,7 +262,7 @@ export default function PreviewSubmitRightPanel({
     return () => {
       isMounted = false;
     };
-  }, [creatorId, surveyId]);
+  }, [surveyId]);
 
   const readinessItems = useMemo(() => {
     const readiness = previewResponse?.readiness || {};
@@ -331,7 +329,7 @@ export default function PreviewSubmitRightPanel({
         : "Publish Survey";
 
   const handlePublish = async () => {
-    if (!creatorId || !surveyId) {
+    if (!surveyId) {
       toaster.create({
         type: "error",
         title: "Survey draft missing",
@@ -374,7 +372,6 @@ export default function PreviewSubmitRightPanel({
     try {
       setIsSubmitting(true);
       const response = await publishSurvey({
-        creatorId,
         surveyId,
         publishOption: publishOptionValue,
         scheduledPublishAt: scheduledPublishAtValue,

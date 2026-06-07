@@ -28,7 +28,6 @@ import {
 } from "react-icons/fi";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import {
   getSurveyPreview,
   type SurveyPreviewQuestion,
@@ -343,25 +342,24 @@ function QuestionPreview({
 }
 
 export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
-  const creatorId = getStoredCreatorId();
   const surveyId = getStoredDraftId();
   const [previewMode, setPreviewMode] = useState<PreviewMode>("desktop");
   const missingDraftError =
-    !creatorId || !surveyId
+    !surveyId
       ? "Survey draft was not found. Please complete the previous steps first."
       : "";
-  const [isLoading, setIsLoading] = useState(Boolean(creatorId && surveyId));
+  const [isLoading, setIsLoading] = useState(Boolean(surveyId));
   const [error, setError] = useState(missingDraftError);
   const [previewData, setPreviewData] = useState<SurveyPreviewData | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (!creatorId || !surveyId) {
+    if (!surveyId) {
       return;
     }
 
-    getSurveyPreview(creatorId, surveyId)
+    getSurveyPreview(surveyId)
       .then((response) => {
         if (isMounted) {
           setPreviewData(response.survey);
@@ -386,7 +384,7 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
     return () => {
       isMounted = false;
     };
-  }, [creatorId, surveyId]);
+  }, [surveyId]);
 
   const previewQuestions = useMemo(
     () => previewData?.questions.slice(0, 2) ?? [],

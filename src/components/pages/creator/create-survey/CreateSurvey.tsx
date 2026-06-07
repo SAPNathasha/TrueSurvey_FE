@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 
 import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import CreateSurveyStepper from "./shared/CreateSurveyStepper";
-import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import { toaster } from "@/components/ui/toaster";
 
 import BasicDetailsForm, {
@@ -139,7 +138,6 @@ function persistAiQuestionDraft(draft: StoredAiQuestionDraft) {
 export default function CreateSurvey({
   resumeDraft = false,
 }: CreateSurveyProps) {
-  const creatorId = getStoredCreatorId();
   const initialDraft = resumeDraft ? getStoredDraft() : null;
   const storedWizardStep = resumeDraft ? getStoredWizardStep() : null;
   const [currentStep, setCurrentStep] = useState(() =>
@@ -213,15 +211,6 @@ export default function CreateSurvey({
   };
 
   const submitMethodSelection = async (advanceToNextStep: boolean) => {
-    if (!creatorId) {
-      toaster.create({
-        type: "error",
-        title: "Creator not found",
-        description: "Please log in again to continue creating your survey.",
-      });
-      return;
-    }
-
     if (!createdDraftId) {
       toaster.create({
         type: "error",
@@ -234,7 +223,6 @@ export default function CreateSurvey({
     try {
       setIsSavingMethod(true);
       const methodResponse = await selectSurveyMethod({
-        creatorId,
         surveyId: createdDraftId,
         creationMethod: toCreationMethod(selectedMethod),
       });

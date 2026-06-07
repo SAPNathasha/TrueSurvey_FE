@@ -2,7 +2,6 @@
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
 import { toaster } from "@/components/ui/toaster";
-import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import {
   completeQuestionStep,
   generateAiQuestions,
@@ -140,7 +139,6 @@ export default function CreateQuestionsAIStep({
   onNext,
 }: CreateQuestionsAIStepProps) {
   const storedAiDraft = getStoredAiQuestionDraft();
-  const creatorId = getStoredCreatorId();
   const surveyId = getStoredDraftId();
   const [surveyTitle, setSurveyTitle] = useState(
     storedAiDraft?.surveyTitle || defaultTitle
@@ -269,11 +267,11 @@ export default function CreateQuestionsAIStep({
   };
 
   const handleContinue = async () => {
-    if (!surveyId || !creatorId) {
+    if (!surveyId) {
       toaster.create({
         type: "error",
         title: "Survey draft not ready",
-        description: "Please log in again and reopen this survey draft.",
+        description: "Please reopen this survey draft and try again.",
       });
       return;
     }
@@ -291,7 +289,7 @@ export default function CreateQuestionsAIStep({
       setIsContinuing(true);
       persistCurrentDraft();
 
-      const response = await completeQuestionStep(creatorId, surveyId);
+      const response = await completeQuestionStep(surveyId);
       updateStoredDraftStep(surveyId, response.survey.currentStep);
 
       onNext();

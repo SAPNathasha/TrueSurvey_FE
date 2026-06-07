@@ -15,7 +15,6 @@ import { FiArrowRight, FiFileText } from "react-icons/fi";
 import { useState } from "react";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import { toaster } from "@/components/ui/toaster";
 import {
   createSurveyBasicDetails,
@@ -45,7 +44,6 @@ export default function BasicDetailsForm({
   onDraftCreated,
   existingDraftId,
 }: BasicDetailsFormProps) {
-  const creatorId = getStoredCreatorId();
   const descriptionLength = values.description.length;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,10 +58,6 @@ export default function BasicDetailsForm({
   };
 
   const validateForm = () => {
-    if (!creatorId) {
-      return "Creator id was not found. Please log in again.";
-    }
-
     if (!values.surveyTitle.trim()) {
       return "Survey title is required.";
     }
@@ -113,7 +107,6 @@ export default function BasicDetailsForm({
     try {
       setIsSubmitting(true);
       const response = await createSurveyBasicDetails({
-        creatorId: creatorId as string,
         title: values.surveyTitle.trim(),
         description: values.description.trim(),
         category: values.category,

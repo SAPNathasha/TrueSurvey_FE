@@ -149,15 +149,8 @@ export default function CreatorSurveysPage() {
   const [surveys, setSurveys] = useState<CreatorSurveyListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const effectiveError = creatorId
-    ? error
-    : "Creator id was not found. Please log in again.";
 
   useEffect(() => {
-    if (!creatorId) {
-      return;
-    }
-
     let isMounted = true;
 
     void (async () => {
@@ -166,7 +159,6 @@ export default function CreatorSurveysPage() {
 
       try {
         const response = await getCreatorSurveys({
-          creatorId,
           status: statusFilter,
           limit,
         });
@@ -199,7 +191,7 @@ export default function CreatorSurveysPage() {
     return () => {
       isMounted = false;
     };
-  }, [creatorId, statusFilter, limit]);
+  }, [statusFilter, limit]);
 
   const paginationText = useMemo(() => {
     if (total === 0) {
@@ -371,15 +363,15 @@ export default function CreatorSurveysPage() {
                   </Box>
                 )}
 
-                {!isLoading && effectiveError && (
+                {!isLoading && error && (
                   <Box px="5" py="10">
                     <Text color="red.500" fontWeight="medium">
-                      {effectiveError}
+                      {error}
                     </Text>
                   </Box>
                 )}
 
-                {!isLoading && !effectiveError && surveys.length === 0 && (
+                {!isLoading && !error && surveys.length === 0 && (
                   <Box px="5" py="10">
                     <Text color="brand.mutedText">
                       No surveys found for the selected filter.
@@ -388,7 +380,7 @@ export default function CreatorSurveysPage() {
                 )}
 
                 {!isLoading &&
-                  !effectiveError &&
+                  !error &&
                   surveys.map((survey) => (
                     <Grid
                       key={survey.id}

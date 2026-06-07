@@ -2,7 +2,6 @@
 
 import { toaster } from "@/components/ui/toaster";
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import {
   completeQuestionStep,
   deleteSurveyQuestion,
@@ -621,7 +620,6 @@ export default function CreateQuestionsManualStep({
   onBack,
   onNext,
 }: CreateQuestionsManualStepProps) {
-  const creatorId = getStoredCreatorId();
   const surveyId = getStoredDraftId();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
@@ -630,7 +628,7 @@ export default function CreateQuestionsManualStep({
   );
 
   useEffect(() => {
-    if (!creatorId || !surveyId) {
+    if (!surveyId) {
       return;
     }
 
@@ -639,7 +637,7 @@ export default function CreateQuestionsManualStep({
     const loadSurveyQuestions = async () => {
       try {
         setIsLoadingQuestions(true);
-        const response = await getSurveyQuestions(creatorId, surveyId);
+        const response = await getSurveyQuestions(surveyId);
 
         if (!isMounted) {
           return;
@@ -691,7 +689,7 @@ export default function CreateQuestionsManualStep({
     return () => {
       isMounted = false;
     };
-  }, [creatorId, surveyId]);
+  }, [surveyId]);
 
   const updateQuestion = (questionId: string, changes: Partial<ManualQuestion>) => {
     setQuestions((currentQuestions) => {
@@ -757,15 +755,6 @@ export default function CreateQuestionsManualStep({
       return;
     }
 
-    if (!creatorId) {
-      toaster.create({
-        type: "error",
-        title: "Creator not found",
-        description: "Please log in again to continue editing your survey.",
-      });
-      return;
-    }
-
     if (!surveyId) {
       return;
     }
@@ -794,11 +783,7 @@ export default function CreateQuestionsManualStep({
 
     try {
       setIsSubmitting(true);
-      const response = await deleteSurveyQuestion(
-        creatorId,
-        surveyId,
-        deleteQuestionId
-      );
+      const response = await deleteSurveyQuestion(surveyId, deleteQuestionId);
 
       setQuestions((currentQuestions) => {
         const nextQuestions = currentQuestions.filter(
@@ -925,15 +910,6 @@ export default function CreateQuestionsManualStep({
   };
 
   const saveQuestions = async (advanceToNextStep: boolean) => {
-    if (!creatorId) {
-      toaster.create({
-        type: "error",
-        title: "Creator not found",
-        description: "Please log in again to continue editing your survey.",
-      });
-      return;
-    }
-
     if (!surveyId) {
       toaster.create({
         type: "error",
@@ -966,7 +942,7 @@ export default function CreateQuestionsManualStep({
       if (advanceToNextStep) {
         try {
           setIsSubmitting(true);
-          const response = await completeQuestionStep(creatorId, surveyId);
+          const response = await completeQuestionStep(surveyId);
           updateStoredDraftStep(surveyId, response.survey.currentStep);
 
           toaster.create({
@@ -1005,7 +981,6 @@ export default function CreateQuestionsManualStep({
 
       for (const question of unsavedQuestions) {
         const payload: CreateManualQuestionPayload = {
-          creatorId,
           surveyId,
           questionText: question.questionText.trim(),
           type: toSurveyQuestionType(question.questionType),
@@ -1026,11 +1001,7 @@ export default function CreateQuestionsManualStep({
         savedQuestionIds.set(question.id, response.question.id);
 
         if (question.replacesSavedQuestionId) {
-          await deleteSurveyQuestion(
-            creatorId,
-            surveyId,
-            question.replacesSavedQuestionId
-          );
+          await deleteSurveyQuestion(surveyId, question.replacesSavedQuestionId);
         }
       }
 
@@ -1040,7 +1011,6 @@ export default function CreateQuestionsManualStep({
           question.questionType === "single-choice";
 
         await updateManualQuestion({
-          creatorId,
           surveyId,
           questionId: question.savedQuestionId as string,
           questionText: question.questionText.trim(),
@@ -1054,7 +1024,7 @@ export default function CreateQuestionsManualStep({
         });
       }
 
-      const latestQuestionsResponse = await getSurveyQuestions(creatorId, surveyId);
+      const latestQuestionsResponse = await getSurveyQuestions(surveyId);
       const refreshedSavedQuestions = latestQuestionsResponse.questions.map(
         toManualQuestion
       );
@@ -1086,7 +1056,7 @@ export default function CreateQuestionsManualStep({
       });
 
       if (advanceToNextStep) {
-        const completionResponse = await completeQuestionStep(creatorId, surveyId);
+        const completionResponse = await completeQuestionStep(surveyId);
         updateStoredDraftStep(surveyId, completionResponse.survey.currentStep);
 
         toaster.create({

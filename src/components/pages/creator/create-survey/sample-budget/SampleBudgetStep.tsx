@@ -26,7 +26,6 @@ import type { ReactNode } from "react";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
 import { toaster } from "@/components/ui/toaster";
-import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import {
   setSampleBudget,
   type BudgetBreakdown,
@@ -276,7 +275,6 @@ export default function SampleBudgetStep({
   onBack,
   onNext,
 }: SampleBudgetStepProps) {
-  const creatorId = getStoredCreatorId();
   const surveyId = getStoredDraftId();
   const storedSampleBudget = getStoredSampleBudget(surveyId);
 
@@ -371,10 +369,6 @@ export default function SampleBudgetStep({
   };
 
   const buildPayload = (): SetSampleBudgetPayload | string => {
-    if (!creatorId) {
-      return "Creator id was not found. Please log in again.";
-    }
-
     if (!surveyId) {
       return "Survey draft was not found. Please complete the previous steps first.";
     }
@@ -398,7 +392,6 @@ export default function SampleBudgetStep({
     }
 
     const payload: SetSampleBudgetPayload = {
-      creatorId,
       surveyId,
       requiredResponses,
       totalBudget,
