@@ -21,8 +21,11 @@ import {
 import { useState } from "react";
 import { logoutUser } from "@/services/authService";
 import { clearStoredAccessToken } from "@/lib/axios";
-import { getStoredParticipantId } from "@/lib/participantIdentity";
-import { getSidebarMenuItems, type SidebarMenuItem } from "@/lib/sidebarMenu";
+import {
+  getSidebarMenuItems,
+  type SidebarArea,
+  type SidebarMenuItem,
+} from "@/lib/sidebarMenu";
 import { getStoredUserRole } from "@/lib/userRole";
 import {
   FiShield,
@@ -30,6 +33,7 @@ import {
 
 type ParticipantSidebarProps = {
   activeItem?: string;
+  area?: SidebarArea;
 };
 
 const PARTICIPANT_VERIFICATION_STATUS_KEY = "participantVerificationStatus";
@@ -172,19 +176,26 @@ function SidebarItemCard({
 
 export default function ParticipantSidebar({
   activeItem = "Dashboard",
+  area = "participant",
 }: ParticipantSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const participantId = getStoredParticipantId();
+  const storedUserId =
+    typeof window === "undefined"
+      ? null
+      : window.localStorage.getItem("userId") ||
+        window.localStorage.getItem("participantId") ||
+        window.localStorage.getItem("creatorId");
   const userRole = getStoredUserRole();
-  const sidebarItems = getSidebarMenuItems("participant", userRole);
+  const sidebarItems = getSidebarMenuItems(area, userRole);
   const verificationStatus = getStoredParticipantVerificationStatus();
-  const shouldShowVerificationNotice = verificationStatus !== "VERIFIED";
+  const shouldShowVerificationNotice =
+    area === "participant" && verificationStatus !== "VERIFIED";
 
   async function handleLogoutConfirm() {
-    if (!participantId) {
+    if (!storedUserId) {
       window.alert("Unable to determine your user identity.");
       return;
     }
@@ -192,7 +203,7 @@ export default function ParticipantSidebar({
     setIsSubmitting(true);
 
     try {
-      await logoutUser({ userId: participantId });
+      await logoutUser({ userId: storedUserId });
       clearStoredAccessToken();
       window.localStorage.removeItem("userId");
       window.localStorage.removeItem("participantId");

@@ -597,12 +597,12 @@ function RightPanel({
 }) {
   return (
     <VStack align="stretch" gap="5">
-      <RecentWithdrawalsCard data={data} />
+      {/* <RecentWithdrawalsCard data={data} />
       <EarningsBreakdownCard
         rows={data.earningsBreakdown}
         currency={currency}
       />
-      <WithdrawalMethodCard data={data} />
+      <WithdrawalMethodCard data={data} /> */}
 
       <Box
         bg="#FFF7D6"
@@ -724,7 +724,7 @@ export default function ParticipantWalletPage() {
       <ParticipantSidebar activeItem="Wallet" />
 
       <Box flex="1" px={{ base: "4", lg: "7" }} py={{ base: "5", lg: "6" }}>
-        <Grid templateColumns={{ base: "1fr", xl: "1fr 360px" }} gap="6">
+        <Grid templateColumns={{ base: "1fr", xl: "1fr" }} gap="6">
           <Box minW="0">
             <Box mb="6">
               <Text

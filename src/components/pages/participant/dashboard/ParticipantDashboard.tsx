@@ -786,7 +786,7 @@ function RightPanel({ data }: { data: ParticipantDashboardData }) {
 
   return (
     <VStack align="stretch" gap="5">
-      <DashboardCard p="5">
+      {/* <DashboardCard p="5">
         <HStack justify="space-between" mb="3">
           <Text fontWeight="bold" color="brand.dark">
             Wallet
@@ -828,9 +828,9 @@ function RightPanel({ data }: { data: ParticipantDashboardData }) {
             {formatMoney(data.wallet.totalWithdrawn, currency)}
           </Text>
         </HStack>
-      </DashboardCard>
+      </DashboardCard> */}
 
-      <VerificationProgress verification={data.verification} />
+      {/* <VerificationProgress verification={data.verification} />
 
       <DashboardCard p="5">
         <HStack justify="space-between" mb="5">
@@ -865,7 +865,7 @@ function RightPanel({ data }: { data: ParticipantDashboardData }) {
             );
           })}
         </VStack>
-      </DashboardCard>
+      </DashboardCard> */}
 
       <DashboardCard p="5">
         <Text fontWeight="bold" color="brand.dark" mb="4">
@@ -1030,7 +1030,7 @@ export default function ParticipantDashboard() {
       <ParticipantSidebar />
 
       <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
-        <Grid templateColumns={{ base: "1fr", xl: "1fr 370px" }} gap="6">
+        <Grid templateColumns={{ base: "1fr", xl: "1fr" }} gap="6">
           <Box minW="0">
             <DashboardCard overflow="hidden" mb="5">
               <Grid templateColumns={{ base: "1fr", lg: "1.2fr 1fr" }}>

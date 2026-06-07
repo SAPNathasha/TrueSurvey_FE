@@ -25,7 +25,7 @@ import {
 } from "react-icons/fi";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-import Sidebar from "@/components/pages/creator/dashboard/Sidebar";
+import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
 import StatusBadge from "@/components/pages/creator/dashboard/StatusBadge";
 import { toaster } from "@/components/ui/toaster";
 import { getStoredCreatorId } from "@/lib/creatorIdentity";
@@ -263,7 +263,7 @@ export default function CreatorSurveysPage() {
 
   return (
     <Box minH="100vh" bg="white" color="brand.dark" display="flex">
-      <Sidebar />
+      <ParticipantSidebar area="creator" />
 
       <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
         <Box maxW="1500px" mx="auto">

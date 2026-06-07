@@ -2,8 +2,8 @@
 
 import { Box, Flex, Grid, SimpleGrid } from "@chakra-ui/react";
 
+import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
 import Hero from "./Hero";
-import Sidebar from "./Sidebar";
 import StatCard from "./StatCard";
 import RightPanel from "./RightPanel";
 import MySurveysTable from "./MySurveysTable";
@@ -14,7 +14,7 @@ import { statCards } from "./dashboardData";
 export default function CreatorDashboard() {
   return (
     <Flex minH="100vh" bg="white" color="brand.dark">
-      <Sidebar />
+      <ParticipantSidebar area="creator" />
 
       <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
         <Grid

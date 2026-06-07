@@ -2,7 +2,7 @@
 
 import { Box, Flex, Grid } from "@chakra-ui/react";
 
-import Sidebar from "@/components/pages/creator/dashboard/Sidebar";
+import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
 import BasicDetailsForm from "./BasicDetailsForm";
 import CreateSurveyStepper from "../shared/CreateSurveyStepper";
 import CreateSurveyRightPanel from "./CreateSurveyRightPanel";
@@ -34,7 +34,7 @@ export default function CreateSurveyBasicDetails() {
 
   return (
     <Flex minH="100vh" bg="white" color="brand.dark">
-      <Sidebar />
+      <ParticipantSidebar area="creator" />
 
       <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
         <Box maxW="1500px" mx="auto">
