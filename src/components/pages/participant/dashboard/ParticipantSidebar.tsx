@@ -7,6 +7,7 @@ import {
   Button,
   DialogBackdrop,
   DialogBody,
+  DialogCloseTrigger,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -302,32 +303,62 @@ export default function ParticipantSidebar({
         open={logoutDialogOpen}
         onOpenChange={(details) => setLogoutDialogOpen(details.open)}
       >
-        <DialogBackdrop />
-        <DialogPositioner>
+        <DialogBackdrop bg="blackAlpha.600" />
+        <DialogPositioner p={{ base: "4", md: "8" }} alignItems="center">
           <DialogContent
             bg="white"
             borderRadius="16px"
             boxShadow="0 10px 30px rgba(15, 23, 42, 0.08)"
-            maxW="420px"
-            mx="auto"
-            p="6"
+            maxW={{ base: "calc(100vw - 32px)", md: "420px" }}
+            w="full"
+            overflow="hidden"
           >
-            <DialogHeader>
-              <DialogTitle>Confirm Logout</DialogTitle>
+            <DialogHeader
+              px="6"
+              py="4"
+              borderBottomWidth="1px"
+              borderColor="brand.border"
+            >
+              <DialogTitle fontSize="lg" fontWeight="bold" color="brand.dark">
+                Confirm Logout
+              </DialogTitle>
             </DialogHeader>
-            <DialogBody mt="4">
-              <Text>Do you want to logout?</Text>
+            <DialogCloseTrigger
+              top="4"
+              right="4"
+              _focus={{ boxShadow: "none" }}
+              _focusVisible={{ boxShadow: "outline" }}
+            />
+            <DialogBody px="6" py="5">
+              <Text color="brand.dark">Do you want to logout?</Text>
             </DialogBody>
-            <DialogFooter mt="6" display="flex" justifyContent="flex-end" gap="3">
+            <DialogFooter
+              px="6"
+              py="4"
+              borderTopWidth="1px"
+              borderColor="brand.border"
+              display="flex"
+              justifyContent="flex-end"
+              gap="3"
+            >
               <Button
                 variant="outline"
+                h="36px"
+                px="4"
+                minW="88px"
                 onClick={() => setLogoutDialogOpen(false)}
                 disabled={isSubmitting}
               >
                 No
               </Button>
               <Button
-                colorScheme="red"
+                h="36px"
+                px="4"
+                minW="112px"
+                bg="red.500"
+                color="white"
+                _hover={{ bg: "red.600" }}
+                _active={{ bg: "red.700" }}
                 onClick={handleLogoutConfirm}
                 loading={isSubmitting}
               >

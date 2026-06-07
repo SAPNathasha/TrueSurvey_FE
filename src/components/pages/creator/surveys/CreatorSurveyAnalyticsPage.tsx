@@ -1065,7 +1065,13 @@ export default function CreatorSurveyAnalyticsPage({
               <HStack justify="space-between" align="start" flexWrap="wrap" gap="4">
                 <Box>
                   <HStack gap="3" mb="3">
-                    <Button asChild variant="outline" size="sm" h="34px">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      h="34px"
+                      px="3.5"
+                    >
                       <NextLink href="/creator/surveys">
                         <FiArrowLeft />
                         Back to Surveys

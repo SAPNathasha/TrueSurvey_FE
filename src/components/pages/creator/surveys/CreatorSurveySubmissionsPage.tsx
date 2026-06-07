@@ -349,7 +349,13 @@ export default function CreatorSurveySubmissionsPage({
               >
                 <Box>
                   <HStack gap="3" mb="3">
-                    <Button asChild variant="outline" size="sm" h="34px">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      h="34px"
+                      px="3.5"
+                    >
                       <NextLink href="/creator/surveys">
                         <FiArrowLeft />
                         Back to Surveys
@@ -525,6 +531,7 @@ export default function CreatorSurveySubmissionsPage({
                                 size="sm"
                                 variant="outline"
                                 h="34px"
+                                px="3.5"
                                 loading={isAccepting}
                                 disabled={Boolean(submissionActionState)}
                                 onClick={() => {
@@ -539,6 +546,7 @@ export default function CreatorSurveySubmissionsPage({
                                 size="sm"
                                 variant="outline"
                                 h="34px"
+                                px="3.5"
                                 colorPalette="red"
                                 loading={isRejecting}
                                 disabled={Boolean(submissionActionState)}
@@ -579,6 +587,7 @@ export default function CreatorSurveySubmissionsPage({
                   variant="outline"
                   size="sm"
                   h="34px"
+                  px="3.5"
                   disabled={isLoading || !data || data.pagination.page <= 1}
                   onClick={() => setPage((current) => Math.max(current - 1, 1))}
                 >
@@ -595,6 +604,7 @@ export default function CreatorSurveySubmissionsPage({
                   variant="outline"
                   size="sm"
                   h="34px"
+                  px="3.5"
                   disabled={
                     isLoading ||
                     !data ||
@@ -802,6 +812,8 @@ export default function CreatorSurveySubmissionsPage({
             >
               <Button
                 variant="outline"
+                h="36px"
+                px="4"
                 onClick={() => {
                   setIsSubmissionModalOpen(false);
                   setSelectedSubmission(null);

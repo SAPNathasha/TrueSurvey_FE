@@ -543,7 +543,7 @@ export default function CreatorSurveysPage() {
             <HStack justify="space-between" p="5" flexWrap="wrap" gap="4">
               <Text textStyle="smallText">{paginationText}</Text>
 
-              <Button variant="outline" size="sm" h="34px" disabled>
+              <Button variant="outline" size="sm" h="34px" px="3.5" disabled>
                 <FiChevronLeft />
                 Latest {limit}
               </Button>
