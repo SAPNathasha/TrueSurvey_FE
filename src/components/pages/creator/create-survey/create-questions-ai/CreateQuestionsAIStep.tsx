@@ -12,6 +12,7 @@ import {
   Badge,
   Box,
   Button,
+  Field,
   Grid,
   HStack,
   Input,
@@ -19,8 +20,10 @@ import {
   Textarea,
   VStack,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FiArrowLeft, FiArrowRight, FiRefreshCw, FiSave } from "react-icons/fi";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 
 type CreateQuestionsAIStepProps = {
   defaultTitle: string;
@@ -47,6 +50,33 @@ const questionTypeLabels: Record<SurveyQuestionType, string> = {
   RATING_SCALE: "Rating Scale",
   YES_NO: "Yes / No",
 };
+
+type AiQuestionFormValues = {
+  surveyTitle: string;
+  description: string;
+  questionCount: string;
+};
+
+const aiQuestionSchema = Yup.object({
+  surveyTitle: Yup.string()
+    .trim()
+    .max(150, "Survey title must be 150 characters or fewer.")
+    .required("Survey title is required."),
+  description: Yup.string()
+    .trim()
+    .max(1000, "Description must be 1000 characters or fewer.")
+    .required("Description is required."),
+  questionCount: Yup.string()
+    .required("Max number of questions is required.")
+    .test(
+      "question-count",
+      "Choose a question count between 1 and 50.",
+      (value) => {
+        const numericValue = Number(value);
+        return Number.isInteger(numericValue) && numericValue >= 1 && numericValue <= 50;
+      }
+    ),
+});
 
 function getStoredDraftId() {
   if (typeof window === "undefined") {
@@ -140,27 +170,40 @@ export default function CreateQuestionsAIStep({
 }: CreateQuestionsAIStepProps) {
   const storedAiDraft = getStoredAiQuestionDraft();
   const surveyId = getStoredDraftId();
-  const [surveyTitle, setSurveyTitle] = useState(
-    storedAiDraft?.surveyTitle || defaultTitle
-  );
-  const [description, setDescription] = useState(
-    storedAiDraft?.description || defaultDescription
-  );
-  const [questionCount, setQuestionCount] = useState(
-    String(storedAiDraft?.maxNumberOfQuestions ?? defaultQuestionCount)
-  );
   const [questions, setQuestions] = useState<GenerateAiQuestionItem[]>(
     storedAiDraft?.questions ?? []
   );
   const [isGenerating, setIsGenerating] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
+  const submitActionRef = useRef<"generate" | "continue">("generate");
+  const formik = useFormik<AiQuestionFormValues>({
+    initialValues: {
+      surveyTitle: storedAiDraft?.surveyTitle || defaultTitle,
+      description: storedAiDraft?.description || defaultDescription,
+      questionCount: String(
+        storedAiDraft?.maxNumberOfQuestions ?? defaultQuestionCount
+      ),
+    },
+    validationSchema: aiQuestionSchema,
+    onSubmit: async (values) => {
+      if (submitActionRef.current === "generate") {
+        await generateQuestions(values);
+        return;
+      }
 
-  const persistCurrentDraft = () => {
-    const parsedQuestionCount = Number(questionCount);
+      await continueToTargetAudience(values);
+    },
+  });
+
+  const shouldShowError = (field: keyof AiQuestionFormValues) =>
+    Boolean(formik.errors[field] && (formik.touched[field] || formik.submitCount > 0));
+
+  const persistCurrentDraft = (values: AiQuestionFormValues = formik.values) => {
+    const parsedQuestionCount = Number(values.questionCount);
 
     persistAiQuestionDraft({
-      surveyTitle: surveyTitle.trim(),
-      description: description.trim(),
+      surveyTitle: values.surveyTitle.trim(),
+      description: values.description.trim(),
       maxNumberOfQuestions: Number.isFinite(parsedQuestionCount)
         ? parsedQuestionCount
         : defaultQuestionCount,
@@ -168,7 +211,7 @@ export default function CreateQuestionsAIStep({
     });
   };
 
-  const handleGenerateQuestions = async () => {
+  const generateQuestions = async (values: AiQuestionFormValues) => {
     if (!surveyId) {
       toaster.create({
         type: "error",
@@ -178,40 +221,9 @@ export default function CreateQuestionsAIStep({
       return;
     }
 
-    const trimmedTitle = surveyTitle.trim();
-    const trimmedDescription = description.trim();
-    const parsedQuestionCount = Number(questionCount);
-
-    if (!trimmedTitle) {
-      toaster.create({
-        type: "error",
-        title: "Survey title is required",
-        description: "Add a title so AI can generate relevant questions.",
-      });
-      return;
-    }
-
-    if (!trimmedDescription) {
-      toaster.create({
-        type: "error",
-        title: "Description is required",
-        description: "Add a short description to guide the AI generation.",
-      });
-      return;
-    }
-
-    if (
-      !Number.isInteger(parsedQuestionCount) ||
-      parsedQuestionCount < 1 ||
-      parsedQuestionCount > 50
-    ) {
-      toaster.create({
-        type: "error",
-        title: "Invalid question count",
-        description: "Choose a question count between 1 and 50.",
-      });
-      return;
-    }
+    const trimmedTitle = values.surveyTitle.trim();
+    const trimmedDescription = values.description.trim();
+    const parsedQuestionCount = Number(values.questionCount);
 
     try {
       setIsGenerating(true);
@@ -227,7 +239,6 @@ export default function CreateQuestionsAIStep({
         (left, right) => left.order - right.order
       );
 
-      setSurveyTitle(response.surveyTitle || trimmedTitle);
       setQuestions(nextQuestions);
 
       persistAiQuestionDraft({
@@ -236,6 +247,7 @@ export default function CreateQuestionsAIStep({
         maxNumberOfQuestions: parsedQuestionCount,
         questions: nextQuestions,
       });
+      formik.setFieldValue("surveyTitle", response.surveyTitle || trimmedTitle, false);
 
       toaster.create({
         type: "success",
@@ -257,7 +269,7 @@ export default function CreateQuestionsAIStep({
   };
 
   const handleSaveDraft = () => {
-    persistCurrentDraft();
+    persistCurrentDraft(formik.values);
 
     toaster.create({
       type: "success",
@@ -266,7 +278,7 @@ export default function CreateQuestionsAIStep({
     });
   };
 
-  const handleContinue = async () => {
+  const continueToTargetAudience = async (values: AiQuestionFormValues) => {
     if (!surveyId) {
       toaster.create({
         type: "error",
@@ -287,7 +299,7 @@ export default function CreateQuestionsAIStep({
 
     try {
       setIsContinuing(true);
-      persistCurrentDraft();
+      persistCurrentDraft(values);
 
       const response = await completeQuestionStep(surveyId);
       updateStoredDraftStep(surveyId, response.survey.currentStep);
@@ -307,6 +319,16 @@ export default function CreateQuestionsAIStep({
     }
   };
 
+  const handleGenerateQuestions = async () => {
+    submitActionRef.current = "generate";
+    await formik.submitForm();
+  };
+
+  const handleContinue = async () => {
+    submitActionRef.current = "continue";
+    await formik.submitForm();
+  };
+
   return (
     <VStack align="stretch" gap="6">
       <DashboardCard>
@@ -322,49 +344,58 @@ export default function CreateQuestionsAIStep({
           </Box>
 
           <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap="5">
-            <Box>
-              <Text mb="2" fontSize="sm" fontWeight="semibold" color="brand.dark">
+            <Field.Root invalid={shouldShowError("surveyTitle")}>
+              <Field.Label mb="2" fontSize="sm" fontWeight="semibold" color="brand.dark">
                 Survey Title
-              </Text>
+              </Field.Label>
               <Input
-                value={surveyTitle}
-                onChange={(event) => setSurveyTitle(event.target.value)}
+                name="surveyTitle"
+                value={formik.values.surveyTitle}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="Customer Satisfaction Survey"
                 borderColor="#D9E2F2"
                 bg="white"
               />
-            </Box>
+              <Field.ErrorText>{formik.errors.surveyTitle}</Field.ErrorText>
+            </Field.Root>
 
-            <Box>
-              <Text mb="2" fontSize="sm" fontWeight="semibold" color="brand.dark">
+            <Field.Root invalid={shouldShowError("questionCount")}>
+              <Field.Label mb="2" fontSize="sm" fontWeight="semibold" color="brand.dark">
                 Max Number of Questions
-              </Text>
+              </Field.Label>
               <Input
+                name="questionCount"
                 type="number"
                 min={1}
                 max={50}
-                value={questionCount}
-                onChange={(event) => setQuestionCount(event.target.value)}
+                value={formik.values.questionCount}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 borderColor="#D9E2F2"
                 bg="white"
               />
-            </Box>
+              <Field.ErrorText>{formik.errors.questionCount}</Field.ErrorText>
+            </Field.Root>
           </Grid>
 
-          <Box>
-            <Text mb="2" fontSize="sm" fontWeight="semibold" color="brand.dark">
+          <Field.Root invalid={shouldShowError("description")}>
+            <Field.Label mb="2" fontSize="sm" fontWeight="semibold" color="brand.dark">
               Survey Description
-            </Text>
+            </Field.Label>
             <Textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
+              name="description"
+              value={formik.values.description}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               placeholder="Describe the purpose of this survey and what you want to learn."
               minH="140px"
               resize="vertical"
               borderColor="#D9E2F2"
               bg="white"
             />
-          </Box>
+            <Field.ErrorText>{formik.errors.description}</Field.ErrorText>
+          </Field.Root>
 
           <HStack justify="space-between" flexWrap="wrap" gap="3">
             <Text fontSize="sm" color="brand.mutedText">
@@ -376,7 +407,9 @@ export default function CreateQuestionsAIStep({
               color="white"
               _hover={{ bg: "brand.primary" }}
               loading={isGenerating}
-              onClick={handleGenerateQuestions}
+              onClick={() => {
+                void handleGenerateQuestions();
+              }}
             >
               <FiRefreshCw />
               Generate Questions with AI
@@ -501,7 +534,9 @@ export default function CreateQuestionsAIStep({
             color="white"
             _hover={{ bg: "brand.primary" }}
             loading={isContinuing}
-            onClick={handleContinue}
+            onClick={() => {
+              void handleContinue();
+            }}
           >
             Continue to Target Audience
             <FiArrowRight />

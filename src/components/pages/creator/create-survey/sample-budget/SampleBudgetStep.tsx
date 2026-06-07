@@ -3,6 +3,7 @@
 import {
   Box,
   Button,
+  Field,
   Grid,
   HStack,
   Input,
@@ -10,7 +11,8 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
+import { useFormik } from "formik";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   FiArrowLeft,
   FiArrowRight,
@@ -22,7 +24,7 @@ import {
   FiShield,
   FiUsers,
 } from "react-icons/fi";
-import type { ReactNode } from "react";
+import * as Yup from "yup";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
 import { toaster } from "@/components/ui/toaster";
@@ -56,6 +58,77 @@ const initialValues: SampleBudgetFormValues = {
   totalBudget: "100000",
   rewardPerParticipant: "180",
 };
+
+const sampleBudgetSchema = Yup.object({
+  inputMode: Yup.mixed<BudgetInputMode>()
+    .oneOf(["TOTAL_BUDGET", "PER_PARTICIPANT"])
+    .required(),
+  requiredResponses: Yup.string()
+    .required("Required responses is required.")
+    .test(
+      "required-responses",
+      "Required responses must be greater than 0.",
+      (value) => {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) && numericValue > 0;
+      }
+    ),
+  totalBudget: Yup.string().when("inputMode", {
+    is: "TOTAL_BUDGET",
+    then: (schema) =>
+      schema
+        .required("Total budget is required.")
+        .test("total-budget", "Total budget must be greater than 0.", (value) => {
+          const numericValue = Number(value);
+          return Number.isFinite(numericValue) && numericValue > 0;
+        })
+        .test(
+          "minimum-reward-from-budget",
+          `Minimum reward per participant is Rs ${MINIMUM_REWARD_PER_PARTICIPANT}.`,
+          function (value) {
+            const numericBudget = Number(value);
+            const responses = Number(this.parent.requiredResponses);
+
+            if (!Number.isFinite(numericBudget) || numericBudget <= 0) {
+              return true;
+            }
+
+            if (!Number.isFinite(responses) || responses <= 0) {
+              return true;
+            }
+
+            const commissionAmount =
+              (numericBudget * PLATFORM_COMMISSION_PERCENTAGE) / 100;
+            const participantRewardBudget = Math.max(
+              numericBudget - commissionAmount,
+              0
+            );
+            const rewardPerParticipant = participantRewardBudget / responses;
+
+            return rewardPerParticipant >= MINIMUM_REWARD_PER_PARTICIPANT;
+          }
+        ),
+    otherwise: (schema) => schema,
+  }),
+  rewardPerParticipant: Yup.string().when("inputMode", {
+    is: "PER_PARTICIPANT",
+    then: (schema) =>
+      schema
+        .required("Amount per participant is required.")
+        .test(
+          "reward-per-participant",
+          `Minimum reward per participant is Rs ${MINIMUM_REWARD_PER_PARTICIPANT}.`,
+          (value) => {
+            const numericValue = Number(value);
+            return (
+              Number.isFinite(numericValue) &&
+              numericValue >= MINIMUM_REWARD_PER_PARTICIPANT
+            );
+          }
+        ),
+    otherwise: (schema) => schema,
+  }),
+});
 
 function getStoredDraftId() {
   if (typeof window === "undefined") {
@@ -135,7 +208,15 @@ function updateStoredDraftStep(surveyId: string, currentStep: string) {
   }
 }
 
-function parseNumber(value: string) {
+function parseNumber(value: string | number | null | undefined) {
+  if (typeof value === "number") {
+    return Number.isNaN(value) ? 0 : value;
+  }
+
+  if (typeof value !== "string") {
+    return 0;
+  }
+
   const cleanedValue = value.replace(/,/g, "").trim();
   const numberValue = Number(cleanedValue);
 
@@ -277,10 +358,14 @@ export default function SampleBudgetStep({
 }: SampleBudgetStepProps) {
   const surveyId = getStoredDraftId();
   const storedSampleBudget = getStoredSampleBudget(surveyId);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formValues, setFormValues] = useState<SampleBudgetFormValues>(
-    storedSampleBudget
+  const [serverBreakdown, setServerBreakdown] = useState<BudgetBreakdown | null>(
+    storedSampleBudget?.budgetBreakdown ?? null
+  );
+  const submitActionRef = useRef<"draft" | "next">("next");
+
+  const formik = useFormik<SampleBudgetFormValues>({
+    initialValues: storedSampleBudget
       ? {
           inputMode: storedSampleBudget.inputMode || initialValues.inputMode,
           requiredResponses:
@@ -290,16 +375,17 @@ export default function SampleBudgetStep({
             storedSampleBudget.rewardPerParticipant ||
             initialValues.rewardPerParticipant,
         }
-      : initialValues
-  );
-  const [serverBreakdown, setServerBreakdown] = useState<BudgetBreakdown | null>(
-    storedSampleBudget?.budgetBreakdown ?? null
-  );
+      : initialValues,
+    validationSchema: sampleBudgetSchema,
+    onSubmit: async (values) => {
+      await submitSampleBudget(values, submitActionRef.current === "next");
+    },
+  });
 
   const calculations = useMemo(() => {
     if (serverBreakdown !== null) {
       return {
-        inputMode: formValues.inputMode,
+        inputMode: formik.values.inputMode,
         responses: serverBreakdown.requiredResponses,
         budget: serverBreakdown.totalBudget,
         commissionPercentage: serverBreakdown.platformCommissionPercentage,
@@ -313,15 +399,15 @@ export default function SampleBudgetStep({
       };
     }
 
-    const responses = parseNumber(formValues.requiredResponses);
+    const responses = parseNumber(formik.values.requiredResponses);
     const commissionPercentage = PLATFORM_COMMISSION_PERCENTAGE;
 
-    let budget = parseNumber(formValues.totalBudget);
+    let budget = parseNumber(formik.values.totalBudget);
     let participantRewardBudget = 0;
     let rewardPerParticipant = 0;
 
-    if (formValues.inputMode === "PER_PARTICIPANT") {
-      rewardPerParticipant = parseNumber(formValues.rewardPerParticipant);
+    if (formik.values.inputMode === "PER_PARTICIPANT") {
+      rewardPerParticipant = parseNumber(formik.values.rewardPerParticipant);
       participantRewardBudget = responses > 0 ? responses * rewardPerParticipant : 0;
       budget =
         participantRewardBudget > 0
@@ -335,11 +421,10 @@ export default function SampleBudgetStep({
     }
 
     const commissionAmount = Math.max(budget - participantRewardBudget, 0);
-
     const participantRewardPercent = Math.max(100 - commissionPercentage, 0);
 
     return {
-      inputMode: formValues.inputMode,
+      inputMode: formik.values.inputMode,
       responses,
       budget,
       commissionPercentage,
@@ -348,33 +433,31 @@ export default function SampleBudgetStep({
       rewardPerParticipant,
       participantRewardPercent,
     };
-  }, [formValues, serverBreakdown]);
+  }, [formik.values, serverBreakdown]);
 
-  const minimumRewardError =
-    calculations.responses > 0 &&
-    calculations.rewardPerParticipant > 0 &&
-    calculations.rewardPerParticipant < MINIMUM_REWARD_PER_PARTICIPANT
-      ? `Minimum reward per participant is Rs ${MINIMUM_REWARD_PER_PARTICIPANT}.`
-      : null;
+  const shouldShowError = (field: keyof SampleBudgetFormValues) =>
+    Boolean(formik.errors[field] && (formik.touched[field] || formik.submitCount > 0));
 
-  const setFieldValue = <K extends keyof SampleBudgetFormValues>(
+  const setFormValue = <K extends keyof SampleBudgetFormValues>(
     field: K,
     value: SampleBudgetFormValues[K]
   ) => {
     setServerBreakdown(null);
-    setFormValues((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    void formik.setFieldValue(field, value);
   };
 
-  const buildPayload = (): SetSampleBudgetPayload | string => {
+  const buildPayload = (
+    values: SampleBudgetFormValues
+  ): SetSampleBudgetPayload | string => {
     if (!surveyId) {
       return "Survey draft was not found. Please complete the previous steps first.";
     }
 
-    const requiredResponses = Number(formValues.requiredResponses.trim());
-    const totalBudget = calculations.budget;
+    const requiredResponses = parseNumber(values.requiredResponses);
+    const totalBudget =
+      values.inputMode === "PER_PARTICIPANT"
+        ? calculations.budget
+        : parseNumber(values.totalBudget);
 
     if (!Number.isFinite(requiredResponses) || requiredResponses <= 0) {
       return "Required responses must be greater than 0.";
@@ -391,19 +474,20 @@ export default function SampleBudgetStep({
       return `Minimum reward per participant is Rs ${MINIMUM_REWARD_PER_PARTICIPANT}.`;
     }
 
-    const payload: SetSampleBudgetPayload = {
+    return {
       surveyId,
       requiredResponses,
       totalBudget,
       platformCommissionPercentage: PLATFORM_COMMISSION_PERCENTAGE,
       currency: "LKR",
     };
-
-    return payload;
   };
 
-  const submitSampleBudget = async (advanceToNextStep: boolean) => {
-    const payload = buildPayload();
+  const submitSampleBudget = async (
+    values: SampleBudgetFormValues,
+    advanceToNextStep: boolean
+  ) => {
+    const payload = buildPayload(values);
 
     if (typeof payload === "string") {
       toaster.create({
@@ -418,7 +502,7 @@ export default function SampleBudgetStep({
       setIsSubmitting(true);
       const response = await setSampleBudget(payload);
       setServerBreakdown(response.budgetBreakdown);
-      persistSampleBudget(payload.surveyId, formValues, response.budgetBreakdown);
+      persistSampleBudget(payload.surveyId, values, response.budgetBreakdown);
       updateStoredDraftStep(payload.surveyId, response.survey.currentStep);
 
       toaster.create({
@@ -479,49 +563,49 @@ export default function SampleBudgetStep({
             </Text>
 
             <VStack align="stretch" gap="5">
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
+              <Field.Root invalid={shouldShowError("inputMode")}>
+                <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                   Budget Calculation Method
-                </Text>
+                </Field.Label>
 
                 <NativeSelect.Root>
                   <NativeSelect.Field
-                    value={formValues.inputMode}
+                    name="inputMode"
+                    value={formik.values.inputMode}
                     onChange={(event) =>
-                      setFieldValue(
+                      setFormValue(
                         "inputMode",
                         event.target.value as BudgetInputMode
                       )
                     }
+                    onBlur={formik.handleBlur}
                     h="46px"
                     borderColor="brand.border"
                     px={3}
                   >
                     <option value="TOTAL_BUDGET">Total budget</option>
-                    <option value="PER_PARTICIPANT">
-                      Amount per participant
-                    </option>
+                    <option value="PER_PARTICIPANT">Amount per participant</option>
                   </NativeSelect.Field>
                   <NativeSelect.Indicator />
                 </NativeSelect.Root>
-
                 <Text fontSize="sm" color="brand.mutedText" mt="2">
                   Choose whether you want to calculate from the full campaign
                   budget or from the participant payout amount.
                 </Text>
-              </Box>
+                <Field.ErrorText>{formik.errors.inputMode}</Field.ErrorText>
+              </Field.Root>
 
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
+              <Field.Root invalid={shouldShowError("requiredResponses")}>
+                <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                   Required Number of Responses
-                </Text>
+                </Field.Label>
 
                 <Input
+                  name="requiredResponses"
                   type="number"
-                  value={formValues.requiredResponses}
-                  onChange={(event) =>
-                    setFieldValue("requiredResponses", event.target.value)
-                  }
+                  value={formik.values.requiredResponses}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   h="46px"
                   borderColor="brand.border"
                   px="4"
@@ -534,29 +618,39 @@ export default function SampleBudgetStep({
                 <Text fontSize="sm" color="brand.mutedText" mt="2">
                   How many completed responses do you want to collect?
                 </Text>
-              </Box>
+                <Field.ErrorText>{formik.errors.requiredResponses}</Field.ErrorText>
+              </Field.Root>
 
-              <Box>
-                <Text fontSize="sm" fontWeight="semibold" mb="2">
-                  {formValues.inputMode === "TOTAL_BUDGET"
+              <Field.Root
+                invalid={Boolean(
+                  (formik.values.inputMode === "TOTAL_BUDGET"
+                    ? formik.errors.totalBudget
+                    : formik.errors.rewardPerParticipant) &&
+                    ((formik.values.inputMode === "TOTAL_BUDGET"
+                      ? formik.touched.totalBudget
+                      : formik.touched.rewardPerParticipant) ||
+                      formik.submitCount > 0)
+                )}
+              >
+                <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
+                  {formik.values.inputMode === "TOTAL_BUDGET"
                     ? "Total Budget (LKR)"
                     : "Amount per Participant (LKR)"}
-                </Text>
+                </Field.Label>
 
                 <Input
+                  name={
+                    formik.values.inputMode === "TOTAL_BUDGET"
+                      ? "totalBudget"
+                      : "rewardPerParticipant"
+                  }
                   value={
-                    formValues.inputMode === "TOTAL_BUDGET"
-                      ? formValues.totalBudget
-                      : formValues.rewardPerParticipant
+                    formik.values.inputMode === "TOTAL_BUDGET"
+                      ? formik.values.totalBudget
+                      : formik.values.rewardPerParticipant
                   }
-                  onChange={(event) =>
-                    setFieldValue(
-                      formValues.inputMode === "TOTAL_BUDGET"
-                        ? "totalBudget"
-                        : "rewardPerParticipant",
-                      event.target.value
-                    )
-                  }
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                   h="46px"
                   borderColor="brand.border"
                   px="4"
@@ -567,17 +661,17 @@ export default function SampleBudgetStep({
                 />
 
                 <Text fontSize="sm" color="brand.mutedText" mt="2">
-                  {formValues.inputMode === "TOTAL_BUDGET"
+                  {formik.values.inputMode === "TOTAL_BUDGET"
                     ? "The total amount you plan to spend for this survey."
                     : "The amount each participant should receive after platform commission is excluded."}
                 </Text>
 
-                {minimumRewardError && (
-                  <Text fontSize="sm" color="red.500" mt="2" fontWeight="medium">
-                    {minimumRewardError}
-                  </Text>
-                )}
-              </Box>
+                <Field.ErrorText>
+                  {formik.values.inputMode === "TOTAL_BUDGET"
+                    ? formik.errors.totalBudget
+                    : formik.errors.rewardPerParticipant}
+                </Field.ErrorText>
+              </Field.Root>
             </VStack>
           </Box>
 
@@ -636,7 +730,7 @@ export default function SampleBudgetStep({
               fontWeight="semibold"
               textAlign="center"
             >
-              {formValues.inputMode === "TOTAL_BUDGET"
+              {formik.values.inputMode === "TOTAL_BUDGET"
                 ? "(Total Budget - Commission Amount) / Required Responses = Reward per Participant"
                 : "(Required Responses x Amount per Participant) + 10% platform commission = Total Budget"}
             </Box>
@@ -769,7 +863,8 @@ export default function SampleBudgetStep({
           h="46px"
           variant="outline"
           onClick={() => {
-            void submitSampleBudget(false);
+            submitActionRef.current = "draft";
+            void formik.submitForm();
           }}
           loading={isSubmitting}
         >
@@ -781,7 +876,8 @@ export default function SampleBudgetStep({
           h="46px"
           color="white"
           onClick={() => {
-            void submitSampleBudget(true);
+            submitActionRef.current = "next";
+            void formik.submitForm();
           }}
           loading={isSubmitting}
         >

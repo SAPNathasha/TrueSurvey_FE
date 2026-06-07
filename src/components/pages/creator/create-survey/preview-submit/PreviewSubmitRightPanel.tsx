@@ -9,6 +9,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   FiCheckCircle,
@@ -217,6 +218,7 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 export default function PreviewSubmitRightPanel({
   selectedMethod,
 }: PreviewSubmitRightPanelProps) {
+  const router = useRouter();
   const surveyId = getStoredDraftId();
   const missingDraftError =
     !surveyId
@@ -401,9 +403,11 @@ export default function PreviewSubmitRightPanel({
             ? "Survey saved as draft"
             : publishOptionValue === "SCHEDULE"
               ? "Survey scheduled"
-              : "Survey published",
+            : "Survey published",
         description: response.message,
       });
+
+      router.push("/creator/surveys");
     } catch (publishError) {
       toaster.create({
         type: "error",
@@ -490,7 +494,7 @@ export default function PreviewSubmitRightPanel({
             onSelect={setPublishOption}
           />
 
-          <PublishOptionCard
+          {/* <PublishOptionCard
             value="later"
             selected={publishOption}
             title="Schedule for later"
@@ -506,7 +510,7 @@ export default function PreviewSubmitRightPanel({
                 borderColor="brand.border"
               />
             </Box>
-          </PublishOptionCard>
+          </PublishOptionCard> */}
 
           <PublishOptionCard
             value="draft"

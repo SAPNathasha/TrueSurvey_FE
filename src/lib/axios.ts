@@ -48,6 +48,58 @@ function redirectToLogin() {
   window.location.href = "/login";
 }
 
+function extractResponseMessage(payload: unknown): string | null {
+  if (typeof payload === "string" && payload.trim().length > 0) {
+    return payload;
+  }
+
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const responsePayload = payload as Record<string, unknown>;
+  const message = responsePayload.message;
+
+  if (typeof message === "string" && message.trim().length > 0) {
+    return message;
+  }
+
+  if (Array.isArray(message)) {
+    const normalizedMessages = message.filter(
+      (item): item is string => typeof item === "string" && item.trim().length > 0
+    );
+
+    if (normalizedMessages.length > 0) {
+      return normalizedMessages.join(" ");
+    }
+  }
+
+  const errorText = responsePayload.error;
+
+  if (typeof errorText === "string" && errorText.trim().length > 0) {
+    return errorText;
+  }
+
+  return null;
+}
+
+function normalizeApiError(error: unknown) {
+  if (!axios.isAxiosError(error)) {
+    return error;
+  }
+
+  const backendMessage = extractResponseMessage(error.response?.data);
+
+  if (!backendMessage) {
+    return error;
+  }
+
+  const normalizedError = new Error(backendMessage);
+  normalizedError.name = error.name;
+
+  return normalizedError;
+}
+
 function extractAccessToken(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") {
     return null;
@@ -145,13 +197,13 @@ api.interceptors.response.use(
     const status = error.response?.status;
 
     if (!originalRequest || status !== 401 || originalRequest._retry) {
-      return Promise.reject(error);
+      return Promise.reject(normalizeApiError(error));
     }
 
     if (originalRequest.url?.includes(REFRESH_ENDPOINT)) {
       clearStoredAccessToken();
       redirectToLogin();
-      return Promise.reject(error);
+      return Promise.reject(normalizeApiError(error));
     }
 
     originalRequest._retry = true;
@@ -166,7 +218,7 @@ api.interceptors.response.use(
     } catch (refreshError) {
       clearStoredAccessToken();
       redirectToLogin();
-      return Promise.reject(refreshError);
+      return Promise.reject(normalizeApiError(refreshError));
     }
   }
 );

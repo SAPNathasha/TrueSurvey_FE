@@ -3,13 +3,15 @@
 import {
   Box,
   Button,
+  Field,
   Grid,
   HStack,
   Input,
   NativeSelect,
   Text,
 } from "@chakra-ui/react";
-import { useEffect, useMemo, useState } from "react";
+import { useFormik } from "formik";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   FiArrowLeft,
   FiArrowRight,
@@ -21,6 +23,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { LuGraduationCap } from "react-icons/lu";
+import * as Yup from "yup";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
 import { toaster } from "@/components/ui/toaster";
@@ -39,7 +42,7 @@ type TargetAudienceStepProps = {
 };
 
 type AudienceTagProps = {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   bg: string;
   color: string;
@@ -64,9 +67,9 @@ const initialValues: TargetAudienceFormValues = {
   maximumAge: "45",
   gender: "ALL",
   city: "Colombo",
-  educationLevel: "Undergraduate / Bachelor's Degree",
-  district: "Colombo District",
-  occupation: "Executive / Student / Any",
+  educationLevel: "Any education level",
+  district: "Any district",
+  occupation: "Any",
   sampleBase: "VERIFIED_USERS_ONLY",
 };
 
@@ -84,6 +87,67 @@ const sampleBaseLabels: Record<SurveyAudienceType, string> = {
   EMPLOYEES: "Employees",
   VERIFIED_USERS_ONLY: "Verified users only",
 };
+
+const targetAudienceSchema = Yup.object({
+  minimumAge: Yup.string().test(
+    "minimum-age",
+    "Minimum age must be a whole number between 13 and 100.",
+    (value) => {
+      if (!value?.trim()) {
+        return true;
+      }
+
+      const numericValue = Number(value);
+      return Number.isInteger(numericValue) && numericValue >= 13 && numericValue <= 100;
+    }
+  ),
+  maximumAge: Yup.string()
+    .test(
+      "maximum-age",
+      "Maximum age must be a whole number between 13 and 100.",
+      (value) => {
+        if (!value?.trim()) {
+          return true;
+        }
+
+        const numericValue = Number(value);
+        return Number.isInteger(numericValue) && numericValue >= 13 && numericValue <= 100;
+      }
+    )
+    .test(
+      "maximum-greater-than-minimum",
+      "Minimum age cannot be greater than maximum age.",
+      function (value) {
+        const minimumAge = this.parent.minimumAge?.trim();
+        const maximumAge = value?.trim();
+
+        if (!minimumAge || !maximumAge) {
+          return true;
+        }
+
+        return Number(minimumAge) <= Number(maximumAge);
+      }
+    ),
+  gender: Yup.mixed<AudienceGender>()
+    .oneOf(["ALL", "MALE", "FEMALE", "OTHER"])
+    .required(),
+  city: Yup.string().max(100, "City must be 100 characters or fewer."),
+  district: Yup.string().max(100, "District must be 100 characters or fewer."),
+  educationLevel: Yup.string().max(
+    150,
+    "Education level must be 150 characters or fewer."
+  ),
+  occupation: Yup.string().max(150, "Occupation must be 150 characters or fewer."),
+  sampleBase: Yup.mixed<SurveyAudienceType>()
+    .oneOf([
+      "GENERAL",
+      "CUSTOMERS",
+      "VISITORS",
+      "EMPLOYEES",
+      "VERIFIED_USERS_ONLY",
+    ])
+    .required("Sample base is required."),
+});
 
 function getStoredDraftId() {
   if (typeof window === "undefined") {
@@ -200,11 +264,15 @@ export default function TargetAudienceStep({
 }: TargetAudienceStepProps) {
   const surveyId = getStoredDraftId();
   const storedAudience = getStoredTargetAudience(surveyId);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingEstimatedReach, setIsCheckingEstimatedReach] = useState(false);
-  const [formValues, setFormValues] = useState<TargetAudienceFormValues>(
-    storedAudience
+  const [serverEstimatedReach, setServerEstimatedReach] = useState<number | null>(
+    storedAudience?.estimatedReach ?? null
+  );
+  const submitActionRef = useRef<"draft" | "next">("next");
+
+  const formik = useFormik<TargetAudienceFormValues>({
+    initialValues: storedAudience
       ? {
           minimumAge: storedAudience.minimumAge || initialValues.minimumAge,
           maximumAge: storedAudience.maximumAge || initialValues.maximumAge,
@@ -216,97 +284,110 @@ export default function TargetAudienceStep({
           occupation: storedAudience.occupation || initialValues.occupation,
           sampleBase: storedAudience.sampleBase || initialValues.sampleBase,
         }
-      : initialValues
-  );
-  const [serverEstimatedReach, setServerEstimatedReach] = useState<number | null>(
-    storedAudience?.estimatedReach ?? null
-  );
+      : initialValues,
+    validationSchema: targetAudienceSchema,
+    onSubmit: async (values) => {
+      await submitTargetAudience(values, submitActionRef.current === "next");
+    },
+  });
 
   const estimatedReach = useMemo(() => {
-    if (serverEstimatedReach !== null) {
+    if (typeof serverEstimatedReach === "number") {
       return serverEstimatedReach.toLocaleString();
     }
 
     let reach = 2400;
 
-    if (formValues.sampleBase === "CUSTOMERS") reach -= 450;
-    if (formValues.sampleBase === "VISITORS") reach -= 350;
-    if (formValues.sampleBase === "EMPLOYEES") reach -= 600;
-    if (formValues.sampleBase === "VERIFIED_USERS_ONLY") reach -= 900;
-    if (formValues.gender !== "ALL") reach -= 250;
-    if (formValues.city.trim() && formValues.city.trim().toLowerCase() !== "any city") {
+    if (formik.values.sampleBase === "CUSTOMERS") reach -= 450;
+    if (formik.values.sampleBase === "VISITORS") reach -= 350;
+    if (formik.values.sampleBase === "EMPLOYEES") reach -= 600;
+    if (formik.values.sampleBase === "VERIFIED_USERS_ONLY") reach -= 900;
+    if (formik.values.gender !== "ALL") reach -= 250;
+    if (
+      formik.values.city.trim() &&
+      formik.values.city.trim().toLowerCase() !== "any city"
+    ) {
       reach -= 300;
     }
     if (
-      formValues.educationLevel &&
-      formValues.educationLevel !== "Any education level"
+      formik.values.educationLevel &&
+      formik.values.educationLevel !== "Any education level"
     ) {
       reach -= 180;
     }
 
     return Math.max(reach, 500).toLocaleString();
-  }, [formValues, serverEstimatedReach]);
+  }, [formik.values, serverEstimatedReach]);
 
-  const setFieldValue = <K extends keyof TargetAudienceFormValues>(
+  const shouldShowError = (field: keyof TargetAudienceFormValues) =>
+    Boolean(formik.errors[field] && (formik.touched[field] || formik.submitCount > 0));
+
+  const setFormValue = <K extends keyof TargetAudienceFormValues>(
     field: K,
     value: TargetAudienceFormValues[K]
   ) => {
     setServerEstimatedReach(null);
-    setFormValues((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    void formik.setFieldValue(field, value);
   };
 
-  const buildTargetAudiencePayload = (): SetTargetAudiencePayload | string => {
+  const markAllFieldsTouched = () => {
+    formik.setTouched({
+      minimumAge: true,
+      maximumAge: true,
+      gender: true,
+      city: true,
+      educationLevel: true,
+      district: true,
+      occupation: true,
+      sampleBase: true,
+    });
+  };
+
+  const validateAudienceForm = async (showFieldErrors: boolean) => {
+    const errors = await formik.validateForm();
+
+    if (Object.keys(errors).length > 0) {
+      if (showFieldErrors) {
+        markAllFieldsTouched();
+      }
+
+      return false;
+    }
+
+    return true;
+  };
+
+  const buildTargetAudiencePayload = (
+    values: TargetAudienceFormValues
+  ): SetTargetAudiencePayload | string => {
     if (!surveyId) {
       return "Survey draft was not found. Please complete the previous steps first.";
     }
 
     const payload: SetTargetAudiencePayload = {
       surveyId,
-      sampleBase: formValues.sampleBase,
+      sampleBase: values.sampleBase,
     };
 
-    const minimumAge = formValues.minimumAge.trim();
-    const maximumAge = formValues.maximumAge.trim();
+    const minimumAge = values.minimumAge.trim();
+    const maximumAge = values.maximumAge.trim();
 
     if (minimumAge) {
-      const parsedMinimumAge = Number(minimumAge);
-
-      if (!Number.isInteger(parsedMinimumAge) || parsedMinimumAge < 13 || parsedMinimumAge > 100) {
-        return "Minimum age must be a whole number between 13 and 100.";
-      }
-
-      payload.minimumAge = parsedMinimumAge;
+      payload.minimumAge = Number(minimumAge);
     }
 
     if (maximumAge) {
-      const parsedMaximumAge = Number(maximumAge);
-
-      if (!Number.isInteger(parsedMaximumAge) || parsedMaximumAge < 13 || parsedMaximumAge > 100) {
-        return "Maximum age must be a whole number between 13 and 100.";
-      }
-
-      payload.maximumAge = parsedMaximumAge;
+      payload.maximumAge = Number(maximumAge);
     }
 
-    if (
-      payload.minimumAge !== undefined &&
-      payload.maximumAge !== undefined &&
-      payload.minimumAge > payload.maximumAge
-    ) {
-      return "Minimum age cannot be greater than maximum age.";
+    if (values.gender !== "ALL") {
+      payload.gender = values.gender;
     }
 
-    if (formValues.gender !== "ALL") {
-      payload.gender = formValues.gender;
-    }
-
-    const city = formValues.city.trim();
-    const district = formValues.district.trim();
-    const educationLevel = formValues.educationLevel.trim();
-    const occupation = formValues.occupation.trim();
+    const city = values.city.trim();
+    const district = values.district.trim();
+    const educationLevel = values.educationLevel.trim();
+    const occupation = values.occupation.trim();
 
     if (city && city.toLowerCase() !== "any city") {
       payload.city = city;
@@ -327,8 +408,10 @@ export default function TargetAudienceStep({
     return payload;
   };
 
-  const buildEstimatePayload = (): EstimateAudienceReachPayload | string => {
-    const payload = buildTargetAudiencePayload();
+  const buildEstimatePayload = (
+    values: TargetAudienceFormValues
+  ): EstimateAudienceReachPayload | string => {
+    const payload = buildTargetAudiencePayload(values);
 
     if (typeof payload === "string") {
       return payload;
@@ -338,7 +421,20 @@ export default function TargetAudienceStep({
   };
 
   const checkEstimatedReach = async (showErrorToast = true) => {
-    const payload = buildEstimatePayload();
+    const isValid = await validateAudienceForm(showErrorToast);
+
+    if (!isValid) {
+      if (showErrorToast) {
+        toaster.create({
+          type: "error",
+          title: "Estimated audience unavailable",
+          description: "Please fix the highlighted fields first.",
+        });
+      }
+      return;
+    }
+
+    const payload = buildEstimatePayload(formik.values);
 
     if (typeof payload === "string") {
       if (showErrorToast) {
@@ -354,8 +450,12 @@ export default function TargetAudienceStep({
     try {
       setIsCheckingEstimatedReach(true);
       const response = await getEstimatedAudienceReach(payload);
-      setServerEstimatedReach(response.estimatedReach);
-      persistTargetAudience(payload.surveyId, formValues, response.estimatedReach);
+      setServerEstimatedReach(response.estimatedReach ?? null);
+      persistTargetAudience(
+        payload.surveyId,
+        formik.values,
+        response.estimatedReach ?? undefined
+      );
     } catch (error) {
       if (showErrorToast) {
         toaster.create({
@@ -381,14 +481,15 @@ export default function TargetAudienceStep({
       void checkEstimatedReach(false);
     }, 0);
 
-    // We only want this when the step is entered for the current draft.
-    // The manual button handles recalculation after field edits.
     return () => window.clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [surveyId]);
 
-  const submitTargetAudience = async (advanceToNextStep: boolean) => {
-    const payload = buildTargetAudiencePayload();
+  const submitTargetAudience = async (
+    values: TargetAudienceFormValues,
+    advanceToNextStep: boolean
+  ) => {
+    const payload = buildTargetAudiencePayload(values);
 
     if (typeof payload === "string") {
       toaster.create({
@@ -402,11 +503,11 @@ export default function TargetAudienceStep({
     try {
       setIsSubmitting(true);
       const response = await setTargetAudience(payload);
-      setServerEstimatedReach(response.targetAudience.estimatedReach);
+      setServerEstimatedReach(response.targetAudience.estimatedReach ?? null);
       persistTargetAudience(
         payload.surveyId,
-        formValues,
-        response.targetAudience.estimatedReach
+        values,
+        response.targetAudience.estimatedReach ?? undefined
       );
       updateStoredDraftAudience(
         payload.surveyId,
@@ -466,15 +567,17 @@ export default function TargetAudienceStep({
           </Text>
 
           <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap="5">
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
+            <Field.Root invalid={shouldShowError("minimumAge")}>
+              <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                 Minimum Age
-              </Text>
+              </Field.Label>
 
               <Input
+                name="minimumAge"
                 type="number"
-                value={formValues.minimumAge}
-                onChange={(event) => setFieldValue("minimumAge", event.target.value)}
+                value={formik.values.minimumAge}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 h="46px"
                 borderColor="brand.border"
                 px="4"
@@ -483,17 +586,20 @@ export default function TargetAudienceStep({
                   boxShadow: "0 0 0 1px #0015D6",
                 }}
               />
-            </Box>
+              <Field.ErrorText>{formik.errors.minimumAge}</Field.ErrorText>
+            </Field.Root>
 
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
+            <Field.Root invalid={shouldShowError("maximumAge")}>
+              <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                 Maximum Age
-              </Text>
+              </Field.Label>
 
               <Input
+                name="maximumAge"
                 type="number"
-                value={formValues.maximumAge}
-                onChange={(event) => setFieldValue("maximumAge", event.target.value)}
+                value={formik.values.maximumAge}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 h="46px"
                 borderColor="brand.border"
                 px="4"
@@ -502,19 +608,22 @@ export default function TargetAudienceStep({
                   boxShadow: "0 0 0 1px #0015D6",
                 }}
               />
-            </Box>
+              <Field.ErrorText>{formik.errors.maximumAge}</Field.ErrorText>
+            </Field.Root>
 
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
+            <Field.Root invalid={shouldShowError("gender")}>
+              <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                 Gender
-              </Text>
+              </Field.Label>
 
               <NativeSelect.Root>
                 <NativeSelect.Field
-                  value={formValues.gender}
+                  name="gender"
+                  value={formik.values.gender}
                   onChange={(event) =>
-                    setFieldValue("gender", event.target.value as AudienceGender)
+                    setFormValue("gender", event.target.value as AudienceGender)
                   }
+                  onBlur={formik.handleBlur}
                   h="46px"
                   borderColor="brand.border"
                 >
@@ -525,16 +634,19 @@ export default function TargetAudienceStep({
                 </NativeSelect.Field>
                 <NativeSelect.Indicator />
               </NativeSelect.Root>
-            </Box>
+              <Field.ErrorText>{formik.errors.gender}</Field.ErrorText>
+            </Field.Root>
 
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
+            <Field.Root invalid={shouldShowError("city")}>
+              <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                 City
-              </Text>
+              </Field.Label>
 
               <Input
-                value={formValues.city}
-                onChange={(event) => setFieldValue("city", event.target.value)}
+                name="city"
+                value={formik.values.city}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 placeholder="e.g., Colombo"
                 h="46px"
                 borderColor="brand.border"
@@ -544,19 +656,22 @@ export default function TargetAudienceStep({
                   boxShadow: "0 0 0 1px #0015D6",
                 }}
               />
-            </Box>
+              <Field.ErrorText>{formik.errors.city}</Field.ErrorText>
+            </Field.Root>
 
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
+            <Field.Root invalid={shouldShowError("educationLevel")}>
+              <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                 Education Level
-              </Text>
+              </Field.Label>
 
               <NativeSelect.Root>
                 <NativeSelect.Field
-                  value={formValues.educationLevel}
+                  name="educationLevel"
+                  value={formik.values.educationLevel}
                   onChange={(event) =>
-                    setFieldValue("educationLevel", event.target.value)
+                    setFormValue("educationLevel", event.target.value)
                   }
+                  onBlur={formik.handleBlur}
                   h="46px"
                   borderColor="brand.border"
                   px={5}
@@ -574,17 +689,20 @@ export default function TargetAudienceStep({
                 </NativeSelect.Field>
                 <NativeSelect.Indicator />
               </NativeSelect.Root>
-            </Box>
+              <Field.ErrorText>{formik.errors.educationLevel}</Field.ErrorText>
+            </Field.Root>
 
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
+            <Field.Root invalid={shouldShowError("district")}>
+              <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                 District
-              </Text>
+              </Field.Label>
 
               <NativeSelect.Root>
                 <NativeSelect.Field
-                  value={formValues.district}
-                  onChange={(event) => setFieldValue("district", event.target.value)}
+                  name="district"
+                  value={formik.values.district}
+                  onChange={(event) => setFormValue("district", event.target.value)}
+                  onBlur={formik.handleBlur}
                   h="46px"
                   borderColor="brand.border"
                   px={5}
@@ -598,17 +716,20 @@ export default function TargetAudienceStep({
                 </NativeSelect.Field>
                 <NativeSelect.Indicator />
               </NativeSelect.Root>
-            </Box>
+              <Field.ErrorText>{formik.errors.district}</Field.ErrorText>
+            </Field.Root>
 
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
+            <Field.Root invalid={shouldShowError("occupation")}>
+              <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                 Occupation
-              </Text>
+              </Field.Label>
 
               <NativeSelect.Root>
                 <NativeSelect.Field
-                  value={formValues.occupation}
-                  onChange={(event) => setFieldValue("occupation", event.target.value)}
+                  name="occupation"
+                  value={formik.values.occupation}
+                  onChange={(event) => setFormValue("occupation", event.target.value)}
+                  onBlur={formik.handleBlur}
                   h="46px"
                   borderColor="brand.border"
                   px={5}
@@ -627,22 +748,25 @@ export default function TargetAudienceStep({
                 </NativeSelect.Field>
                 <NativeSelect.Indicator />
               </NativeSelect.Root>
-            </Box>
+              <Field.ErrorText>{formik.errors.occupation}</Field.ErrorText>
+            </Field.Root>
 
-            <Box>
-              <Text fontSize="sm" fontWeight="semibold" mb="2">
+            <Field.Root invalid={shouldShowError("sampleBase")}>
+              <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
                 Sample Base
-              </Text>
+              </Field.Label>
 
               <NativeSelect.Root>
                 <NativeSelect.Field
-                  value={formValues.sampleBase}
+                  name="sampleBase"
+                  value={formik.values.sampleBase}
                   onChange={(event) =>
-                    setFieldValue(
+                    setFormValue(
                       "sampleBase",
                       event.target.value as SurveyAudienceType
                     )
                   }
+                  onBlur={formik.handleBlur}
                   h="46px"
                   borderColor="brand.border"
                   px={5}
@@ -651,13 +775,12 @@ export default function TargetAudienceStep({
                   <option value="CUSTOMERS">Customers</option>
                   <option value="VISITORS">Visitors</option>
                   <option value="EMPLOYEES">Employees</option>
-                  <option value="VERIFIED_USERS_ONLY">
-                    Verified users only
-                  </option>
+                  <option value="VERIFIED_USERS_ONLY">Verified users only</option>
                 </NativeSelect.Field>
                 <NativeSelect.Indicator />
               </NativeSelect.Root>
-            </Box>
+              <Field.ErrorText>{formik.errors.sampleBase}</Field.ErrorText>
+            </Field.Root>
           </Grid>
         </Box>
       </DashboardCard>
@@ -671,7 +794,7 @@ export default function TargetAudienceStep({
           <HStack gap="4" flexWrap="wrap">
             <AudienceTag
               icon={<FiUsers />}
-              label={`Age ${formValues.minimumAge || "13"}-${formValues.maximumAge || "100"}`}
+              label={`Age ${formik.values.minimumAge || "13"}-${formik.values.maximumAge || "100"}`}
               bg="#EEF2FF"
               color="brand.primary"
               borderColor="#C7D2FE"
@@ -679,7 +802,7 @@ export default function TargetAudienceStep({
 
             <AudienceTag
               icon={<FiMapPin />}
-              label={formValues.city.trim() || "Any city"}
+              label={formik.values.city.trim() || "Any city"}
               bg="#ECFDF3"
               color="#087A35"
               borderColor="#BBF7D0"
@@ -687,7 +810,7 @@ export default function TargetAudienceStep({
 
             <AudienceTag
               icon={<FiShield />}
-              label={sampleBaseLabels[formValues.sampleBase]}
+              label={sampleBaseLabels[formik.values.sampleBase]}
               bg="#F5F3FF"
               color="#6D28D9"
               borderColor="#DDD6FE"
@@ -696,9 +819,9 @@ export default function TargetAudienceStep({
             <AudienceTag
               icon={<LuGraduationCap />}
               label={
-                formValues.educationLevel.includes("Undergraduate")
+                formik.values.educationLevel.includes("Undergraduate")
                   ? "Undergraduate"
-                  : formValues.educationLevel
+                  : formik.values.educationLevel
               }
               bg="#FFF7ED"
               color="#C2410C"
@@ -707,7 +830,7 @@ export default function TargetAudienceStep({
 
             <AudienceTag
               icon={<FiUsers />}
-              label={genderLabels[formValues.gender]}
+              label={genderLabels[formik.values.gender]}
               bg="#F0F9FF"
               color="#0369A1"
               borderColor="#BAE6FD"
@@ -793,7 +916,8 @@ export default function TargetAudienceStep({
           h="46px"
           variant="outline"
           onClick={() => {
-            void submitTargetAudience(false);
+            submitActionRef.current = "draft";
+            void formik.submitForm();
           }}
           loading={isSubmitting}
         >
@@ -805,7 +929,8 @@ export default function TargetAudienceStep({
           h="46px"
           color="white"
           onClick={() => {
-            void submitTargetAudience(true);
+            submitActionRef.current = "next";
+            void formik.submitForm();
           }}
           px={5}
           loading={isSubmitting}

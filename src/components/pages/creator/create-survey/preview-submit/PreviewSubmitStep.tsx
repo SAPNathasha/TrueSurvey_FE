@@ -461,7 +461,7 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
               Survey Preview
             </Text>
 
-            <HStack
+            {/* <HStack
               borderWidth="1px"
               borderColor="brand.border"
               borderRadius="10px"
@@ -493,7 +493,7 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
                 <FiSmartphone />
                 Mobile Preview
               </Button>
-            </HStack>
+            </HStack> */}
           </HStack>
         </Box>
 
@@ -579,15 +579,13 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
           color="brand.mutedText"
           fontSize="sm"
         >
-          <HStack>
+          {/* <HStack>
             <FiClock />
             <Text>
               Estimated completion time: ~{previewData.estimatedCompletionDays} day
               {previewData.estimatedCompletionDays === 1 ? "" : "s"}
             </Text>
-          </HStack>
-
-          <Box h="20px" w="1px" bg="brand.border" />
+          </HStack> */}
 
           <Text>{previewData.questions.length} questions</Text>
 
@@ -709,27 +707,13 @@ export default function PreviewSubmitStep({ onBack }: PreviewSubmitStepProps) {
       </Grid>
 
       <Grid
-        templateColumns={{ base: "1fr", lg: "1fr 1fr 1fr 1.45fr" }}
+        templateColumns={{ base: "1fr", lg: "1fr" }}
         gap="4"
         mt="5"
       >
         <Button h="48px" variant="outline" onClick={onBack}>
           <FiArrowLeft />
           Back
-        </Button>
-
-        <Button h="48px" variant="outline">
-          <FiSave />
-          Save as Draft
-        </Button>
-
-        <Button h="48px" variant="outline">
-          <FiEdit2 />
-          Edit Survey
-        </Button>
-
-        <Button h="48px" color="white">
-          Publish Survey
         </Button>
       </Grid>
     </Box>

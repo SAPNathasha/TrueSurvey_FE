@@ -15,6 +15,7 @@ const initialBasicDetailsValues: BasicDetailsFormValues = {
   description: "",
   category: "",
   completionDays: "7",
+  surveyClosingTime: "",
 };
 
 export default function CreateSurveyBasicDetails() {

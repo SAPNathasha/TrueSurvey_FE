@@ -6,6 +6,7 @@ export type CreateSurveyBasicDetailsPayload = {
   description: string;
   category: string;
   estimatedCompletionDays: number;
+  surveyClosingTime: number;
 };
 
 export type SurveyCreationMethod = "AI_ASSISTED" | "MANUAL";
@@ -37,6 +38,7 @@ export type SurveyDraft = {
   category: string;
   audience: string | null;
   estimatedCompletionDays: number;
+  surveyClosingTime?: number | null;
   status: string;
   currentStep: string;
   creationMethod: string | null;

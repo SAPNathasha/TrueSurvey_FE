@@ -141,6 +141,23 @@ function formatMoney(amount: number, currency: string) {
   return `${currency} ${amount.toLocaleString()}`;
 }
 
+function formatClosingDateTime(surveyClosingTime?: number | null) {
+  if (!surveyClosingTime) {
+    return "Closing date not set";
+  }
+
+  const closingDate = new Date(surveyClosingTime * 1000);
+
+  if (Number.isNaN(closingDate.getTime())) {
+    return "Closing date not set";
+  }
+
+  return new Intl.DateTimeFormat("en-LK", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(closingDate);
+}
+
 function getBadge(tags: string[]) {
   if (tags.includes("HIGH_PAYING")) {
     return {
@@ -296,6 +313,10 @@ function SurveyCard({
                 icon={<FiUsers />}
                 label={`${survey.questionCount} Questions`}
               />
+              <SurveyMetaTag
+                icon={<FiClock />}
+                label={`Closes ${formatClosingDateTime(survey.surveyClosingTime)}`}
+              />
             </HStack>
           </Box>
 
@@ -400,6 +421,10 @@ function SurveyCard({
             <SurveyMetaTag
               icon={<FiUsers />}
               label={`${survey.questionCount} Questions`}
+            />
+            <SurveyMetaTag
+              icon={<FiClock />}
+              label={`Closes ${formatClosingDateTime(survey.surveyClosingTime)}`}
             />
           </HStack>
         </Box>

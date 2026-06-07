@@ -44,6 +44,7 @@ export type AvailableSurvey = {
   category: string;
   estimatedTime: string;
   estimatedCompletionDays: number;
+  surveyClosingTime?: number | null;
   questionCount: number;
   rewardAmount: number;
   currency: string;
@@ -172,6 +173,37 @@ export type AvailableSurveysResponse = {
   surveys: AvailableSurvey[];
 };
 
+type RawAvailableSurvey = AvailableSurvey & {
+  surveyClostingTime?: number | null;
+};
+
+type RawParticipantSurveyDetail = ParticipantSurveyDetail & {
+  surveyClostingTime?: number | null;
+};
+
+type RawAvailableSurveysResponse = Omit<AvailableSurveysResponse, "surveys"> & {
+  surveys: RawAvailableSurvey[];
+};
+
+type RawParticipantSurveyDetailResponse = Omit<
+  ParticipantSurveyDetailResponse,
+  "survey"
+> & {
+  survey: RawParticipantSurveyDetail;
+};
+
+function normalizeSurveyClosingTime<T extends { surveyClosingTime?: number | null }>(
+  survey: T & { surveyClostingTime?: number | null }
+) {
+  return {
+    ...survey,
+    surveyClosingTime:
+      survey.surveyClosingTime ??
+      survey.surveyClostingTime ??
+      null,
+  };
+}
+
 function getErrorMessage(error: unknown) {
   if (axios.isAxiosError(error)) {
     const message = error.response?.data?.message;
@@ -188,7 +220,7 @@ function getErrorMessage(error: unknown) {
 
 export async function getAvailableSurveys(query: AvailableSurveysQuery) {
   try {
-    const response = await api.get<AvailableSurveysResponse>(
+    const response = await api.get<RawAvailableSurveysResponse>(
       "/participant/available-surveys",
       {
         params: {
@@ -201,7 +233,10 @@ export async function getAvailableSurveys(query: AvailableSurveysQuery) {
       }
     );
 
-    return response.data;
+    return {
+      ...response.data,
+      surveys: response.data.surveys.map(normalizeSurveyClosingTime),
+    };
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -211,11 +246,14 @@ export async function getParticipantSurveyDetail(
   surveyId: string
 ) {
   try {
-    const response = await api.get<ParticipantSurveyDetailResponse>(
+    const response = await api.get<RawParticipantSurveyDetailResponse>(
       `/participant/available-surveys/${surveyId}`
     );
 
-    return response.data;
+    return {
+      ...response.data,
+      survey: normalizeSurveyClosingTime(response.data.survey),
+    };
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }

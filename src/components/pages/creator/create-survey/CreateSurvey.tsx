@@ -43,7 +43,28 @@ const initialBasicDetailsValues: BasicDetailsFormValues = {
   description: "",
   category: "",
   completionDays: "7",
+  surveyClosingTime: "",
 };
+
+function fromUnixSecondsToDateTimeLocal(value?: number | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value * 1000);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
 const creatorWizardStepKey = "creatorCurrentStep";
 const creatorAiQuestionDraftKey = "creatorAiQuestionDraft";
 const defaultAiQuestionCount = 10;
@@ -163,6 +184,9 @@ export default function CreateSurvey({
             completionDays: initialDraft.estimatedCompletionDays
               ? String(initialDraft.estimatedCompletionDays)
               : "7",
+            surveyClosingTime: fromUnixSecondsToDateTimeLocal(
+              initialDraft.surveyClosingTime
+            ),
           }
         : initialBasicDetailsValues
   );
