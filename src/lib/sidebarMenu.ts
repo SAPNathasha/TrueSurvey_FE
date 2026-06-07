@@ -54,7 +54,7 @@ export const sidebarMenuItems: SidebarMenuItem[] = [
     label: "Wallet",
     icon: FiUser,
     allowedRoles: ["CREATOR", "PARTICIPANT", "BOTH"],
-    href: "/participant/wallet",
+    href: "/dashboard/wallet",
   },
   {
     id: "settings",

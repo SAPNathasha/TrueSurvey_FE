@@ -1,5 +1,5 @@
-import ParticipantWalletPage from "@/components/pages/participant/wallet/ParticipantWalletPage";
+import { redirect } from "next/navigation";
 
 export default function ParticipantWalletRoute() {
-  return <ParticipantWalletPage />;
+  redirect("/dashboard/wallet");
 }

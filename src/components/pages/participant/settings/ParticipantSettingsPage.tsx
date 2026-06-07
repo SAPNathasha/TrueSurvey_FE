@@ -17,7 +17,6 @@ import {
 } from "@chakra-ui/react";
 import { useEffect, useRef, useState } from "react";
 import {
-  FiBell,
   FiCalendar,
   FiCamera,
   FiCheck,
@@ -31,6 +30,7 @@ import {
 
 import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
 import { getStoredParticipantId } from "@/lib/participantIdentity";
+import { getStoredUserRole } from "@/lib/userRole";
 import { toaster } from "@/components/ui/toaster";
 import {
   getParticipantProfileSettings,
@@ -46,9 +46,7 @@ const PARTICIPANT_VERIFICATION_STATUS_KEY = "participantVerificationStatus";
 type SettingsTab =
   | "Profile"
   | "Verification"
-  | "Preferences"
-  | "Security"
-  | "Notifications";
+  | "Security";
 
 type FormFieldProps = {
   label: string;
@@ -149,17 +147,15 @@ function SettingsSelect({
 function SettingsTabs({
   activeTab,
   onChange,
+  showVerificationTab,
 }: {
   activeTab: SettingsTab;
   onChange: (tab: SettingsTab) => void;
+  showVerificationTab: boolean;
 }) {
-  const tabs: SettingsTab[] = [
-    "Profile",
-    "Verification",
-    "Preferences",
-    "Security",
-    "Notifications",
-  ];
+  const tabs: SettingsTab[] = showVerificationTab
+    ? ["Profile", "Verification", "Security"]
+    : ["Profile", "Security"];
 
   return (
     <HStack
@@ -1188,6 +1184,7 @@ function ProfileTabContent({
 export default function ParticipantSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("Profile");
   const [participantId] = useState(() => getStoredParticipantId());
+  const userRole = getStoredUserRole();
   const [data, setData] = useState<ParticipantProfileSettingsResponse | null>(
     null
   );
@@ -1239,6 +1236,13 @@ export default function ParticipantSettingsPage() {
   const missingParticipantIdError = participantId
     ? ""
     : "Participant id was not found. Please log in again.";
+  const showVerificationTab = userRole !== "CREATOR";
+
+  useEffect(() => {
+    if (!showVerificationTab && activeTab === "Verification") {
+      setActiveTab("Profile");
+    }
+  }, [activeTab, showVerificationTab]);
 
   if (isLoading) {
     return (
@@ -1408,7 +1412,11 @@ export default function ParticipantSettingsPage() {
             </Text>
           </Box>
 
-          <SettingsTabs activeTab={activeTab} onChange={setActiveTab} />
+          <SettingsTabs
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            showVerificationTab={showVerificationTab}
+          />
 
           {activeTab === "Profile" && (
             <ProfileTabContent
@@ -1422,16 +1430,8 @@ export default function ParticipantSettingsPage() {
             />
           )}
 
-          {activeTab === "Verification" && (
+          {showVerificationTab && activeTab === "Verification" && (
             <AccountVerificationCard data={data} />
-          )}
-
-          {activeTab === "Preferences" && (
-            <PlaceholderSettingsCard
-              icon={<FiUser />}
-              title="Preferences"
-              description="Manage survey categories, preferred language, location matching, and reward preferences."
-            />
           )}
 
           {activeTab === "Security" && (
@@ -1439,14 +1439,6 @@ export default function ParticipantSettingsPage() {
               icon={<FiShield />}
               title="Security"
               description="Update password, manage login sessions, and configure account security options."
-            />
-          )}
-
-          {activeTab === "Notifications" && (
-            <PlaceholderSettingsCard
-              icon={<FiBell />}
-              title="Notifications"
-              description="Choose how you want to receive survey alerts, reward updates, and verification messages."
             />
           )}
         </Box>
