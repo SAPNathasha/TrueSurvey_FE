@@ -731,53 +731,55 @@ export default function AvailableSurveysPage() {
       <ParticipantSidebar activeItem="Available Surveys" />
 
       <Box flex="1" px={{ base: "4", lg: "8" }} py={{ base: "5", lg: "7" }}>
-        <HStack justify="space-between" align="start" gap="5" flexWrap="wrap">
-          <Box>
-            <Text
-              fontSize={{ base: "3xl", lg: "4xl" }}
-              fontWeight="extrabold"
-              color="brand.dark"
-              lineHeight="1.1"
-            >
-              Available Surveys
-            </Text>
-
-            <Text color="brand.mutedText" mt="2" fontSize="lg">
-              {data.participant.username}, here are the surveys that currently
-              match your profile.
-            </Text>
-          </Box>
-
-          <HStack
-            gap="4"
-            flex="1"
-            justify="flex-end"
-            minW={{ base: "100%", xl: "600px" }}
-            flexWrap="wrap"
+        <Box>
+          <Text
+            fontSize={{ base: "3xl", lg: "4xl" }}
+            fontWeight="extrabold"
+            color="brand.dark"
+            lineHeight="1.1"
           >
-            <InputGroup
-              maxW="460px"
-              startElement={
-                <Box color="brand.mutedText">
-                  <FiSearch />
-                </Box>
-              }
-            >
-              <Input
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search surveys..."
-                h="52px"
-                borderColor="brand.border"
-                borderRadius="10px"
-                bg="white"
-                _focus={{
-                  borderColor: "brand.primary",
-                  boxShadow: "0 0 0 1px #0015D6",
-                }}
-              />
-            </InputGroup>
+            Available Surveys
+          </Text>
 
+          <Text color="brand.mutedText" mt="2" fontSize="lg">
+            {data.participant.username}, here are the surveys that currently
+            match your profile.
+          </Text>
+        </Box>
+
+        <Flex
+          mt="8"
+          mb="6"
+          gap="4"
+          direction={{ base: "column", md: "row" }}
+          align={{ base: "stretch", md: "start" }}
+          w="100%"
+        >
+          <InputGroup
+            w={{ base: "100%", md: "500px" }}
+            startElement={
+              <Box pl="10px" color="brand.mutedText">
+                <FiSearch />
+              </Box>
+            }
+          >
+            <Input
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search surveys..."
+              h="52px"
+              bg="white"
+              borderColor="brand.border"
+              borderRadius="10px"
+              _hover={{ borderColor: "gray.border" }}
+              _focus={{
+                borderColor: "brand.primary",
+                boxShadow: "0 0 0 1px #0015D6",
+              }}
+            />
+          </InputGroup>
+
+          <Box w={{ base: "100%", md: "160px" }} flexShrink={0}>
             <PageSizeSelect
               value={limit}
               onChange={(nextValue) => {
@@ -785,10 +787,10 @@ export default function AvailableSurveysPage() {
                 setPage(1);
               }}
             />
-          </HStack>
-        </HStack>
+          </Box>
+        </Flex>
 
-        <DashboardCard p="5" mt="6">
+        <DashboardCard p="5">
           <Grid
             templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
             gap="4"

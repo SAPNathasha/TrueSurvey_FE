@@ -239,11 +239,6 @@ function WalletBalanceCard({
                 Recent rewards history
               </Text>
             </Box>
-
-            <Button size="sm" variant="outline">
-              This period
-              <FiChevronDown />
-            </Button>
           </HStack>
 
           <Box h="170px" position="relative">
