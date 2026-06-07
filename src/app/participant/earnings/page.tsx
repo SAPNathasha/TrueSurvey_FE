@@ -1,5 +1,5 @@
-import ParticipantEarningsPage from "@/components/pages/participant/earnings/ParticipantEarningsPage";
+import { redirect } from "next/navigation";
 
 export default function ParticipantEarningsRoute() {
-  return <ParticipantEarningsPage />;
+  redirect("/dashboard/transactions");
 }

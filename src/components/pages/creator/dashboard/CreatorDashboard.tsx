@@ -14,7 +14,7 @@ import { statCards } from "./dashboardData";
 export default function CreatorDashboard() {
   return (
     <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar area="creator" />
+      <ParticipantSidebar />
 
       <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
         <Grid

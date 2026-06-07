@@ -263,7 +263,7 @@ export default function CreatorSurveysPage() {
 
   return (
     <Box minH="100vh" bg="white" color="brand.dark" display="flex">
-      <ParticipantSidebar area="creator" />
+      <ParticipantSidebar />
 
       <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
         <Box maxW="1500px" mx="auto">

@@ -34,7 +34,7 @@ export default function CreateSurveyBasicDetails() {
 
   return (
     <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar area="creator" />
+      <ParticipantSidebar />
 
       <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
         <Box maxW="1500px" mx="auto">

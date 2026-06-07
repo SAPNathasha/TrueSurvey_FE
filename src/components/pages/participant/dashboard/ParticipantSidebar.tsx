@@ -23,7 +23,6 @@ import { logoutUser } from "@/services/authService";
 import { clearStoredAccessToken } from "@/lib/axios";
 import {
   getSidebarMenuItems,
-  type SidebarArea,
   type SidebarMenuItem,
 } from "@/lib/sidebarMenu";
 import { getStoredUserRole } from "@/lib/userRole";
@@ -33,7 +32,6 @@ import {
 
 type ParticipantSidebarProps = {
   activeItem?: string;
-  area?: SidebarArea;
 };
 
 const PARTICIPANT_VERIFICATION_STATUS_KEY = "participantVerificationStatus";
@@ -176,7 +174,6 @@ function SidebarItemCard({
 
 export default function ParticipantSidebar({
   activeItem = "Dashboard",
-  area = "participant",
 }: ParticipantSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -189,10 +186,10 @@ export default function ParticipantSidebar({
         window.localStorage.getItem("participantId") ||
         window.localStorage.getItem("creatorId");
   const userRole = getStoredUserRole();
-  const sidebarItems = getSidebarMenuItems(area, userRole);
+  const sidebarItems = getSidebarMenuItems(userRole);
   const verificationStatus = getStoredParticipantVerificationStatus();
   const shouldShowVerificationNotice =
-    area === "participant" && verificationStatus !== "VERIFIED";
+    userRole !== "CREATOR" && verificationStatus !== "VERIFIED";
 
   async function handleLogoutConfirm() {
     if (!storedUserId) {
@@ -234,7 +231,7 @@ export default function ParticipantSidebar({
         <VStack align="stretch" gap="2">
           {sidebarItems.map((item) => {
             const itemWithAction =
-              item.id === "participant-logout"
+              item.id === "logout"
               ? { ...item, onClick: () => setLogoutDialogOpen(true) }
               : item;
 

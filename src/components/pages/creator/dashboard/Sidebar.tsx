@@ -15,7 +15,7 @@ import { getStoredUserRole } from "@/lib/userRole";
 
 export default function Sidebar() {
   const userRole = getStoredUserRole();
-  const menuItems = getSidebarMenuItems("creator", userRole);
+  const menuItems = getSidebarMenuItems(userRole);
 
   return (
     <Box
