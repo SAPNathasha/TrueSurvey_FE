@@ -6,6 +6,8 @@ import {
   Flex,
   Grid,
   HStack,
+  SimpleGrid,
+  Stack,
   Text,
 } from "@chakra-ui/react";
 import type { ComponentProps, ReactNode } from "react";
@@ -18,7 +20,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 
-import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import { toaster } from "@/components/ui/toaster";
 import {
   deleteParticipantSubmission,
@@ -164,9 +166,91 @@ function SubmissionTable({
   onDelete: (submissionId: string) => Promise<void>;
 }) {
   return (
-    <DashboardCard p="0" overflow="hidden">
-      <Box overflowX="auto">
-        <Box minW="980px">
+    <>
+      <Stack display={{ base: "flex", md: "none" }} gap="3">
+        {rows.length === 0 && (
+          <DashboardCard p="5">
+            <Text color="brand.mutedText" fontSize="sm">
+              No submitted surveys found yet.
+            </Text>
+          </DashboardCard>
+        )}
+
+        {rows.map((submission) => {
+          const statusStyle = getRewardStatusStyle(submission.rewardStatus);
+          const canDelete = submission.rewardStatus === "PENDING";
+          const isDeleting = deletingSubmissionId === submission.submissionId;
+
+          return (
+            <DashboardCard key={submission.submissionId} p="4">
+              <Stack gap="4">
+                <Box>
+                  <Text fontWeight="bold" color="brand.dark" wordBreak="break-word">
+                    {submission.surveyTitle}
+                  </Text>
+                </Box>
+
+                <SimpleGrid columns={2} gap="3">
+                  <Box>
+                    <Text fontSize="xs" color="brand.mutedText" fontWeight="semibold">
+                      Amount
+                    </Text>
+                    <Text fontWeight="bold" color="brand.dark">
+                      {formatMoney(submission.amount)}
+                    </Text>
+                  </Box>
+
+                  <Box>
+                    <Text fontSize="xs" color="brand.mutedText" fontWeight="semibold">
+                      Submitted
+                    </Text>
+                    <Text color="brand.dark">
+                      {formatDateTime(submission.submittedAt)}
+                    </Text>
+                  </Box>
+                </SimpleGrid>
+
+                <HStack justify="space-between" gap="3" align="center">
+                  <Box
+                    w="fit-content"
+                    px="3"
+                    py="1"
+                    borderRadius="8px"
+                    bg={statusStyle.bg}
+                    color={statusStyle.color}
+                    fontSize="xs"
+                    fontWeight="bold"
+                  >
+                    {statusStyle.label}
+                  </Box>
+
+                  {canDelete ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      colorScheme="red"
+                      loading={isDeleting}
+                      disabled={Boolean(deletingSubmissionId) && !isDeleting}
+                      onClick={() => {
+                        void onDelete(submission.submissionId);
+                      }}
+                    >
+                      <FiTrash2 />
+                      Delete
+                    </Button>
+                  ) : (
+                    <Box />
+                  )}
+                </HStack>
+              </Stack>
+            </DashboardCard>
+          );
+        })}
+      </Stack>
+
+      <DashboardCard p="0" overflow="hidden" display={{ base: "none", md: "block" }}>
+        <Box overflowX="auto" w="100%">
+          <Box minW="980px">
           <Grid
             templateColumns="2.2fr 1fr 1fr 1.3fr 0.9fr"
             px="5"
@@ -270,9 +354,10 @@ function SubmissionTable({
               </Grid>
             );
           })}
+          </Box>
         </Box>
-      </Box>
-    </DashboardCard>
+      </DashboardCard>
+    </>
   );
 }
 
@@ -393,19 +478,17 @@ export default function ParticipantSubmissionsPage() {
 
   if (isLoading && !data) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="My Surveys" />
+      <AuthenticatedShell activeItem="My Surveys">
         <Flex flex="1" align="center" justify="center">
           <Text color="brand.mutedText">Loading submitted surveys...</Text>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   if (error || !data) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="My Surveys" />
+      <AuthenticatedShell activeItem="My Surveys">
         <Flex flex="1" align="center" justify="center" p="6">
           <DashboardCard p="6" maxW="560px">
             <Text fontWeight="bold" color="brand.dark">
@@ -416,40 +499,31 @@ export default function ParticipantSubmissionsPage() {
             </Text>
           </DashboardCard>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   return (
-    <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar activeItem="My Surveys" />
-
-      <Box flex="1" px={{ base: "4", lg: "7" }} py={{ base: "5", lg: "6" }}>
+    <AuthenticatedShell activeItem="My Surveys">
+      <Box minW={0}>
         <Box mb="6">
           <Text
-            fontSize={{ base: "3xl", lg: "4xl" }}
+            fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
             fontWeight="extrabold"
             color="brand.dark"
             lineHeight="1"
+            wordBreak="break-word"
           >
             My Surveys
           </Text>
 
-          <Text fontSize="lg" color="brand.mutedText" mt="3">
+          <Text fontSize={{ base: "sm", md: "lg" }} color="brand.mutedText" mt="3">
             Review the surveys you have already submitted and track their reward
             progress.
           </Text>
         </Box>
 
-        <Grid
-          templateColumns={{
-            base: "1fr",
-            md: "1fr 1fr",
-            xl: "repeat(4, 1fr)",
-          }}
-          gap="4"
-          mb="6"
-        >
+        <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} gap="4" mb="6">
           <StatCard
             icon={<FiFileText />}
             title="Total Submissions"
@@ -485,7 +559,7 @@ export default function ParticipantSubmissionsPage() {
             bg="#EEF2FF"
             color="brand.primary"
           />
-        </Grid>
+        </SimpleGrid>
 
         <DashboardCard p="0" overflow="hidden">
           <Box
@@ -510,6 +584,6 @@ export default function ParticipantSubmissionsPage() {
           />
         </DashboardCard>
       </Box>
-    </Flex>
+    </AuthenticatedShell>
   );
 }

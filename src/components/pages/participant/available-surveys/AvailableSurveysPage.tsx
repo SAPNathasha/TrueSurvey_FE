@@ -30,9 +30,8 @@ import {
   FiTrendingUp,
   FiUsers,
 } from "react-icons/fi";
-import { FaHamburger } from "react-icons/fa";
 
-import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
   getAvailableSurveys,
@@ -219,7 +218,7 @@ function getSurveyVisual(index: number) {
       iconColor: "#7C3AED",
     },
     {
-      icon: <FaHamburger />,
+      icon: <FiBookmark />,
       iconBg: "#FEF3C7",
       iconColor: "#D97706",
     },
@@ -698,20 +697,18 @@ export default function AvailableSurveysPage() {
 
   if (isLoading && !data) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Available Surveys" />
+      <AuthenticatedShell activeItem="Available Surveys">
         <Flex flex="1" align="center" justify="center" gap="3">
           <Spinner color="brand.primary" />
           <Text color="brand.mutedText">Loading available surveys...</Text>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   if (missingParticipantIdError || (!data && error) || !data) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Available Surveys" />
+      <AuthenticatedShell activeItem="Available Surveys">
         <Flex flex="1" align="center" justify="center" p="6">
           <DashboardCard p="6" maxW="560px">
             <Text fontWeight="bold" color="brand.dark">
@@ -722,26 +719,25 @@ export default function AvailableSurveysPage() {
             </Text>
           </DashboardCard>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   return (
-    <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar activeItem="Available Surveys" />
-
-      <Box flex="1" px={{ base: "4", lg: "8" }} py={{ base: "5", lg: "7" }}>
+    <AuthenticatedShell activeItem="Available Surveys" contentProps={{ px: { base: "4", md: "6", lg: "8" }, py: { base: "4", md: "5", lg: "7" } }}>
+      <Box minW={0}>
         <Box>
           <Text
-            fontSize={{ base: "3xl", lg: "4xl" }}
+            fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
             fontWeight="extrabold"
             color="brand.dark"
             lineHeight="1.1"
+            wordBreak="break-word"
           >
             Available Surveys
           </Text>
 
-          <Text color="brand.mutedText" mt="2" fontSize="lg">
+          <Text color="brand.mutedText" mt="2" fontSize={{ base: "sm", md: "lg" }}>
             {data.participant.username}, here are the surveys that currently
             match your profile.
           </Text>
@@ -897,6 +893,6 @@ export default function AvailableSurveysPage() {
           />
         </HStack>
       </Box>
-    </Flex>
+    </AuthenticatedShell>
   );
 }

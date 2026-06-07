@@ -13,10 +13,12 @@ import {
   DialogPositioner,
   DialogRoot,
   DialogTitle,
+  Flex,
   Grid,
   HStack,
   NativeSelect,
   SimpleGrid,
+  Stack,
   Text,
   VStack,
 } from "@chakra-ui/react";
@@ -33,7 +35,7 @@ import {
 } from "react-icons/fi";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import { toaster } from "@/components/ui/toaster";
 import {
   acceptCreatorSubmission,
@@ -334,10 +336,8 @@ export default function CreatorSurveySubmissionsPage({
   };
 
   return (
-    <Box minH="100vh" bg="white" color="brand.dark" display="flex">
-      <ParticipantSidebar />
-
-      <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
+    <AuthenticatedShell contentProps={{ overflow: "hidden", px: { base: "4", md: "6", lg: "6" }, py: { base: "4", md: "5", lg: "6" } }}>
+      <Box minW={0}>
         <Box maxW="1500px" mx="auto">
           <DashboardCard p="0" overflow="hidden">
             <Box p={{ base: "5", lg: "6" }}>
@@ -420,34 +420,17 @@ export default function CreatorSurveySubmissionsPage({
               </Box>
             </Box>
 
-            <Box overflowX="auto">
-              <Box minW="980px">
-                <Grid
-                  templateColumns="0.8fr 1.2fr 1fr 1.8fr"
-                  px="5"
-                  py="3"
-                  bg="#FAFBFF"
-                  borderTopWidth="1px"
-                  borderBottomWidth="1px"
-                  borderColor="brand.border"
-                  color="brand.dark"
-                  fontSize="xs"
-                  fontWeight="bold"
-                >
-                  <Text>Submission No.</Text>
-                  <Text>Submitted At</Text>
-                  <Text>Current Status</Text>
-                  <Text>Actions</Text>
-                </Grid>
-
+            <>
+              {/* Mobile Card List */}
+              <Stack display={{ base: "flex", md: "none" }} gap="3" px="5" py="4">
                 {isLoading && (
-                  <Box px="5" py="10">
+                  <Box py="6">
                     <Text color="brand.mutedText">Loading submissions...</Text>
                   </Box>
                 )}
 
                 {!isLoading && error && (
-                  <Box px="5" py="10">
+                  <Box py="6">
                     <Text color="red.500" fontWeight="medium">
                       {error}
                     </Text>
@@ -458,7 +441,7 @@ export default function CreatorSurveySubmissionsPage({
                   !error &&
                   data &&
                   data.submissions.length === 0 && (
-                    <Box px="5" py="10">
+                    <Box py="6">
                       <Text color="brand.mutedText">
                         No submissions found for this survey yet.
                       </Text>
@@ -478,17 +461,15 @@ export default function CreatorSurveySubmissionsPage({
                       submissionActionState.action === "reject";
 
                     return (
-                      <Grid
+                      <Box
                         key={row.submissionId}
-                        templateColumns="0.8fr 1.2fr 1fr 1.8fr"
-                        px="5"
-                        py="3"
-                        alignItems="center"
-                        borderBottomWidth="1px"
+                        p="4"
+                        borderWidth="1px"
                         borderColor="brand.border"
-                        _hover={{ bg: "brand.cardHover" }}
+                        borderRadius="12px"
+                        bg="white"
                       >
-                        <HStack gap="3">
+                        <HStack gap="3" mb="3">
                           <Box
                             w="34px"
                             h="34px"
@@ -501,37 +482,45 @@ export default function CreatorSurveySubmissionsPage({
                           >
                             <FiFileText />
                           </Box>
-
-                          <Text fontWeight="bold" fontSize="sm">
-                            #{row.submissionNumber}
-                          </Text>
+                          <Box minW={0} flex="1">
+                            <Text fontWeight="bold" fontSize="sm" color="brand.dark">
+                              Submission #{row.submissionNumber}
+                            </Text>
+                            <Text fontSize="xs" color="brand.mutedText" mt="1">
+                              {formatDateTime(row.submittedAt)}
+                            </Text>
+                          </Box>
                         </HStack>
 
-                        <Text fontSize="sm" color="brand.dark">
-                          {formatDateTime(row.submittedAt)}
-                        </Text>
+                        <SimpleGrid columns={1} gap="3" mb="4">
+                          <Box>
+                            <Text fontSize="xs" color="brand.mutedText" fontWeight="semibold">
+                              Status
+                            </Text>
+                            <Box
+                              w="fit-content"
+                              px="3"
+                              py="1"
+                              borderRadius="999px"
+                              borderWidth="1px"
+                              fontSize="xs"
+                              fontWeight="bold"
+                              mt="1"
+                              {...statusStyles}
+                            >
+                              {getSubmissionStatusLabel(row)}
+                            </Box>
+                          </Box>
+                        </SimpleGrid>
 
-                        <Box
-                          w="fit-content"
-                          px="3"
-                          py="1"
-                          borderRadius="999px"
-                          borderWidth="1px"
-                          fontSize="xs"
-                          fontWeight="bold"
-                          {...statusStyles}
-                        >
-                          {getSubmissionStatusLabel(row)}
-                        </Box>
-
-                        <HStack gap="2" flexWrap="wrap">
+                        <VStack gap="2" align="stretch">
                           {isPendingReview ? (
                             <>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                h="34px"
-                                px="3.5"
+                                h="36px"
+                                w="100%"
                                 loading={isAccepting}
                                 disabled={Boolean(submissionActionState)}
                                 onClick={() => {
@@ -545,8 +534,8 @@ export default function CreatorSurveySubmissionsPage({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                h="34px"
-                                px="3.5"
+                                h="36px"
+                                w="100%"
                                 colorPalette="red"
                                 loading={isRejecting}
                                 disabled={Boolean(submissionActionState)}
@@ -563,7 +552,8 @@ export default function CreatorSurveySubmissionsPage({
                           <Button
                             size="sm"
                             variant="ghost"
-                            h="34px"
+                            h="36px"
+                            w="100%"
                             disabled={Boolean(submissionActionState)}
                             onClick={() => {
                               void handleViewSubmission(row.submissionId);
@@ -572,17 +562,185 @@ export default function CreatorSurveySubmissionsPage({
                             <FiEye />
                             View Submission
                           </Button>
-                        </HStack>
-                      </Grid>
+                        </VStack>
+                      </Box>
                     );
                   })}
+              </Stack>
+
+              {/* Desktop Table */}
+              <Box overflowX="auto" display={{ base: "none", md: "block" }} w="100%">
+                <Box minW="980px">
+                  <Grid
+                    templateColumns="0.8fr 1.2fr 1fr 1.8fr"
+                    px="5"
+                    py="3"
+                    bg="#FAFBFF"
+                    borderTopWidth="1px"
+                    borderBottomWidth="1px"
+                    borderColor="brand.border"
+                    color="brand.dark"
+                    fontSize="xs"
+                    fontWeight="bold"
+                  >
+                    <Text>Submission No.</Text>
+                    <Text>Submitted At</Text>
+                    <Text>Current Status</Text>
+                    <Text>Actions</Text>
+                  </Grid>
+
+                  {isLoading && (
+                    <Box px="5" py="10">
+                      <Text color="brand.mutedText">Loading submissions...</Text>
+                    </Box>
+                  )}
+
+                  {!isLoading && error && (
+                    <Box px="5" py="10">
+                      <Text color="red.500" fontWeight="medium">
+                        {error}
+                      </Text>
+                    </Box>
+                  )}
+
+                  {!isLoading &&
+                    !error &&
+                    data &&
+                    data.submissions.length === 0 && (
+                      <Box px="5" py="10">
+                        <Text color="brand.mutedText">
+                          No submissions found for this survey yet.
+                        </Text>
+                      </Box>
+                    )}
+
+                  {!isLoading &&
+                    !error &&
+                    data?.submissions.map((row) => {
+                      const statusStyles = getSubmissionStatusStyles(row);
+                      const isPendingReview = row.status === RewardStatus.PENDING;
+                      const isAccepting =
+                        submissionActionState?.submissionId === row.submissionId &&
+                        submissionActionState.action === "accept";
+                      const isRejecting =
+                        submissionActionState?.submissionId === row.submissionId &&
+                        submissionActionState.action === "reject";
+
+                      return (
+                        <Grid
+                          key={row.submissionId}
+                          templateColumns="0.8fr 1.2fr 1fr 1.8fr"
+                          px="5"
+                          py="3"
+                          alignItems="center"
+                          borderBottomWidth="1px"
+                          borderColor="brand.border"
+                          _hover={{ bg: "brand.cardHover" }}
+                        >
+                          <HStack gap="3">
+                            <Box
+                              w="34px"
+                              h="34px"
+                              bg="brand.lightBlue"
+                              color="brand.primary"
+                              borderRadius="8px"
+                              display="grid"
+                              placeItems="center"
+                              flexShrink="0"
+                            >
+                              <FiFileText />
+                            </Box>
+
+                            <Text fontWeight="bold" fontSize="sm">
+                              #{row.submissionNumber}
+                            </Text>
+                          </HStack>
+
+                          <Text fontSize="sm" color="brand.dark">
+                            {formatDateTime(row.submittedAt)}
+                          </Text>
+
+                          <Box
+                            w="fit-content"
+                            px="3"
+                            py="1"
+                            borderRadius="999px"
+                            borderWidth="1px"
+                            fontSize="xs"
+                            fontWeight="bold"
+                            {...statusStyles}
+                          >
+                            {getSubmissionStatusLabel(row)}
+                          </Box>
+
+                          <HStack gap="2" flexWrap="wrap">
+                            {isPendingReview ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  h="34px"
+                                  px="3.5"
+                                  loading={isAccepting}
+                                  disabled={Boolean(submissionActionState)}
+                                  onClick={() => {
+                                    void handlePendingAction("accept", row);
+                                  }}
+                                >
+                                  <FiCheck />
+                                  Accept
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  h="34px"
+                                  px="3.5"
+                                  colorPalette="red"
+                                  loading={isRejecting}
+                                  disabled={Boolean(submissionActionState)}
+                                  onClick={() => {
+                                    void handlePendingAction("reject", row);
+                                  }}
+                                >
+                                  <FiX />
+                                  Reject
+                                </Button>
+                              </>
+                            ) : null}
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              h="34px"
+                              disabled={Boolean(submissionActionState)}
+                              onClick={() => {
+                                void handleViewSubmission(row.submissionId);
+                              }}
+                            >
+                              <FiEye />
+                              View Submission
+                            </Button>
+                          </HStack>
+                        </Grid>
+                      );
+                    })}
+                </Box>
               </Box>
-            </Box>
+            </>
 
-            <HStack justify="space-between" p="5" flexWrap="wrap" gap="4">
-              <Text textStyle="smallText">{paginationText}</Text>
+            <Stack
+              direction={{ base: "column", md: "row" }}
+              justify="space-between"
+              align={{ base: "stretch", md: "center" }}
+              p="5"
+              gap="4"
+            >
+              <Text textStyle="smallText" fontSize={{ base: "xs", md: "sm" }}>
+                {paginationText}
+              </Text>
 
-              <HStack gap="2">
+              <Flex gap="2" flexWrap="wrap" justify={{ base: "stretch", md: "flex-end" }}>
                 <Button
                   variant="outline"
                   size="sm"
@@ -590,12 +748,13 @@ export default function CreatorSurveySubmissionsPage({
                   px="3.5"
                   disabled={isLoading || !data || data.pagination.page <= 1}
                   onClick={() => setPage((current) => Math.max(current - 1, 1))}
+                  flexShrink={0}
                 >
                   <FiChevronLeft />
                   Previous
                 </Button>
 
-                <Text fontSize="sm" color="brand.mutedText">
+                <Text fontSize="sm" color="brand.mutedText" whiteSpace="nowrap">
                   Page {data?.pagination.page ?? page} of{" "}
                   {data?.pagination.totalPages ?? 1}
                 </Text>
@@ -611,12 +770,13 @@ export default function CreatorSurveySubmissionsPage({
                     data.pagination.page >= data.pagination.totalPages
                   }
                   onClick={() => setPage((current) => current + 1)}
+                  flexShrink={0}
                 >
                   Next
                   <FiChevronRight />
                 </Button>
-              </HStack>
-            </HStack>
+              </Flex>
+            </Stack>
           </DashboardCard>
         </Box>
       </Box>
@@ -825,6 +985,6 @@ export default function CreatorSurveySubmissionsPage({
           </DialogContent>
         </DialogPositioner>
       </DialogRoot>
-    </Box>
+    </AuthenticatedShell>
   );
 }

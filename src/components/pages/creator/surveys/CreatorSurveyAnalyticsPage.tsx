@@ -36,7 +36,7 @@ import {
 } from "react-icons/fi";
 
 import DashboardCard from "@/components/pages/creator/dashboard/DashboardCard";
-import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import StatusBadge from "@/components/pages/creator/dashboard/StatusBadge";
 import {
   getSurveyAnalytics,
@@ -1055,10 +1055,8 @@ export default function CreatorSurveyAnalyticsPage({
         : "Draft";
 
   return (
-    <Box minH="100vh" bg="white" color="brand.dark" display="flex">
-      <ParticipantSidebar />
-
-      <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
+    <AuthenticatedShell contentProps={{ overflow: "hidden", px: { base: "4", md: "6", lg: "6" }, py: { base: "4", md: "5", lg: "6" } }}>
+      <Box minW={0}>
         <Box maxW="1500px" mx="auto">
           <VStack align="stretch" gap="5">
             <DashboardCard>
@@ -1200,6 +1198,6 @@ export default function CreatorSurveyAnalyticsPage({
           </VStack>
         </Box>
       </Box>
-    </Box>
+    </AuthenticatedShell>
   );
 }

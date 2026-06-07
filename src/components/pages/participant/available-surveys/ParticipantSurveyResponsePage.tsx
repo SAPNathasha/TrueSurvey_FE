@@ -25,7 +25,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
-import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import { toaster } from "@/components/ui/toaster";
 import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
@@ -565,20 +565,18 @@ export default function ParticipantSurveyResponsePage({
 
   if (isLoading) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Available Surveys" />
+      <AuthenticatedShell activeItem="Available Surveys">
         <Flex flex="1" align="center" justify="center" gap="3">
           <Spinner color="brand.primary" />
           <Text color="brand.mutedText">Loading survey...</Text>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   if (missingParticipantIdError || error || !survey) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Available Surveys" />
+      <AuthenticatedShell activeItem="Available Surveys">
         <Flex flex="1" align="center" justify="center" p="6">
           <DashboardCard p="6" maxW="560px">
             <Text fontWeight="bold" color="brand.dark">
@@ -590,15 +588,16 @@ export default function ParticipantSurveyResponsePage({
             </Text>
           </DashboardCard>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   return (
-    <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar activeItem="Available Surveys" />
-
-      <Box flex="1" px={{ base: "4", lg: "8" }} py={{ base: "5", lg: "7" }}>
+    <AuthenticatedShell
+      activeItem="Available Surveys"
+      contentProps={{ px: { base: "4", md: "6", lg: "8" }, py: { base: "4", md: "5", lg: "7" } }}
+    >
+      <Box minW={0}>
         <HStack justify="space-between" align="start" gap="5" flexWrap="wrap">
           <Box>
             <Button
@@ -613,15 +612,16 @@ export default function ParticipantSurveyResponsePage({
             </Button>
 
             <Text
-              fontSize={{ base: "3xl", lg: "4xl" }}
+              fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
               fontWeight="extrabold"
               color="brand.dark"
               lineHeight="1.1"
+              wordBreak="break-word"
             >
               {survey.title}
             </Text>
 
-            <Text color="brand.mutedText" mt="3" fontSize="lg" maxW="840px">
+            <Text color="brand.mutedText" mt="3" fontSize={{ base: "sm", md: "lg" }} maxW="840px">
               {survey.description}
             </Text>
 
@@ -765,6 +765,6 @@ export default function ParticipantSurveyResponsePage({
           </HStack>
         </HStack>
       </Box>
-    </Flex>
+    </AuthenticatedShell>
   );
 }

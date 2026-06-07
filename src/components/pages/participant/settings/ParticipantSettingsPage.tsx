@@ -30,7 +30,7 @@ import {
   FiUser,
 } from "react-icons/fi";
 
-import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import { getStoredParticipantId } from "@/lib/participantIdentity";
 import { getStoredUserRole } from "@/lib/userRole";
 import { toaster } from "@/components/ui/toaster";
@@ -1332,20 +1332,18 @@ export default function ParticipantSettingsPage() {
 
   if (isLoading) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Settings" />
+      <AuthenticatedShell activeItem="Settings">
         <Flex flex="1" align="center" justify="center" gap="3">
           <Spinner color="brand.primary" />
           <Text color="brand.mutedText">Loading settings...</Text>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   if (missingParticipantIdError || error || !data || !formValues) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Settings" />
+      <AuthenticatedShell activeItem="Settings">
         <Flex flex="1" align="center" justify="center" p="6">
           <DashboardCard p="6" maxW="560px">
             <Text fontWeight="bold" color="brand.dark">
@@ -1356,7 +1354,7 @@ export default function ParticipantSettingsPage() {
             </Text>
           </DashboardCard>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
@@ -1478,22 +1476,21 @@ export default function ParticipantSettingsPage() {
   };
 
   return (
-    <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar activeItem="Settings" />
-
-      <Box flex="1" px={{ base: "4", lg: "7" }} py={{ base: "5", lg: "6" }}>
+    <AuthenticatedShell activeItem="Settings">
+      <Box minW={0}>
         <Box maxW="1420px">
           <Box mb="7">
             <Text
-              fontSize={{ base: "3xl", lg: "4xl" }}
+              fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
               fontWeight="extrabold"
               color="brand.dark"
               lineHeight="1"
+              wordBreak="break-word"
             >
               Settings
             </Text>
 
-            <Text fontSize="lg" color="brand.mutedText" mt="3">
+            <Text fontSize={{ base: "sm", md: "lg" }} color="brand.mutedText" mt="3">
               Manage your account, profile, and verification details.
             </Text>
           </Box>
@@ -1529,6 +1526,6 @@ export default function ParticipantSettingsPage() {
           )}
         </Box>
       </Box>
-    </Flex>
+    </AuthenticatedShell>
   );
 }

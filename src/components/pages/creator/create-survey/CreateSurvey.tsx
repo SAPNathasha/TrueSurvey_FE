@@ -1,9 +1,9 @@
 "use client";
 
-import { Box, Flex, Grid } from "@chakra-ui/react";
+import { Box, Grid } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
-import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import CreateSurveyStepper from "./shared/CreateSurveyStepper";
 import { getStoredCreatorId } from "@/lib/creatorIdentity";
 import { toaster } from "@/components/ui/toaster";
@@ -390,10 +390,8 @@ export default function CreateSurvey({
   };
 
   return (
-    <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar />
-
-      <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
+    <AuthenticatedShell contentProps={{ overflow: "hidden", px: { base: "4", md: "6", lg: "6" }, py: { base: "4", md: "5", lg: "6" } }}>
+      <Box minW={0}>
         <Box maxW="1500px" mx="auto">
           <CreateSurveyStepper currentStep={currentStep} />
 
@@ -408,6 +406,6 @@ export default function CreateSurvey({
           </Grid>
         </Box>
       </Box>
-    </Flex>
+    </AuthenticatedShell>
   );
 }

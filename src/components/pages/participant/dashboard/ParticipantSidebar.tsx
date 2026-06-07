@@ -5,6 +5,14 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Box,
   Button,
+  DrawerBackdrop,
+  DrawerBody,
+  DrawerCloseTrigger,
+  DrawerContent,
+  DrawerHeader,
+  DrawerPositioner,
+  DrawerRoot,
+  DrawerTitle,
   DialogBackdrop,
   DialogBody,
   DialogCloseTrigger,
@@ -14,8 +22,10 @@ import {
   DialogPositioner,
   DialogRoot,
   DialogTitle,
+  Flex,
   HStack,
   Icon,
+  IconButton,
   Text,
   VStack,
 } from "@chakra-ui/react";
@@ -29,6 +39,7 @@ import {
 import { getStoredUserRole } from "@/lib/userRole";
 import {
   FiShield,
+  FiMenu,
 } from "react-icons/fi";
 
 type ParticipantSidebarProps = {
@@ -178,6 +189,7 @@ export default function ParticipantSidebar({
 }: ParticipantSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const storedUserId =
@@ -191,6 +203,101 @@ export default function ParticipantSidebar({
   const verificationStatus = getStoredParticipantVerificationStatus();
   const shouldShowVerificationNotice =
     userRole !== "CREATOR" && verificationStatus !== "VERIFIED";
+
+  function handleNavigate(href: string) {
+    setDrawerOpen(false);
+    router.push(href);
+  }
+
+  function renderNavigation() {
+    return (
+      <VStack align="stretch" gap="2">
+        {sidebarItems.map((item) => {
+          const itemWithAction =
+            item.id === "logout"
+              ? {
+                  ...item,
+                  onClick: () => {
+                    setDrawerOpen(false);
+                    setLogoutDialogOpen(true);
+                  },
+                }
+              : item.href
+                ? {
+                    ...item,
+                    onClick: () => setDrawerOpen(false),
+                  }
+                : item;
+
+          const active = itemWithAction.href
+            ? pathname?.startsWith(itemWithAction.href)
+            : activeItem === itemWithAction.label;
+
+          return (
+            <SidebarItemCard
+              key={itemWithAction.id}
+              item={itemWithAction}
+              active={active}
+            />
+          );
+        })}
+      </VStack>
+    );
+  }
+
+  function renderVerificationNotice() {
+    if (!shouldShowVerificationNotice) {
+      return null;
+    }
+
+    return (
+      <Box
+        mt="10"
+        borderWidth="1px"
+        borderColor="#C7D2FE"
+        borderRadius="16px"
+        p="5"
+        bg="brand.lightBlue"
+      >
+        <Box
+          w="52px"
+          h="52px"
+          borderRadius="14px"
+          bg="brand.primary"
+          color="white"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          fontSize="26px"
+          mb="4"
+        >
+          <FiShield />
+        </Box>
+
+        <Text fontWeight="bold" color="brand.dark">
+          Unlock more surveys
+        </Text>
+
+        <Text fontSize="sm" color="brand.mutedText" mt="3">
+          Verify your identity to access high paying surveys.
+        </Text>
+
+        <Button
+          w="100%"
+          h="44px"
+          mt="5"
+          borderRadius="10px"
+          bg="brand.primary"
+          color="white"
+          fontWeight="bold"
+          fontSize="sm"
+          onClick={() => handleNavigate("/participant/settings")}
+        >
+          Verify Now
+        </Button>
+      </Box>
+    );
+  }
 
   async function handleLogoutConfirm() {
     if (!storedUserId) {
@@ -218,86 +325,82 @@ export default function ParticipantSidebar({
   }
 
   return (
-    <Box
-      w="300px"
-      minH="100vh"
-      borderRightWidth="1px"
-      borderColor="brand.border"
-      bg="white"
-      px="5"
-      py="5"
-      display={{ base: "none", lg: "block" }}
-      flexShrink="0"
-    >
-        <VStack align="stretch" gap="2">
-          {sidebarItems.map((item) => {
-            const itemWithAction =
-              item.id === "logout"
-              ? { ...item, onClick: () => setLogoutDialogOpen(true) }
-              : item;
-
-          const active = itemWithAction.href
-            ? pathname?.startsWith(itemWithAction.href)
-            : activeItem === itemWithAction.label;
-
-          return (
-            <SidebarItemCard
-              key={itemWithAction.id}
-              item={itemWithAction}
-              active={active}
-            />
-          );
-        })}
-      </VStack>
-
-      {shouldShowVerificationNotice ? (
-        <Box
-          mt="16"
-          borderWidth="1px"
-          borderColor="#C7D2FE"
-          borderRadius="16px"
-          p="5"
-          bg="brand.lightBlue"
-        >
-          <Box
-            w="52px"
-            h="52px"
-            borderRadius="14px"
-            bg="brand.primary"
-            color="white"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            fontSize="26px"
-            mb="4"
-          >
-            <FiShield />
-          </Box>
-
-          <Text fontWeight="bold" color="brand.dark">
-            Unlock more surveys
+    <>
+      <Flex
+        display={{ base: "flex", lg: "none" }}
+        align="center"
+        justify="space-between"
+        px="4"
+        py="3.5"
+        borderBottomWidth="1px"
+        borderColor="brand.border"
+        bg="white"
+        position="sticky"
+        top="0"
+        zIndex="10"
+      >
+        <Box minW={0}>
+          <Text fontSize="xs" fontWeight="semibold" color="brand.mutedText">
+            TrueSurvey
           </Text>
-
-          <Text fontSize="sm" color="brand.mutedText" mt="3">
-            Verify your identity to access high paying surveys.
+          <Text fontSize="lg" fontWeight="bold" color="brand.dark">
+            {activeItem}
           </Text>
-
-          <Box
-            as="button"
-            w="100%"
-            h="44px"
-            mt="5"
-            borderRadius="10px"
-            bg="brand.primary"
-            color="white"
-            fontWeight="bold"
-            fontSize="sm"
-            onClick={() => router.push("/participant/settings")}
-          >
-            Verify Now
-          </Box>
         </Box>
-      ) : null}
+
+        <IconButton
+          aria-label="Open navigation menu"
+          variant="outline"
+          size="sm"
+          flexShrink={0}
+          onClick={() => setDrawerOpen(true)}
+        >
+          <FiMenu />
+        </IconButton>
+      </Flex>
+
+      <DrawerRoot
+        open={drawerOpen}
+        onOpenChange={(details) => setDrawerOpen(details.open)}
+        placement="start"
+        size="xs"
+      >
+        <DrawerBackdrop bg="blackAlpha.500" />
+        <DrawerPositioner display={{ base: "flex", lg: "none" }}>
+          <DrawerContent maxW="280px">
+            <DrawerHeader
+              px="5"
+              py="4"
+              borderBottomWidth="1px"
+              borderColor="brand.border"
+            >
+              <DrawerTitle fontSize="lg" fontWeight="bold" color="brand.dark">
+                Navigation
+              </DrawerTitle>
+            </DrawerHeader>
+            <DrawerCloseTrigger top="4" right="4" />
+            <DrawerBody px="5" py="5" overflowY="auto">
+              {renderNavigation()}
+              {renderVerificationNotice()}
+            </DrawerBody>
+          </DrawerContent>
+        </DrawerPositioner>
+      </DrawerRoot>
+
+      <Box
+        w="300px"
+        minH="100vh"
+        borderRightWidth="1px"
+        borderColor="brand.border"
+        bg="white"
+        px="5"
+        py="5"
+        display={{ base: "none", lg: "block" }}
+        flexShrink="0"
+      >
+        {renderNavigation()}
+        {renderVerificationNotice()}
+      </Box>
 
       <DialogRoot
         open={logoutDialogOpen}
@@ -368,6 +471,6 @@ export default function ParticipantSidebar({
           </DialogContent>
         </DialogPositioner>
       </DialogRoot>
-    </Box>
+    </>
   );
 }

@@ -6,7 +6,6 @@ import {
   Flex,
   Grid,
   HStack,
-  IconButton,
   Spinner,
   Text,
   VStack,
@@ -16,7 +15,6 @@ import {
   FiCheckCircle,
   FiClock,
   FiLock,
-  FiMoreHorizontal,
   FiSearch,
   FiShield,
   FiShoppingBag,
@@ -37,7 +35,7 @@ import {
   type ParticipantDashboardData,
   type WeeklyEarning,
 } from "@/services/participantDashboardService";
-import ParticipantSidebar from "./ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 
 type StatCardProps = {
   icon: React.ReactNode;
@@ -993,13 +991,12 @@ export default function ParticipantDashboard() {
 
   if (isLoading) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar />
+      <AuthenticatedShell>
         <Flex flex="1" align="center" justify="center" gap="3">
           <Spinner color="brand.primary" />
           <Text color="brand.mutedText">Loading participant dashboard...</Text>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
@@ -1009,8 +1006,7 @@ export default function ParticipantDashboard() {
 
   if (missingParticipantIdError || error || !data) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar />
+      <AuthenticatedShell>
         <Flex flex="1" align="center" justify="center" p="6">
           <DashboardCard p="6" maxW="520px">
             <Text fontWeight="bold" color="brand.dark">
@@ -1021,15 +1017,13 @@ export default function ParticipantDashboard() {
             </Text>
           </DashboardCard>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   return (
-    <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar />
-
-      <Box flex="1" p={{ base: "4", lg: "6" }} overflow="hidden">
+    <AuthenticatedShell contentProps={{ overflow: "hidden", px: { base: "4", md: "6", lg: "6" }, py: { base: "4", md: "5", lg: "6" } }}>
+      <Box minW={0}>
         <Grid templateColumns={{ base: "1fr", xl: "1fr" }} gap="6">
           <Box minW="0">
             <DashboardCard overflow="hidden" mb="5">
@@ -1239,6 +1233,6 @@ export default function ParticipantDashboard() {
           <RightPanel data={data} />
         </Grid>
       </Box>
-    </Flex>
+    </AuthenticatedShell>
   );
 }

@@ -6,6 +6,7 @@ import {
   Flex,
   Grid,
   HStack,
+  SimpleGrid,
   Spinner,
   Text,
   VStack,
@@ -23,7 +24,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 
-import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import { getStoredParticipantId } from "@/lib/participantIdentity";
 import {
   type EarningsBreakdownMap,
@@ -684,20 +685,18 @@ export default function ParticipantWalletPage() {
 
   if (isLoading) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Wallet" />
+      <AuthenticatedShell activeItem="Wallet">
         <Flex flex="1" align="center" justify="center" gap="3">
           <Spinner color="brand.primary" />
           <Text color="brand.mutedText">Loading wallet...</Text>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   if (missingParticipantIdError || (!data && error) || !data) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Wallet" />
+      <AuthenticatedShell activeItem="Wallet">
         <Flex flex="1" align="center" justify="center" p="6">
           <DashboardCard p="6" maxW="560px">
             <Text fontWeight="bold" color="brand.dark">
@@ -708,44 +707,34 @@ export default function ParticipantWalletPage() {
             </Text>
           </DashboardCard>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   const currency = data.summaryCards.currency;
 
   return (
-    <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar activeItem="Wallet" />
-
-      <Box flex="1" px={{ base: "4", lg: "7" }} py={{ base: "5", lg: "6" }}>
-        <Grid templateColumns={{ base: "1fr", xl: "1fr" }} gap="6">
-          <Box minW="0">
+    <AuthenticatedShell activeItem="Wallet">
+      <Grid templateColumns={{ base: "1fr" }} gap="6">
+        <Box minW={0}>
             <Box mb="6">
               <Text
-                fontSize={{ base: "3xl", lg: "4xl" }}
+                fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
                 fontWeight="extrabold"
                 color="brand.dark"
                 lineHeight="1"
+                wordBreak="break-word"
               >
                 Wallet
               </Text>
 
-              <Text fontSize="lg" color="brand.mutedText" mt="3">
+              <Text fontSize={{ base: "sm", md: "lg" }} color="brand.mutedText" mt="3">
                 {data.participant.username}, track your balance, rewards, and
                 withdrawals here.
               </Text>
             </Box>
 
-            <Grid
-              templateColumns={{
-                base: "1fr",
-                md: "1fr 1fr",
-                xl: "repeat(4, 1fr)",
-              }}
-              gap="4"
-              mb="6"
-            >
+            <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} gap="4" mb="6">
               <StatCard
                 icon={<FiCreditCard />}
                 title="Current Wallet Balance"
@@ -784,14 +773,13 @@ export default function ParticipantWalletPage() {
                 bg="#DCFCE7"
                 color="green.600"
               />
-            </Grid>
+            </SimpleGrid>
 
             <WalletBalanceCard data={data} currency={currency} />
-          </Box>
+        </Box>
 
-          <RightPanel data={data} currency={currency} />
-        </Grid>
-      </Box>
-    </Flex>
+        <RightPanel data={data} currency={currency} />
+      </Grid>
+    </AuthenticatedShell>
   );
 }

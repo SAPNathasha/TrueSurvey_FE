@@ -7,8 +7,10 @@ import {
   Grid,
   HStack,
   IconButton,
+  SimpleGrid,
   NativeSelect,
   Spinner,
+  Stack,
   Text,
 } from "@chakra-ui/react";
 import type { ComponentProps, ReactNode } from "react";
@@ -23,7 +25,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 
-import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+import AuthenticatedShell from "@/components/layout/AuthenticatedShell";
 import {
   getTransactionRecords,
   type TransactionRecordRow,
@@ -208,8 +210,85 @@ function TransactionsTable({
   currency: string;
 }) {
   return (
-    <DashboardCard p="0" overflow="hidden">
-      <Box overflowX="auto">
+    <>
+      <Stack display={{ base: "flex", md: "none" }} gap="3">
+        {rows.length === 0 && (
+          <DashboardCard p="5">
+            <Text color="brand.mutedText" fontSize="sm">
+              No transactions found for this page.
+            </Text>
+          </DashboardCard>
+        )}
+
+        {rows.map((transaction) => {
+          const statusStyle = getStatusStyle(transaction.status);
+          const visual = getTransactionVisual(transaction);
+
+          return (
+            <DashboardCard key={transaction.id} p="4">
+              <HStack align="start" gap="3">
+                <Box
+                  w="40px"
+                  h="40px"
+                  borderRadius="10px"
+                  bg={visual.iconBg}
+                  color={visual.iconColor}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  flexShrink="0"
+                >
+                  {visual.icon}
+                </Box>
+
+                <Box minW={0} flex="1">
+                  <Text fontWeight="bold" color="brand.dark" wordBreak="break-word">
+                    {transaction.description || formatLabel(transaction.type)}
+                  </Text>
+
+                  <HStack mt="2" gap="2" flexWrap="wrap">
+                    <Text fontSize="sm" color="brand.mutedText">
+                      {formatLabel(transaction.type)}
+                    </Text>
+                    <Box
+                      px="2.5"
+                      py="1"
+                      borderRadius="8px"
+                      bg={statusStyle.bg}
+                      color={statusStyle.color}
+                      fontSize="xs"
+                      fontWeight="bold"
+                    >
+                      {statusStyle.label}
+                    </Box>
+                  </HStack>
+
+                  <SimpleGrid columns={2} gap="3" mt="4">
+                    <Box>
+                      <Text fontSize="xs" color="brand.mutedText" fontWeight="semibold">
+                        Amount
+                      </Text>
+                      <Text fontWeight="bold" color="brand.dark">
+                        {formatMoney(transaction.amount, currency)}
+                      </Text>
+                    </Box>
+
+                    <Box>
+                      <Text fontSize="xs" color="brand.mutedText" fontWeight="semibold">
+                        Date
+                      </Text>
+                      <Text color="brand.dark">{formatDate(transaction.date)}</Text>
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+              </HStack>
+            </DashboardCard>
+          );
+        })}
+      </Stack>
+
+      <DashboardCard p="0" overflow="hidden" display={{ base: "none", md: "block" }}>
+        <Box overflowX="auto" w="100%">
         <Box minW="980px">
           <Grid
             templateColumns="2fr 1fr 1fr 1fr 1fr 0.8fr"
@@ -299,8 +378,9 @@ function TransactionsTable({
             );
           })}
         </Box>
-      </Box>
-    </DashboardCard>
+        </Box>
+      </DashboardCard>
+    </>
   );
 }
 
@@ -444,20 +524,18 @@ export default function ParticipantEarningsPage() {
 
   if (isLoading && !data) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Transactions" />
+      <AuthenticatedShell activeItem="Transactions">
         <Flex flex="1" align="center" justify="center" gap="3">
           <Spinner color="brand.primary" />
           <Text color="brand.mutedText">Loading transactions...</Text>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   if (missingUserIdError || error || !data) {
     return (
-      <Flex minH="100vh" bg="white" color="brand.dark">
-        <ParticipantSidebar activeItem="Transactions" />
+      <AuthenticatedShell activeItem="Transactions">
         <Flex flex="1" align="center" justify="center" p="6">
           <DashboardCard p="6" maxW="560px">
             <Text fontWeight="bold" color="brand.dark">
@@ -468,40 +546,31 @@ export default function ParticipantEarningsPage() {
             </Text>
           </DashboardCard>
         </Flex>
-      </Flex>
+      </AuthenticatedShell>
     );
   }
 
   return (
-    <Flex minH="100vh" bg="white" color="brand.dark">
-      <ParticipantSidebar activeItem="Transactions" />
-
-      <Box flex="1" px={{ base: "4", lg: "7" }} py={{ base: "5", lg: "6" }}>
+    <AuthenticatedShell activeItem="Transactions">
+      <Box minW={0}>
         <Box mb="6">
           <Text
-            fontSize={{ base: "3xl", lg: "4xl" }}
+            fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
             fontWeight="extrabold"
             color="brand.dark"
             lineHeight="1"
+            wordBreak="break-word"
           >
             Transactions
           </Text>
 
-          <Text fontSize="lg" color="brand.mutedText" mt="3">
+          <Text fontSize={{ base: "sm", md: "lg" }} color="brand.mutedText" mt="3">
             Review your transaction activity, payouts, and reward movements in
             one place.
           </Text>
         </Box>
 
-        <Grid
-          templateColumns={{
-            base: "1fr",
-            md: "1fr 1fr",
-            xl: "repeat(4, 1fr)",
-          }}
-          gap="4"
-          mb="6"
-        >
+        <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} gap="4" mb="6">
           <StatCard
             icon={<FiDollarSign />}
             title="Total Rewards Earned"
@@ -537,18 +606,18 @@ export default function ParticipantEarningsPage() {
             bg="#EEF2FF"
             color="brand.primary"
           />
-        </Grid>
+        </SimpleGrid>
 
         <DashboardCard p="0" overflow="hidden">
           <Box
-            px="5"
+            px={{ base: "4", md: "5" }}
             py="4"
             borderBottomWidth="1px"
             borderColor="brand.border"
             display="flex"
-            alignItems="center"
+            alignItems={{ base: "stretch", md: "center" }}
             justifyContent="space-between"
-            flexWrap="wrap"
+            flexDirection={{ base: "column", md: "row" }}
             gap="4"
           >
             <Box>
@@ -560,7 +629,7 @@ export default function ParticipantEarningsPage() {
               </Text>
             </Box>
 
-            <Box minW="140px">
+            <Box w={{ base: "100%", md: "160px" }} flexShrink={0}>
               <Text fontSize="sm" fontWeight="semibold" mb="2">
                 Per Page
               </Text>
@@ -573,6 +642,7 @@ export default function ParticipantEarningsPage() {
                     setPage(1);
                   }}
                   h="44px"
+                  w="full"
                   borderColor="brand.border"
                   borderRadius="10px"
                 >
@@ -590,7 +660,13 @@ export default function ParticipantEarningsPage() {
           <TransactionsTable rows={data.transactions} currency={currency} />
         </DashboardCard>
 
-        <HStack justify="space-between" mt="5" flexWrap="wrap" gap="4">
+        <Stack
+          direction={{ base: "column", md: "row" }}
+          justify="space-between"
+          align={{ base: "stretch", md: "center" }}
+          mt="5"
+          gap="4"
+        >
           <Text color="brand.mutedText">{pageSummary}</Text>
 
           <Pagination
@@ -598,8 +674,8 @@ export default function ParticipantEarningsPage() {
             totalPages={Math.max(data.pagination.totalPages, 1)}
             onPageChange={setPage}
           />
-        </HStack>
+        </Stack>
       </Box>
-    </Flex>
+    </AuthenticatedShell>
   );
 }

@@ -1,0 +1,44 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { Box, Flex, type BoxProps, type FlexProps } from "@chakra-ui/react";
+
+import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
+
+type AuthenticatedShellProps = {
+  activeItem?: string;
+  children: ReactNode;
+  contentProps?: BoxProps;
+  shellProps?: FlexProps;
+};
+
+export default function AuthenticatedShell({
+  activeItem = "Dashboard",
+  children,
+  contentProps,
+  shellProps,
+}: AuthenticatedShellProps) {
+  return (
+    <Flex
+      minH="100vh"
+      bg="white"
+      color="brand.dark"
+      direction={{ base: "column", lg: "row" }}
+      overflowX="hidden"
+      {...shellProps}
+    >
+      <ParticipantSidebar activeItem={activeItem} />
+
+      <Box flex="1" minW={0} w="full">
+        <Box
+          minW={0}
+          px={{ base: "4", md: "6", lg: "7" }}
+          py={{ base: "4", md: "5", lg: "6" }}
+          {...contentProps}
+        >
+          {children}
+        </Box>
+      </Box>
+    </Flex>
+  );
+}
