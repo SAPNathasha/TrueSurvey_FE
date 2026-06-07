@@ -17,9 +17,11 @@ import {
 } from "@chakra-ui/react";
 import { useEffect, useRef, useState } from "react";
 import {
+  FiAlertCircle,
   FiCalendar,
   FiCamera,
   FiCheck,
+  FiClock,
   FiEdit2,
   FiHome,
   FiKey,
@@ -887,12 +889,56 @@ function VerificationInfoBox() {
   );
 }
 
+function VerificationStatusNotice({
+  icon,
+  title,
+  description,
+  bg,
+  color,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  bg: string;
+  color: string;
+}) {
+  return (
+    <HStack
+      mt="6"
+      align="start"
+      gap="4"
+      bg={bg}
+      borderRadius="12px"
+      px="4"
+      py="4"
+    >
+      <Box color={color} fontSize="20px" pt="0.5">
+        {icon}
+      </Box>
+
+      <Box>
+        <Text fontSize="sm" fontWeight="bold" color="brand.dark">
+          {title}
+        </Text>
+
+        <Text fontSize="sm" color="brand.mutedText" mt="1">
+          {description}
+        </Text>
+      </Box>
+    </HStack>
+  );
+}
+
 function AccountVerificationCard({
   data,
 }: {
   data: ParticipantProfileSettingsResponse;
 }) {
   const isVerified = data.accountOverview.verificationStatus === "VERIFIED";
+  const idVerificationStatus = data.accountOverview.idVerificationStatus;
+  const showForm =
+    idVerificationStatus === "NOT_TRIED" || idVerificationStatus === "REJECTED";
+  const isAccepted = idVerificationStatus === "ACCEPTED";
   const [nicNumber, setNicNumber] = useState("");
   const [identityFrontImage, setIdentityFrontImage] = useState<File | null>(null);
   const [selfieImage, setSelfieImage] = useState<File | null>(null);
@@ -1065,52 +1111,86 @@ function AccountVerificationCard({
         onChange={handleVerificationFileSelect("selfie")}
       />
 
-      <Box mt="6" maxW={{ base: "100%", md: "420px" }}>
-        <FormField label="NIC Number">
-          <SettingsInput
-            value={nicNumber}
-            onChange={(event) => setNicNumber(event.target.value)}
-            placeholder="Enter your NIC number"
+      {idVerificationStatus === "PENDING" ? (
+        <VerificationStatusNotice
+          icon={<FiClock />}
+          title="Your NIC verification is still in progress"
+          description="Check back later while we review your submitted details."
+          bg="#EEF2FF"
+          color="brand.primary"
+        />
+      ) : null}
+
+      {isAccepted ? (
+        <VerificationStatusNotice
+          icon={<FiCheck />}
+          title="Your verification is successful"
+          description="Your identity has been verified and you can now access more surveys."
+          bg="#DCFCE7"
+          color="green.600"
+        />
+      ) : null}
+
+      {idVerificationStatus === "REJECTED" ? (
+        <VerificationStatusNotice
+          icon={<FiAlertCircle />}
+          title="Your NIC verification got rejected"
+          description="Please review your details and submit your verification again below."
+          bg="#FEF2F2"
+          color="red.500"
+        />
+      ) : null}
+
+      {showForm ? (
+        <>
+          <Box mt="6" maxW={{ base: "100%", md: "420px" }}>
+            <FormField label="NIC Number">
+              <SettingsInput
+                value={nicNumber}
+                onChange={(event) => setNicNumber(event.target.value)}
+                placeholder="Enter your NIC number"
+              />
+            </FormField>
+          </Box>
+
+          <UploadBox
+            icon={<FiKey />}
+            title="Upload NIC / Driving Licence (Front)"
+            description="Drag and drop your file here, or click to browse"
+            acceptText="JPG, JPEG, PNG, or WEBP"
+            fileName={identityFrontImage?.name}
+            onClick={() => identityFrontInputRef.current?.click()}
+            isDisabled={isVerified || isSubmitting}
           />
-        </FormField>
-      </Box>
 
-      <UploadBox
-        icon={<FiKey />}
-        title="Upload NIC / Driving Licence (Front)"
-        description="Drag and drop your file here, or click to browse"
-        acceptText="JPG, JPEG, PNG, or WEBP"
-        fileName={identityFrontImage?.name}
-        onClick={() => identityFrontInputRef.current?.click()}
-        isDisabled={isVerified || isSubmitting}
-      />
+          <UploadBox
+            icon={<FiCamera />}
+            title="Upload a Selfie"
+            description="Drag and drop your file here, or click to browse"
+            acceptText="Make sure your face is clearly visible"
+            fileName={selfieImage?.name}
+            onClick={() => selfieInputRef.current?.click()}
+            isDisabled={isVerified || isSubmitting}
+          />
 
-      <UploadBox
-        icon={<FiCamera />}
-        title="Upload a Selfie"
-        description="Drag and drop your file here, or click to browse"
-        acceptText="Make sure your face is clearly visible"
-        fileName={selfieImage?.name}
-        onClick={() => selfieInputRef.current?.click()}
-        isDisabled={isVerified || isSubmitting}
-      />
+          <VerificationInfoBox />
 
-      <VerificationInfoBox />
-
-      <Button
-        mt="6"
-        color="white"
-        px="8"
-        onClick={handleSubmitVerification}
-        loading={isSubmitting}
-        disabled={isVerified || isSubmitting}
-      >
-        {isVerified
-          ? "Verification Complete"
-          : isQueued
-            ? "Verification Submitted"
-            : "Start Verification"}
-      </Button>
+          <Button
+            mt="6"
+            color="white"
+            px="8"
+            onClick={handleSubmitVerification}
+            loading={isSubmitting}
+            disabled={isVerified || isSubmitting}
+          >
+            {isQueued
+              ? "Verification Submitted"
+              : idVerificationStatus === "REJECTED"
+                ? "Submit Again"
+                : "Start Verification"}
+          </Button>
+        </>
+      ) : null}
     </DashboardCard>
   );
 }
@@ -1247,12 +1327,8 @@ export default function ParticipantSettingsPage() {
     ? ""
     : "Participant id was not found. Please log in again.";
   const showVerificationTab = userRole !== "CREATOR";
-
-  useEffect(() => {
-    if (!showVerificationTab && activeTab === "Verification") {
-      setActiveTab("Profile");
-    }
-  }, [activeTab, showVerificationTab]);
+  const resolvedActiveTab =
+    !showVerificationTab && activeTab === "Verification" ? "Profile" : activeTab;
 
   if (isLoading) {
     return (
@@ -1423,12 +1499,12 @@ export default function ParticipantSettingsPage() {
           </Box>
 
           <SettingsTabs
-            activeTab={activeTab}
+            activeTab={resolvedActiveTab}
             onChange={setActiveTab}
             showVerificationTab={showVerificationTab}
           />
 
-          {activeTab === "Profile" && (
+          {resolvedActiveTab === "Profile" && (
             <ProfileTabContent
               data={data}
               formValues={formValues}
@@ -1440,11 +1516,11 @@ export default function ParticipantSettingsPage() {
             />
           )}
 
-          {showVerificationTab && activeTab === "Verification" && (
+          {showVerificationTab && resolvedActiveTab === "Verification" && (
             <AccountVerificationCard data={data} />
           )}
 
-          {activeTab === "Security" && (
+          {resolvedActiveTab === "Security" && (
             <PlaceholderSettingsCard
               icon={<FiShield />}
               title="Security"

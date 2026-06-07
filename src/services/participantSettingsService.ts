@@ -24,6 +24,7 @@ export type ParticipantProfileSettingsResponse = {
     accountStatus: string;
     emailVerified: boolean;
     verificationStatus: "VERIFIED" | "NOT_VERIFIED";
+    idVerificationStatus: "NOT_TRIED" | "PENDING" | "ACCEPTED" | "REJECTED";
     totalSurveysCompleted: number;
   };
 };
