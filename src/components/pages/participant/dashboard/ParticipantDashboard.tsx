@@ -440,9 +440,9 @@ function RecentActivity({
           Recent Activity
         </Text>
 
-        <Text fontSize="sm" color="brand.primary" fontWeight="bold">
+        {/* <Text fontSize="sm" color="brand.primary" fontWeight="bold">
           View all activity →
-        </Text>
+        </Text> */}
       </HStack>
 
       <Box overflowX="auto">
@@ -520,9 +520,9 @@ function RecentActivity({
 
               <Text color="brand.mutedText">{formatDate(activity.completedAt)}</Text>
 
-              <IconButton aria-label="More" size="sm" variant="ghost">
+              {/* <IconButton aria-label="More" size="sm" variant="ghost">
                 <FiMoreHorizontal />
-              </IconButton>
+              </IconButton> */}
             </Grid>
           ))}
         </Box>
@@ -581,9 +581,9 @@ function EarningsChart({
           </Text>
         </Box>
 
-        <Button size="sm" variant="outline">
+        {/* <Button size="sm" variant="outline">
           This Week
-        </Button>
+        </Button> */}
       </HStack>
 
       <HStack align="end" gap="4" h="150px">
@@ -867,7 +867,7 @@ function RightPanel({ data }: { data: ParticipantDashboardData }) {
         </VStack>
       </DashboardCard> */}
 
-      <DashboardCard p="5">
+      {/* <DashboardCard p="5">
         <Text fontWeight="bold" color="brand.dark" mb="4">
           Quick Actions
         </Text>
@@ -878,7 +878,7 @@ function RightPanel({ data }: { data: ParticipantDashboardData }) {
           <QuickAction icon={<FiShield />} label="Verify Account" bg="#FEF3C7" color="#D97706" />
           <QuickAction icon={<FiUser />} label="Edit Profile" bg="#F3E8FF" color="#7C3AED" />
         </Grid>
-      </DashboardCard>
+      </DashboardCard> */}
     </VStack>
   );
 }
@@ -1033,7 +1033,7 @@ export default function ParticipantDashboard() {
         <Grid templateColumns={{ base: "1fr", xl: "1fr" }} gap="6">
           <Box minW="0">
             <DashboardCard overflow="hidden" mb="5">
-              <Grid templateColumns={{ base: "1fr", lg: "1.2fr 1fr" }}>
+              <Grid templateColumns={{ base: "1fr", lg: "1fr" }}>
                 <Box p={{ base: "5", lg: "8" }}>
                   <Text fontSize={{ base: "2xl", lg: "3xl" }} fontWeight="extrabold">
                     Welcome back, {data.welcome.username}!
@@ -1056,7 +1056,7 @@ export default function ParticipantDashboard() {
                   </HStack>
                 </Box>
 
-                <Box
+                {/* <Box
                   bg="brand.lightBlue"
                   display={{ base: "none", lg: "flex" }}
                   alignItems="center"
@@ -1117,7 +1117,7 @@ export default function ParticipantDashboard() {
                   >
                     ₹
                   </Box>
-                </Box>
+                </Box> */}
               </Grid>
             </DashboardCard>
 
@@ -1197,7 +1197,7 @@ export default function ParticipantDashboard() {
               })}
             </Grid>
 
-            <Text fontSize="xl" fontWeight="bold" color="brand.dark">
+            {/* <Text fontSize="xl" fontWeight="bold" color="brand.dark">
               More Earning Opportunities
             </Text>
 
@@ -1222,7 +1222,7 @@ export default function ParticipantDashboard() {
                   reward={getSurveyReward(survey, currency)}
                 />
               ))}
-            </Grid>
+            </Grid> */}
 
             <Grid templateColumns={{ base: "1fr", xl: "1fr 1fr" }} gap="5">
               <RecentActivity

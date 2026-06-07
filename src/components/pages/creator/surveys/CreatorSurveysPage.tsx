@@ -17,7 +17,6 @@ import {
   FiChevronLeft,
   FiEdit2,
   FiFileText,
-  FiFilter,
   FiGrid,
   FiList,
   FiPlusCircle,

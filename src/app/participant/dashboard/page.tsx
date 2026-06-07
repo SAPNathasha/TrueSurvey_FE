@@ -1,5 +1,5 @@
-import ParticipantDashboard from "@/components/pages/participant/dashboard/ParticipantDashboard";
+import { redirect } from "next/navigation";
 
 export default function ParticipantDashboardPage() {
-  return <ParticipantDashboard />;
+  redirect("/dashboard");
 }

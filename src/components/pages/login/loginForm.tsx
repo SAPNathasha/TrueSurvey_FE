@@ -126,9 +126,7 @@ export default function LoginForm() {
         window.localStorage.setItem("user", JSON.stringify(loginUserData));
       }
 
-      router.push(
-        role === "CREATOR" ? "/creator/dashboard" : "/participant/dashboard"
-      );
+      router.push("/dashboard");
     } catch (error) {
       if (error instanceof Error) {
         setServerError(error.message);
