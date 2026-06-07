@@ -8,7 +8,10 @@ import {
   HStack,
   Input,
   NativeSelect,
+  Portal,
   Text,
+  Combobox,
+  createListCollection,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -35,6 +38,12 @@ import {
   type SetTargetAudiencePayload,
   type SurveyAudienceType,
 } from "@/services/creatorSurveyService";
+import {
+  getCities,
+  getDistricts,
+  getProvinces,
+  type LocationOption,
+} from "@/services/locationService";
 
 type TargetAudienceStepProps = {
   onBack: () => void;
@@ -53,8 +62,12 @@ type TargetAudienceFormValues = {
   minimumAge: string;
   maximumAge: string;
   gender: AudienceGender;
+  provinceId: string;
+  province: string;
+  cityId: string;
   city: string;
   educationLevel: string;
+  districtId: string;
   district: string;
   occupation: string;
   sampleBase: SurveyAudienceType;
@@ -66,8 +79,12 @@ const initialValues: TargetAudienceFormValues = {
   minimumAge: "18",
   maximumAge: "45",
   gender: "ALL",
-  city: "Colombo",
+  provinceId: "",
+  province: "Any province",
+  cityId: "",
+  city: "Any city",
   educationLevel: "Any education level",
+  districtId: "",
   district: "Any district",
   occupation: "Any",
   sampleBase: "VERIFIED_USERS_ONLY",
@@ -131,6 +148,7 @@ const targetAudienceSchema = Yup.object({
   gender: Yup.mixed<AudienceGender>()
     .oneOf(["ALL", "MALE", "FEMALE", "OTHER"])
     .required(),
+  province: Yup.string().max(100, "Province must be 100 characters or fewer."),
   city: Yup.string().max(100, "City must be 100 characters or fewer."),
   district: Yup.string().max(100, "District must be 100 characters or fewer."),
   educationLevel: Yup.string().max(
@@ -264,6 +282,13 @@ export default function TargetAudienceStep({
 }: TargetAudienceStepProps) {
   const surveyId = getStoredDraftId();
   const storedAudience = getStoredTargetAudience(surveyId);
+  const [provinces, setProvinces] = useState<LocationOption[]>([]);
+  const [districts, setDistricts] = useState<LocationOption[]>([]);
+  const [cities, setCities] = useState<LocationOption[]>([]);
+  const [isLocationsLoading, setIsLocationsLoading] = useState(false);
+  const [citySearch, setCitySearch] = useState(
+    storedAudience?.city || initialValues.city,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingEstimatedReach, setIsCheckingEstimatedReach] = useState(false);
   const [serverEstimatedReach, setServerEstimatedReach] = useState<number | null>(
@@ -277,9 +302,29 @@ export default function TargetAudienceStep({
           minimumAge: storedAudience.minimumAge || initialValues.minimumAge,
           maximumAge: storedAudience.maximumAge || initialValues.maximumAge,
           gender: storedAudience.gender || initialValues.gender,
+          provinceId:
+            "provinceId" in storedAudience &&
+            typeof storedAudience.provinceId === "string"
+              ? storedAudience.provinceId
+              : initialValues.provinceId,
+          province:
+            "province" in storedAudience &&
+            typeof storedAudience.province === "string"
+              ? storedAudience.province
+              : initialValues.province,
+          cityId:
+            "cityId" in storedAudience &&
+            typeof storedAudience.cityId === "string"
+              ? storedAudience.cityId
+              : initialValues.cityId,
           city: storedAudience.city || initialValues.city,
           educationLevel:
             storedAudience.educationLevel || initialValues.educationLevel,
+          districtId:
+            "districtId" in storedAudience &&
+            typeof storedAudience.districtId === "string"
+              ? storedAudience.districtId
+              : initialValues.districtId,
           district: storedAudience.district || initialValues.district,
           occupation: storedAudience.occupation || initialValues.occupation,
           sampleBase: storedAudience.sampleBase || initialValues.sampleBase,
@@ -290,6 +335,30 @@ export default function TargetAudienceStep({
       await submitTargetAudience(values, submitActionRef.current === "next");
     },
   });
+  const { setFieldValue } = formik;
+
+  const filteredCities = useMemo(() => {
+    const normalizedSearch = citySearch.trim().toLowerCase();
+
+    if (!normalizedSearch || normalizedSearch === "any city") {
+      return cities;
+    }
+
+    return cities.filter((city) =>
+      city.name.toLowerCase().includes(normalizedSearch),
+    );
+  }, [cities, citySearch]);
+
+  const cityCollection = useMemo(
+    () =>
+      createListCollection({
+        items: filteredCities.map((city) => ({
+          label: city.name,
+          value: city.id,
+        })),
+      }),
+    [filteredCities],
+  );
 
   const estimatedReach = useMemo(() => {
     if (typeof serverEstimatedReach === "number") {
@@ -327,7 +396,30 @@ export default function TargetAudienceStep({
     value: TargetAudienceFormValues[K]
   ) => {
     setServerEstimatedReach(null);
-    void formik.setFieldValue(field, value);
+    void setFieldValue(field, value);
+  };
+
+  const setProvinceSelection = (provinceId: string, provinceName: string) => {
+    setServerEstimatedReach(null);
+    void setFieldValue("provinceId", provinceId);
+    void setFieldValue("province", provinceName);
+    void setFieldValue("districtId", "");
+    void setFieldValue("district", "Any district");
+    void setFieldValue("cityId", "");
+    void setFieldValue("city", "Any city");
+    setDistricts([]);
+    setCities([]);
+    setCitySearch("Any city");
+  };
+
+  const setDistrictSelection = (districtId: string, districtName: string) => {
+    setServerEstimatedReach(null);
+    void setFieldValue("districtId", districtId);
+    void setFieldValue("district", districtName);
+    void setFieldValue("cityId", "");
+    void setFieldValue("city", "Any city");
+    setCities([]);
+    setCitySearch("Any city");
   };
 
   const markAllFieldsTouched = () => {
@@ -335,8 +427,10 @@ export default function TargetAudienceStep({
       minimumAge: true,
       maximumAge: true,
       gender: true,
+      province: true,
       city: true,
       educationLevel: true,
+      districtId: true,
       district: true,
       occupation: true,
       sampleBase: true,
@@ -384,17 +478,20 @@ export default function TargetAudienceStep({
       payload.gender = values.gender;
     }
 
-    const city = values.city.trim();
-    const district = values.district.trim();
+    const province = values.province.trim();
     const educationLevel = values.educationLevel.trim();
     const occupation = values.occupation.trim();
 
-    if (city && city.toLowerCase() !== "any city") {
-      payload.city = city;
+    if (province && province !== "Any province" && values.provinceId) {
+      payload.province = values.provinceId;
     }
 
-    if (district && district !== "Any district") {
-      payload.district = district;
+    if (values.cityId) {
+      payload.city = values.cityId;
+    }
+
+    if (values.districtId) {
+      payload.district = values.districtId;
     }
 
     if (educationLevel && educationLevel !== "Any education level") {
@@ -471,6 +568,163 @@ export default function TargetAudienceStep({
       setIsCheckingEstimatedReach(false);
     }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProvinces = async () => {
+      try {
+        setIsLocationsLoading(true);
+        const response = await getProvinces();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProvinces(response);
+
+        if (!formik.values.provinceId && formik.values.province !== "Any province") {
+          const matchedProvince = response.find(
+            (province) => province.name === formik.values.province,
+          );
+
+          if (matchedProvince) {
+            void setFieldValue("provinceId", matchedProvince.id);
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          toaster.create({
+            type: "error",
+            title: "Could not load provinces",
+            description:
+              error instanceof Error
+                ? error.message
+                : "Please try again in a moment.",
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setIsLocationsLoading(false);
+        }
+      }
+    };
+
+    void loadProvinces();
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!formik.values.provinceId) {
+      return;
+    }
+
+    const loadDistricts = async () => {
+      try {
+        setIsLocationsLoading(true);
+        const response = await getDistricts(formik.values.provinceId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDistricts(response);
+
+        if (!formik.values.districtId && formik.values.district !== "Any district") {
+          const matchedDistrict = response.find(
+            (district) => district.name === formik.values.district,
+          );
+
+          if (matchedDistrict) {
+            void setFieldValue("districtId", matchedDistrict.id);
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          toaster.create({
+            type: "error",
+            title: "Could not load districts",
+            description:
+              error instanceof Error
+                ? error.message
+                : "Please try again in a moment.",
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setIsLocationsLoading(false);
+        }
+      }
+    };
+
+    void loadDistricts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formik.values.provinceId, formik.values.district, formik.values.districtId, setFieldValue]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!formik.values.districtId) {
+      return;
+    }
+
+    const loadCities = async () => {
+      try {
+        setIsLocationsLoading(true);
+        const response = await getCities(formik.values.districtId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setCities(response);
+
+        if (formik.values.city && formik.values.city !== "Any city") {
+          setCitySearch(formik.values.city);
+
+          if (!formik.values.cityId) {
+            const matchedCity = response.find(
+              (city) => city.name === formik.values.city,
+            );
+
+            if (matchedCity) {
+              void setFieldValue("cityId", matchedCity.id);
+            }
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          toaster.create({
+            type: "error",
+            title: "Could not load cities",
+            description:
+              error instanceof Error
+                ? error.message
+                : "Please try again in a moment.",
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setIsLocationsLoading(false);
+        }
+      }
+    };
+
+    void loadCities();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formik.values.city, formik.values.cityId, formik.values.districtId, setFieldValue]);
 
   useEffect(() => {
     if (!surveyId) {
@@ -637,26 +891,47 @@ export default function TargetAudienceStep({
               <Field.ErrorText>{formik.errors.gender}</Field.ErrorText>
             </Field.Root>
 
-            <Field.Root invalid={shouldShowError("city")}>
+            <Field.Root invalid={shouldShowError("province")}>
               <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
-                City
+                Province
               </Field.Label>
 
-              <Input
-                name="city"
-                value={formik.values.city}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                placeholder="e.g., Colombo"
-                h="46px"
-                borderColor="brand.border"
-                px="4"
-                _focus={{
-                  borderColor: "brand.primary",
-                  boxShadow: "0 0 0 1px #0015D6",
-                }}
-              />
-              <Field.ErrorText>{formik.errors.city}</Field.ErrorText>
+              <NativeSelect.Root disabled={isLocationsLoading && provinces.length === 0}>
+                <NativeSelect.Field
+                  name="province"
+                  value={formik.values.provinceId || "ANY"}
+                  onChange={(event) => {
+                    if (event.target.value === "ANY") {
+                      setProvinceSelection("", "Any province");
+                      return;
+                    }
+
+                    const selectedProvince = provinces.find(
+                      (province) => province.id === event.target.value,
+                    );
+
+                    if (selectedProvince) {
+                      setProvinceSelection(
+                        selectedProvince.id,
+                        selectedProvince.name,
+                      );
+                    }
+                  }}
+                  onBlur={formik.handleBlur}
+                  h="46px"
+                  borderColor="brand.border"
+                  px={5}
+                >
+                  <option value="ANY">Any province</option>
+                  {provinces.map((province) => (
+                    <option key={province.id} value={province.id}>
+                      {province.name}
+                    </option>
+                  ))}
+                </NativeSelect.Field>
+                <NativeSelect.Indicator />
+              </NativeSelect.Root>
+              <Field.ErrorText>{formik.errors.province}</Field.ErrorText>
             </Field.Root>
 
             <Field.Root invalid={shouldShowError("educationLevel")}>
@@ -697,26 +972,142 @@ export default function TargetAudienceStep({
                 District
               </Field.Label>
 
-              <NativeSelect.Root>
+              <NativeSelect.Root disabled={!formik.values.provinceId || isLocationsLoading}>
                 <NativeSelect.Field
                   name="district"
-                  value={formik.values.district}
-                  onChange={(event) => setFormValue("district", event.target.value)}
+                  value={formik.values.districtId || "ANY"}
+                  onChange={(event) => {
+                    if (event.target.value === "ANY") {
+                      setDistrictSelection("", "Any district");
+                      return;
+                    }
+
+                    const selectedDistrict = districts.find(
+                      (district) => district.id === event.target.value,
+                    );
+
+                    if (selectedDistrict) {
+                      setDistrictSelection(
+                        selectedDistrict.id,
+                        selectedDistrict.name,
+                      );
+                    }
+                  }}
                   onBlur={formik.handleBlur}
                   h="46px"
                   borderColor="brand.border"
                   px={5}
                 >
-                  <option value="Any district">Any district</option>
-                  <option value="Colombo District">Colombo District</option>
-                  <option value="Gampaha District">Gampaha District</option>
-                  <option value="Kandy District">Kandy District</option>
-                  <option value="Galle District">Galle District</option>
-                  <option value="Kurunegala District">Kurunegala District</option>
+                  <option value="ANY">Any district</option>
+                  {districts.map((district) => (
+                    <option key={district.id} value={district.id}>
+                      {district.name}
+                    </option>
+                  ))}
                 </NativeSelect.Field>
                 <NativeSelect.Indicator />
               </NativeSelect.Root>
               <Field.ErrorText>{formik.errors.district}</Field.ErrorText>
+            </Field.Root>
+
+            <Field.Root invalid={shouldShowError("city")}>
+              <Field.Label fontSize="sm" fontWeight="semibold" mb="2">
+                City
+              </Field.Label>
+
+              <Combobox.Root
+                collection={cityCollection}
+                inputValue={citySearch}
+                onInputValueChange={(details) => {
+                  setCitySearch(details.inputValue);
+                  setServerEstimatedReach(null);
+
+                  if (!details.inputValue) {
+                    void formik.setFieldValue("city", "Any city");
+                  }
+                }}
+                onValueChange={(details) => {
+                  const selectedCity = cities.find(
+                    (city) => city.id === details.value[0],
+                  );
+
+                  if (selectedCity) {
+                    void formik.setFieldValue("cityId", selectedCity.id);
+                    void formik.setFieldValue("city", selectedCity.name);
+                    setCitySearch(selectedCity.name);
+                    setServerEstimatedReach(null);
+                  }
+                }}
+                openOnClick
+              >
+                <Combobox.Control>
+                  <Combobox.Input
+                    placeholder={
+                      formik.values.districtId
+                        ? "Search and select city"
+                        : "Select district first"
+                    }
+                    disabled={!formik.values.districtId || isLocationsLoading}
+                    h="46px"
+                    borderWidth="1px"
+                    borderColor="brand.border"
+                    borderRadius="10px"
+                    px="4"
+                    _focusVisible={{
+                      borderColor: "brand.primary",
+                      boxShadow: "0 0 0 1px #0015D6",
+                    }}
+                  />
+                </Combobox.Control>
+                <Portal>
+                  <Combobox.Positioner>
+                    <Combobox.Content
+                      bg="white"
+                      borderWidth="1px"
+                      borderColor="brand.border"
+                      borderRadius="12px"
+                      boxShadow="lg"
+                      maxH="240px"
+                      overflowY="auto"
+                      zIndex={1600}
+                    >
+                      <Combobox.Item
+                        item={{ label: "Any city", value: "ANY_CITY" }}
+                        key="ANY_CITY"
+                        px="3"
+                        py="2"
+                        cursor="pointer"
+                        onClick={() => {
+                          void formik.setFieldValue("cityId", "");
+                          void formik.setFieldValue("city", "Any city");
+                          setCitySearch("Any city");
+                          setServerEstimatedReach(null);
+                        }}
+                      >
+                        <Combobox.ItemText>Any city</Combobox.ItemText>
+                      </Combobox.Item>
+                      <Combobox.Empty px="3" py="2" color="brand.mutedText">
+                        No cities found.
+                      </Combobox.Empty>
+                      <Combobox.List>
+                        {cityCollection.items.map((item) => (
+                          <Combobox.Item
+                            key={item.value}
+                            item={item}
+                            px="3"
+                            py="2"
+                            cursor="pointer"
+                            _highlighted={{ bg: "brand.lightBlue" }}
+                          >
+                            <Combobox.ItemText>{item.label}</Combobox.ItemText>
+                          </Combobox.Item>
+                        ))}
+                      </Combobox.List>
+                    </Combobox.Content>
+                  </Combobox.Positioner>
+                </Portal>
+              </Combobox.Root>
+              <Field.ErrorText>{formik.errors.city}</Field.ErrorText>
             </Field.Root>
 
             <Field.Root invalid={shouldShowError("occupation")}>
@@ -802,7 +1193,19 @@ export default function TargetAudienceStep({
 
             <AudienceTag
               icon={<FiMapPin />}
-              label={formik.values.city.trim() || "Any city"}
+              label={
+                [
+                  formik.values.city !== "Any city" ? formik.values.city.trim() : "",
+                  formik.values.district !== "Any district"
+                    ? formik.values.district.trim()
+                    : "",
+                  formik.values.province !== "Any province"
+                    ? formik.values.province.trim()
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(", ") || "Any location"
+              }
               bg="#ECFDF3"
               color="#087A35"
               borderColor="#BBF7D0"

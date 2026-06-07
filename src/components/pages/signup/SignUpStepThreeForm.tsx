@@ -31,6 +31,7 @@ export default function SignUprStepThreeForm() {
     submitForm,
     status,
   } = useFormikContext<SignupFormValues>();
+  const isCreatorOnly = values.role === "CREATOR";
 
   return (
     <Flex justify="center">
@@ -50,46 +51,64 @@ export default function SignUprStepThreeForm() {
                 fontWeight="800"
                 lineHeight="1.2"
               >
-                Optional identity verification
+                {isCreatorOnly
+                  ? "Create your creator account"
+                  : "Optional identity verification"}
               </Heading>
             </HStack>
 
             <Text fontSize="14px" color="#A0A0A0" lineHeight="1.5">
-              Verify your account to access more surveys and increase your
-              earning opportunities.
+              {isCreatorOnly
+                ? "Creators do not need NIC verification. You can submit your account and start creating surveys."
+                : "Verify your account to access more surveys and increase your earning opportunities."}
             </Text>
           </Box>
 
-          <VStack gap="4" align="stretch">
-            <InputField
-              name="nicNumber"
-              title="NIC Number (Optional)"
-              placeholder="Enter NIC number"
-              type="text"
-              helperText="Optional text field accepted by backend."
-              required={false}
-            />
+          {!isCreatorOnly ? (
+            <VStack gap="4" align="stretch">
+              <InputField
+                name="nicNumber"
+                title="NIC Number (Optional)"
+                placeholder="Enter NIC number"
+                type="text"
+                helperText="Optional text field accepted by backend."
+                required={false}
+              />
 
-            <UploadBox
-              name="nicImage"
-              title="Upload NIC / Driving Licence (Front)"
-              icon={FaIdCard}
-              helper="JPG, JPEG, PNG or WEBP (max 5MB)"
-              value={values.nicImage}
-              error={touched.nicImage ? errors.nicImage : undefined}
-              onChange={(file) => setFieldValue("nicImage", file)}
-            />
+              <UploadBox
+                name="nicImage"
+                title="Upload NIC / Driving Licence (Front)"
+                icon={FaIdCard}
+                helper="JPG, JPEG, PNG or WEBP (max 5MB)"
+                value={values.nicImage}
+                error={touched.nicImage ? errors.nicImage : undefined}
+                onChange={(file) => setFieldValue("nicImage", file)}
+              />
 
-            <UploadBox
-              name="selfieImage"
-              title="Upload a Selfie"
-              icon={FaCamera}
-              helper="JPG, JPEG, PNG or WEBP (max 5MB)"
-              value={values.selfieImage}
-              error={touched.selfieImage ? errors.selfieImage : undefined}
-              onChange={(file) => setFieldValue("selfieImage", file)}
-            />
-          </VStack>
+              <UploadBox
+                name="selfieImage"
+                title="Upload a Selfie"
+                icon={FaCamera}
+                helper="JPG, JPEG, PNG or WEBP (max 5MB)"
+                value={values.selfieImage}
+                error={touched.selfieImage ? errors.selfieImage : undefined}
+                onChange={(file) => setFieldValue("selfieImage", file)}
+              />
+            </VStack>
+          ) : (
+            <Box
+              bg="#EEF8FF"
+              borderRadius="10px"
+              px="5"
+              py="5"
+            >
+              <Text fontSize="13px" color="#1F2937" lineHeight="1.6">
+                Your creator account is ready to be submitted. Identity
+                verification is only needed for participant access to
+                verification-gated surveys.
+              </Text>
+            </Box>
+          )}
 
           {status ? (
             <Text color="red.500" fontSize="sm">
@@ -97,41 +116,43 @@ export default function SignUprStepThreeForm() {
             </Text>
           ) : null}
 
-          <HStack
-            align="center"
-            gap="5"
-            bg="#EEF8FF"
-            borderRadius="10px"
-            px="5"
-            py="5"
-          >
-            <VStack align="start" gap="1">
-              {[
-                "This step is optional.",
-                "Verified users can access more surveys and earn more.",
-                "Files are used only to confirm you are a real person.",
-                "Responses remain anonymous.",
-                "No one can see who voted or filled a survey.",
-                "Survey results are shown anonymously.",
-                "You can also complete this later in Settings.",
-                "Your private details and pictures are not stored after verification and are not kept as personal survey data.",
-              ].map((item) => (
-                <HStack key={item} gap="2" align="flex-start">
-                  <Icon
-                    as={FaCheck}
-                    color="#1D4DFF"
-                    fontSize="9px"
-                    mt="3px"
-                    flexShrink={0}
-                  />
+          {!isCreatorOnly ? (
+            <HStack
+              align="center"
+              gap="5"
+              bg="#EEF8FF"
+              borderRadius="10px"
+              px="5"
+              py="5"
+            >
+              <VStack align="start" gap="1">
+                {[
+                  "This step is optional.",
+                  "Verified users can access more surveys and earn more.",
+                  "Files are used only to confirm you are a real person.",
+                  "Responses remain anonymous.",
+                  "No one can see who voted or filled a survey.",
+                  "Survey results are shown anonymously.",
+                  "You can also complete this later in Settings.",
+                  "Your private details and pictures are not stored after verification and are not kept as personal survey data.",
+                ].map((item) => (
+                  <HStack key={item} gap="2" align="flex-start">
+                    <Icon
+                      as={FaCheck}
+                      color="#1D4DFF"
+                      fontSize="9px"
+                      mt="3px"
+                      flexShrink={0}
+                    />
 
-                  <Text fontSize="11px" color="#1F2937" lineHeight="1.4">
-                    {item}
-                  </Text>
-                </HStack>
-              ))}
-            </VStack>
-          </HStack>
+                    <Text fontSize="11px" color="#1F2937" lineHeight="1.4">
+                      {item}
+                    </Text>
+                  </HStack>
+                ))}
+              </VStack>
+            </HStack>
+          ) : null}
 
           <HStack gap="3">
             <Button
@@ -150,32 +171,34 @@ export default function SignUprStepThreeForm() {
               Back
             </Button>
 
-            <Button
-              flex="1"
-              h="42px"
-              bg="white"
-              color="#0015D6"
-              border="1px solid #CBD5E1"
-              borderRadius="9px"
-              fontWeight="700"
-              _hover={{
-                bg: "#EEF4FF",
-              }}
-              type="button"
-              onClick={async () => {
-                await setFieldValue("nicImage", null);
-                await setFieldValue("selfieImage", null);
-                await submitForm();
-              }}
-              loading={isSubmitting}
-            >
-              Skip for now
-            </Button>
+            {!isCreatorOnly ? (
+              <Button
+                flex="1"
+                h="42px"
+                bg="white"
+                color="#0015D6"
+                border="1px solid #CBD5E1"
+                borderRadius="9px"
+                fontWeight="700"
+                _hover={{
+                  bg: "#EEF4FF",
+                }}
+                type="button"
+                onClick={async () => {
+                  await setFieldValue("nicImage", null);
+                  await setFieldValue("selfieImage", null);
+                  await submitForm();
+                }}
+                loading={isSubmitting}
+              >
+                Skip for now
+              </Button>
+            ) : null}
 
             <Button
               name="submit"
               type="submit"
-              flex="1.25"
+              flex={isCreatorOnly ? "1" : "1.25"}
               h="42px"
               bg="#0015D6"
               color="white"
@@ -186,7 +209,7 @@ export default function SignUprStepThreeForm() {
               }}
               loading={isSubmitting}
             >
-              Create account
+              {isCreatorOnly ? "Submit" : "Create account"}
             </Button>
           </HStack>
 

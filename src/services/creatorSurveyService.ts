@@ -141,6 +141,7 @@ export type SetTargetAudiencePayload = {
   minimumAge?: number;
   maximumAge?: number;
   gender?: AudienceGender;
+  province?: string;
   city?: string;
   district?: string;
   educationLevel?: string;
@@ -153,6 +154,7 @@ export type SurveyTargetAudience = {
   minimumAge: number | null;
   maximumAge: number | null;
   gender: AudienceGender;
+  province: string | null;
   city: string | null;
   district: string | null;
   educationLevel: string | null;
@@ -184,6 +186,7 @@ export type EstimateAudienceReachPayload = {
   minimumAge?: number;
   maximumAge?: number;
   gender?: AudienceGender;
+  province?: string;
   city?: string;
   district?: string;
   educationLevel?: string;
@@ -198,6 +201,7 @@ export type EstimateAudienceReachResponse = {
     minimumAge: number | null;
     maximumAge: number | null;
     gender: AudienceGender;
+    province: string | null;
     city: string | null;
     district: string | null;
     educationLevel: string | null;
@@ -265,6 +269,7 @@ export type SurveyPreviewTargetAudience = {
   minimumAge: number | null;
   maximumAge: number | null;
   gender: AudienceGender;
+  province: string | null;
   city: string | null;
   district: string | null;
   educationLevel: string | null;
@@ -746,6 +751,7 @@ export async function setTargetAudience(payload: SetTargetAudiencePayload) {
         minimumAge: payload.minimumAge,
         maximumAge: payload.maximumAge,
         gender: payload.gender,
+        province: payload.province,
         city: payload.city,
         district: payload.district,
         educationLevel: payload.educationLevel,
@@ -771,6 +777,7 @@ export async function getEstimatedAudienceReach(
           minimumAge: payload.minimumAge,
           maximumAge: payload.maximumAge,
           gender: payload.gender,
+          province: payload.province,
           city: payload.city,
           district: payload.district,
           educationLevel: payload.educationLevel,

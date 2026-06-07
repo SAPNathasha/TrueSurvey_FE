@@ -141,6 +141,14 @@ function formatAudience(audience: SurveyPreviewData["targetAudience"]) {
     parts.push(audience.city);
   }
 
+  if (audience.district) {
+    parts.push(audience.district);
+  }
+
+  if (audience.province) {
+    parts.push(audience.province);
+  }
+
   if (audience.minimumAge !== null || audience.maximumAge !== null) {
     parts.push(
       `Age ${audience.minimumAge ?? 13}-${audience.maximumAge ?? 100}`
