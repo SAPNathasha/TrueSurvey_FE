@@ -164,6 +164,7 @@ function SettingsTabs({
       borderColor="brand.border"
       overflowX="auto"
       mb="6"
+      align="end"
     >
       {tabs.map((tab) => {
         const active = activeTab === tab;
@@ -174,7 +175,8 @@ function SettingsTabs({
             variant="ghost"
             onClick={() => onChange(tab)}
             pb="4"
-            px="1"
+            px="4"
+            pt="3"
             h="auto"
             borderRadius="0"
             color={active ? "brand.primary" : "brand.dark"}
@@ -183,9 +185,17 @@ function SettingsTabs({
             fontWeight={active ? "bold" : "medium"}
             fontSize="sm"
             whiteSpace="nowrap"
+            boxShadow="none"
             _hover={{
               bg: "transparent",
               color: "brand.primary",
+            }}
+            _focus={{
+              boxShadow: "none",
+              outline: "none",
+            }}
+            _focusVisible={{
+              boxShadow: "outline",
             }}
           >
             {tab}

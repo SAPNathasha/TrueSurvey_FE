@@ -8,6 +8,7 @@ import {
   Grid,
   HStack,
   Icon,
+  IconButton,
   NativeSelect,
   Text,
 } from "@chakra-ui/react";
@@ -290,30 +291,13 @@ export default function CreatorSurveysPage() {
               </HStack>
 
               <Grid
-                templateColumns={{ base: "1fr", md: "1fr 180px 160px" }}
+                templateColumns={{ base: "1fr", md: "200px 160px" }}
                 gap="4"
                 mt="5"
               >
-                <Box
-                  borderWidth="1px"
-                  borderColor="brand.border"
-                  borderRadius="12px"
-                  px="4"
-                  py="3"
-                  display="flex"
-                  alignItems="center"
-                  gap="3"
-                  color="brand.mutedText"
-                >
-                  <FiFilter />
-                  <Text fontSize="sm">
-                    Filter surveys by status and control how many appear on each
-                    page.
-                  </Text>
-                </Box>
 
-                <Box>
-                  <Text fontSize="sm" fontWeight="semibold" mb="2">
+                <Box maxW="300px">
+                  <Text fontSize="sm" fontWeight="semibold" mb="2" >
                     Status
                   </Text>
 
@@ -363,9 +347,9 @@ export default function CreatorSurveysPage() {
             </Box>
 
             <Box overflowX="auto">
-              <Box minW="980px">
+              <Box minW="1140px">
                 <Grid
-                  templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 2.4fr"
+                  templateColumns="minmax(260px, 2.1fr) minmax(88px, 0.8fr) minmax(110px, 1fr) minmax(90px, 0.8fr) minmax(120px, 1fr) minmax(360px, 2.6fr)"
                   px="5"
                   py="3"
                   bg="#FAFBFF"
@@ -381,7 +365,7 @@ export default function CreatorSurveysPage() {
                   <Text>Audience</Text>
                   <Text>Responses</Text>
                   <Text>Last Updated</Text>
-                  <Text>Actions</Text>
+                  <Text minW="360px">Actions</Text>
                 </Grid>
 
                 {isLoading && (
@@ -411,7 +395,7 @@ export default function CreatorSurveysPage() {
                   surveys.map((survey) => (
                     <Grid
                       key={survey.id}
-                      templateColumns="2.1fr 0.8fr 1fr 0.8fr 1fr 2.4fr"
+                      templateColumns="minmax(260px, 2.1fr) minmax(88px, 0.8fr) minmax(110px, 1fr) minmax(90px, 0.8fr) minmax(120px, 1fr) minmax(360px, 2.6fr)"
                       px="5"
                       py="3"
                       alignItems="center"
@@ -468,56 +452,89 @@ export default function CreatorSurveysPage() {
                         {formatDate(survey.updatedAt)}
                       </Text>
 
-                      <HStack gap="2">
-                        <Button
-                          asChild
-                          size="sm"
-                          variant="outline"
-                          h="34px"
-                        >
-                          <NextLink href={`/creator/surveys/${survey.id}/analytics`}>
-                            <FiBarChart2 />
-                            Analytics
-                          </NextLink>
-                        </Button>
-
-                        <Button
-                          asChild
-                          size="sm"
-                          variant="outline"
-                          h="34px"
-                        >
-                          <NextLink href={`/creator/surveys/${survey.id}/submissions`}>
-                            <FiList />
-                            Submissions
-                          </NextLink>
-                        </Button>
-
-                        {survey.status === "DRAFT" ? (
+                      <HStack
+                        gap="2"
+                        whiteSpace="nowrap"
+                        flexWrap="nowrap"
+                        align="center"
+                        minW="360px"
+                      >
+                        {survey.status !== "DRAFT" ? (
                           <Button
+                            asChild
                             size="sm"
                             variant="outline"
-                            h="34px"
-                            onClick={() => handleEdit(survey)}
+                            h="32px"
+                            px="3"
+                            borderRadius="md"
+                            fontSize="sm"
+                            fontWeight="semibold"
                           >
-                            <FiEdit2 />
-                            Edit
+                            <NextLink href={`/creator/surveys/${survey.id}/analytics`}>
+                              <HStack as="span" gap="1.5">
+                                <FiBarChart2 />
+                                <Text as="span">Analytics</Text>
+                              </HStack>
+                            </NextLink>
                           </Button>
                         ) : null}
 
-                        <Button
+                        {survey.status !== "DRAFT" ? (
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            h="32px"
+                            px="3"
+                            borderRadius="md"
+                            fontSize="sm"
+                            fontWeight="semibold"
+                          >
+                            <NextLink href={`/creator/surveys/${survey.id}/submissions`}>
+                              <HStack as="span" gap="1.5">
+                                <FiList />
+                                <Text as="span">Submissions</Text>
+                              </HStack>
+                            </NextLink>
+                          </Button>
+                        ) : null}
+
+                        {survey.status === "DRAFT" ? (
+                          <IconButton
+                            aria-label={`Edit survey ${survey.title}`}
+                            size="sm"
+                            variant="outline"
+                            h="32px"
+                            w="32px"
+                            minW="32px"
+                            borderRadius="md"
+                            fontSize="sm"
+                            onClick={() => handleEdit(survey)}
+                          >
+                            <FiEdit2 />
+                          </IconButton>
+                        ) : null}
+
+                        <IconButton
+                          aria-label={`Delete survey ${survey.title}`}
                           size="sm"
-                          variant="ghost"
-                          h="34px"
-                          color="red.500"
+                          variant="outline"
+                          h="32px"
+                          w="32px"
+                          minW="32px"
+                          borderRadius="md"
+                          fontSize="sm"
+                          colorPalette="red"
+                          borderColor="red.200"
+                          color="red.600"
+                          _hover={{ bg: "red.50", borderColor: "red.300" }}
                           loading={isDeleting === survey.id}
                           onClick={() => {
                             void handleDelete(survey);
                           }}
                         >
                           <FiTrash2 />
-                          Delete
-                        </Button>
+                        </IconButton>
                       </HStack>
                     </Grid>
                   ))}

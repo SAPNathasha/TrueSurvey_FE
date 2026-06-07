@@ -398,7 +398,7 @@ export default function CreateSurvey({
           <CreateSurveyStepper currentStep={currentStep} />
 
           <Grid
-            templateColumns={{ base: "1fr", xl: "1fr 430px" }}
+            templateColumns={{ base: "1fr", xl: "1fr" }}
             gap="5"
             mt="5"
             alignItems="start"
