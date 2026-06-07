@@ -3,6 +3,7 @@ import {
   defaultConfig,
   defineConfig,
   defineRecipe,
+  defineSlotRecipe,
 } from "@chakra-ui/react";
 
 const buttonRecipe = defineRecipe({
@@ -62,7 +63,131 @@ const buttonRecipe = defineRecipe({
   },
 });
 
+const nativeSelectSlotRecipe = defineSlotRecipe({
+  slots: ["root", "field", "indicator"],
+
+  base: {
+    root: {
+      width: "100%",
+    },
+
+    field: {
+      bg: "white",
+      color: "brand.dark",
+      borderColor: "brand.border",
+      borderRadius: "input",
+      fontSize: "sm",
+      lineHeight: "normal",
+      _hover: {
+        borderColor: "gray.border",
+      },
+      _focusVisible: {
+        borderColor: "brand.primary",
+        boxShadow: "0 0 0 1px var(--chakra-colors-brand-primary)",
+      },
+      _focus: {
+        boxShadow: "none",
+      },
+      "& > option, & > optgroup": {
+        bg: "white",
+        color: "brand.dark",
+      },
+    },
+
+    indicator: {
+      color: "brand.mutedText",
+    },
+  },
+
+  variants: {
+    variant: {
+      outline: {
+        field: {
+          bg: "white",
+          borderWidth: "1px",
+          borderColor: "brand.border",
+        },
+      },
+    },
+
+    size: {
+      sm: {
+        root: {
+          "--select-field-height": "sizes.10",
+        },
+        field: {
+          h: "10",
+          ps: "4",
+          pe: "10",
+          fontSize: "sm",
+        },
+        indicator: {
+          insetEnd: "3",
+        },
+      },
+
+      md: {
+        root: {
+          "--select-field-height": "sizes.11",
+        },
+        field: {
+          h: "11",
+          ps: "4",
+          pe: "10",
+          fontSize: "sm",
+        },
+        indicator: {
+          insetEnd: "3",
+        },
+      },
+
+      lg: {
+        root: {
+          "--select-field-height": "sizes.12",
+        },
+        field: {
+          h: "12",
+          ps: "4",
+          pe: "10",
+          fontSize: "md",
+        },
+        indicator: {
+          insetEnd: "3",
+        },
+      },
+    },
+  },
+
+  defaultVariants: {
+    size: "md",
+    variant: "outline",
+  },
+});
+
 const customConfig = defineConfig({
+  globalCss: {
+    ".chakra-native-select__field": {
+      paddingInlineStart: "1rem !important",
+      paddingInlineEnd: "2.5rem !important",
+      textIndent: "0",
+    },
+
+    ".chakra-native-select__indicator": {
+      insetInlineEnd: "0.75rem",
+    },
+
+    "select": {
+      paddingInlineStart: "1rem !important",
+      paddingInlineEnd: "2.5rem !important",
+      textIndent: "0",
+    },
+
+    "select > option": {
+      paddingBlock: "0.5rem",
+      paddingInline: "1rem",
+    },
+  },
+
   theme: {
     tokens: {
       colors: {
@@ -268,6 +393,10 @@ layerStyles: {
 
     recipes: {
       button: buttonRecipe,
+    },
+
+    slotRecipes: {
+      nativeSelect: nativeSelectSlotRecipe,
     },
   },
 });
