@@ -17,7 +17,7 @@ import {
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 
-import { loginUser } from "@/services/authService";
+import { loginUser, isEmailNotVerifiedError } from "@/services/authService";
 import { setStoredAccessToken } from "@/lib/axios";
 
 interface LoginFormValues {
@@ -85,15 +85,17 @@ export default function LoginForm() {
   const [serverError, setServerError] = useState("");
 
   const handleLogin = async (values: LoginFormValues) => {
+    const normalizedEmail = values.email.trim().toLowerCase();
+
     try {
       setServerError("");
 
       const data = await loginUser({
-        email: values.email,
+        email: normalizedEmail,
         password: values.password,
       });
 
-      console.log("Login success:", data);
+      console.log("LOGIN SUCCESS:", data);
 
       const token = data.accessToken || data.access_token || data.token;
 
@@ -104,12 +106,14 @@ export default function LoginForm() {
       setStoredAccessToken(token);
 
       const loginUserData = getLoginUser(data);
+
       const participantId = getStringField(loginUserData, [
         "participantId",
         "userId",
         "id",
         "sub",
       ]);
+
       const role = getStringField(loginUserData, ["role"]);
 
       if (participantId) {
@@ -127,12 +131,22 @@ export default function LoginForm() {
       }
 
       router.push("/dashboard");
-    } catch (error) {
+    } catch (error: unknown) {
+      console.log("LOGIN ERROR OBJECT:", error);
+
+      if (isEmailNotVerifiedError(error)) {
+        router.push(
+          `/email-not-verified?email=${encodeURIComponent(normalizedEmail)}`,
+        );
+        return;
+      }
+
       if (error instanceof Error) {
         setServerError(error.message);
-      } else {
-        setServerError("Login failed");
+        return;
       }
+
+      setServerError("Login failed");
     }
   };
 
@@ -221,7 +235,7 @@ export default function LoginForm() {
 
                 <Button
                   width="100%"
-                  color={"black"}
+                  color="black"
                   maxW="360px"
                   variant="outline"
                   type="button"

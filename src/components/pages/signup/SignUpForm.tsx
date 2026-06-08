@@ -15,6 +15,7 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/jpg",
   "image/webp",
 ];
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export type SignupFormValues = {
@@ -88,6 +89,7 @@ const signUpFormSchema = Yup.object({
 
 export default function SignupForm() {
   const router = useRouter();
+
   const currentStep = useSignupStore((state) => state.currentStep);
   const nextStep = useSignupStore((state) => state.nextStep);
   const resetSignup = useSignupStore((state) => state.resetSignup);
@@ -135,12 +137,15 @@ export default function SignupForm() {
         selfieImage: null,
       }}
       validationSchema={signUpFormSchema}
-      onSubmit={async (values, { setStatus }) => {
+      onSubmit={async (values, { setStatus, setSubmitting }) => {
         try {
           setStatus(undefined);
+
+          const normalizedEmail = values.email.trim().toLowerCase();
+
           await registerUser({
             username: values.username.trim(),
-            email: values.email.trim().toLowerCase(),
+            email: normalizedEmail,
             password: values.password,
             role: values.role as RegisterRole,
             nicNumber: values.nicNumber.trim() || undefined,
@@ -149,7 +154,10 @@ export default function SignupForm() {
           });
 
           resetSignup();
-          router.push("/login");
+
+          router.push(
+            `/check-email?email=${encodeURIComponent(normalizedEmail)}`,
+          );
         } catch (error) {
           if (error instanceof Error) {
             setStatus(error.message);
@@ -157,6 +165,8 @@ export default function SignupForm() {
           }
 
           setStatus("Registration failed");
+        } finally {
+          setSubmitting(false);
         }
       }}
     >

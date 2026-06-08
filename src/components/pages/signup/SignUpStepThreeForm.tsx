@@ -96,12 +96,7 @@ export default function SignUprStepThreeForm() {
               />
             </VStack>
           ) : (
-            <Box
-              bg="#EEF8FF"
-              borderRadius="10px"
-              px="5"
-              py="5"
-            >
+            <Box bg="#EEF8FF" borderRadius="10px" px="5" py="5">
               <Text fontSize="13px" color="#1F2937" lineHeight="1.6">
                 Your creator account is ready to be submitted. Identity
                 verification is only needed for participant access to
@@ -185,6 +180,7 @@ export default function SignUprStepThreeForm() {
                 }}
                 type="button"
                 onClick={async () => {
+                  await setFieldValue("nicNumber", "");
                   await setFieldValue("nicImage", null);
                   await setFieldValue("selfieImage", null);
                   await submitForm();
