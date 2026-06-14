@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Box, Flex, type BoxProps, type FlexProps } from "@chakra-ui/react";
 
+import AppHeader from "@/components/layout/AppHeader";
 import ParticipantSidebar from "@/components/pages/participant/dashboard/ParticipantSidebar";
 
 type AuthenticatedShellProps = {
@@ -29,8 +30,11 @@ export default function AuthenticatedShell({
     >
       <ParticipantSidebar activeItem={activeItem} />
 
-      <Box flex="1" minW={0} w="full">
+      <Flex flex="1" minW={0} w="full" direction="column">
+        <AppHeader />
+
         <Box
+          flex="1"
           minW={0}
           px={{ base: "4", md: "6", lg: "7" }}
           py={{ base: "4", md: "5", lg: "6" }}
@@ -38,7 +42,7 @@ export default function AuthenticatedShell({
         >
           {children}
         </Box>
-      </Box>
+      </Flex>
     </Flex>
   );
 }
