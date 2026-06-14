@@ -44,10 +44,7 @@ import {
 
 const PARTICIPANT_VERIFICATION_STATUS_KEY = "participantVerificationStatus";
 
-type SettingsTab =
-  | "Profile"
-  | "Verification"
-  | "Security";
+type SettingsTab = "Profile" | "Verification" | "Security";
 
 type FormFieldProps = {
   label: string;
@@ -225,6 +222,27 @@ function formatDate(value?: string | null) {
   });
 }
 
+function calculateAge(dateOfBirth: string) {
+  if (!dateOfBirth) return "";
+
+  const birthDate = new Date(dateOfBirth);
+  const today = new Date();
+
+  if (Number.isNaN(birthDate.getTime())) return "";
+
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDifference = today.getMonth() - birthDate.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age--;
+  }
+
+  return age >= 0 ? String(age) : "";
+}
+
 function getInitials(name?: string | null, username?: string | null) {
   const source = name || username || "TS";
   const parts = source.trim().split(/\s+/);
@@ -240,7 +258,7 @@ function getInitials(name?: string | null, username?: string | null) {
 }
 
 function createProfileFormValues(
-  profile: ParticipantProfileSettingsResponse["profile"]
+  profile: ParticipantProfileSettingsResponse["profile"],
 ): ProfileFormValues {
   return {
     fullName: profile.fullName || "",
@@ -248,7 +266,9 @@ function createProfileFormValues(
     phoneCountryCode: profile.phoneCountryCode || "",
     phoneNumber: profile.phoneNumber || "",
     dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "",
-    participantAge: profile.participantAge?.toString() || "",
+    participantAge: calculateAge(
+      profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "",
+    ),
     participantGender: profile.participantGender || "",
     participantCity: profile.participantCity || "",
     participantDistrict: profile.participantDistrict || "",
@@ -260,7 +280,7 @@ function createProfileFormValues(
 
 function normalizeChangedString(
   nextValue: string,
-  previousValue?: string | null
+  previousValue?: string | null,
 ) {
   const trimmedNext = nextValue.trim();
   const trimmedPrevious = (previousValue || "").trim();
@@ -274,54 +294,63 @@ function normalizeChangedString(
 
 function buildUpdatePayload(
   formValues: ProfileFormValues,
-  previousProfile: ParticipantProfileSettingsResponse["profile"]
+  previousProfile: ParticipantProfileSettingsResponse["profile"],
 ): UpdateParticipantProfilePayload {
   const payload: UpdateParticipantProfilePayload = {};
 
-  const fullName = normalizeChangedString(formValues.fullName, previousProfile.fullName);
-  const username = normalizeChangedString(formValues.username, previousProfile.username);
+  const fullName = normalizeChangedString(
+    formValues.fullName,
+    previousProfile.fullName,
+  );
+  const username = normalizeChangedString(
+    formValues.username,
+    previousProfile.username,
+  );
   const phoneCountryCode = normalizeChangedString(
     formValues.phoneCountryCode,
-    previousProfile.phoneCountryCode
+    previousProfile.phoneCountryCode,
   );
   const phoneNumber = normalizeChangedString(
     formValues.phoneNumber,
-    previousProfile.phoneNumber
+    previousProfile.phoneNumber,
   );
   const participantCity = normalizeChangedString(
     formValues.participantCity,
-    previousProfile.participantCity
+    previousProfile.participantCity,
   );
   const participantDistrict = normalizeChangedString(
     formValues.participantDistrict,
-    previousProfile.participantDistrict
+    previousProfile.participantDistrict,
   );
   const participantEducationLevel = normalizeChangedString(
     formValues.participantEducationLevel,
-    previousProfile.participantEducationLevel
+    previousProfile.participantEducationLevel,
   );
   const participantOccupation = normalizeChangedString(
     formValues.participantOccupation,
-    previousProfile.participantOccupation
+    previousProfile.participantOccupation,
   );
   const participantAddress = normalizeChangedString(
     formValues.participantAddress,
-    previousProfile.participantAddress
+    previousProfile.participantAddress,
   );
 
   if (fullName !== undefined) payload.fullName = fullName;
   if (username !== undefined) payload.username = username;
-  if (phoneCountryCode !== undefined) payload.phoneCountryCode = phoneCountryCode;
+  if (phoneCountryCode !== undefined)
+    payload.phoneCountryCode = phoneCountryCode;
   if (phoneNumber !== undefined) payload.phoneNumber = phoneNumber;
   if (participantCity !== undefined) payload.participantCity = participantCity;
-  if (participantDistrict !== undefined) payload.participantDistrict = participantDistrict;
+  if (participantDistrict !== undefined)
+    payload.participantDistrict = participantDistrict;
   if (participantEducationLevel !== undefined) {
     payload.participantEducationLevel = participantEducationLevel;
   }
   if (participantOccupation !== undefined) {
     payload.participantOccupation = participantOccupation;
   }
-  if (participantAddress !== undefined) payload.participantAddress = participantAddress;
+  if (participantAddress !== undefined)
+    payload.participantAddress = participantAddress;
 
   const previousDateOfBirth = previousProfile.dateOfBirth
     ? previousProfile.dateOfBirth.slice(0, 10)
@@ -340,12 +369,6 @@ function buildUpdatePayload(
     payload.participantGender = formValues.participantGender.trim();
   }
 
-  const nextAge = formValues.participantAge.trim();
-  const previousAge = previousProfile.participantAge?.toString() || "";
-  if (nextAge && nextAge !== previousAge) {
-    payload.participantAge = Number(nextAge);
-  }
-
   return payload;
 }
 
@@ -362,7 +385,7 @@ function ProfileInformationCard({
   formValues: ProfileFormValues;
   onFieldChange: <K extends keyof ProfileFormValues>(
     field: K,
-    value: ProfileFormValues[K]
+    value: ProfileFormValues[K],
   ) => void;
   onSave: () => void;
   isSaving: boolean;
@@ -522,19 +545,18 @@ function ProfileInformationCard({
           <SettingsInput
             type="date"
             value={formValues.dateOfBirth}
-            onChange={(event) => onFieldChange("dateOfBirth", event.target.value)}
+            onChange={(event) =>
+              onFieldChange("dateOfBirth", event.target.value)
+            }
           />
         </FormField>
 
         <FormField label="Age">
           <SettingsInput
-            type="number"
-            min={13}
-            max={100}
-            value={formValues.participantAge}
-            onChange={(event) =>
-              onFieldChange("participantAge", event.target.value)
-            }
+            value={calculateAge(formValues.dateOfBirth)}
+            readOnly
+            bg="#F8FAFC"
+            placeholder="Calculated from date of birth"
           />
         </FormField>
 
@@ -712,11 +734,7 @@ function AccountOverviewCard({
   );
 }
 
-function VerificationStepTracker({
-  isVerified,
-}: {
-  isVerified: boolean;
-}) {
+function VerificationStepTracker({ isVerified }: { isVerified: boolean }) {
   const steps = [
     {
       number: "1",
@@ -938,7 +956,9 @@ function AccountVerificationCard({
     idVerificationStatus === "NOT_TRIED" || idVerificationStatus === "REJECTED";
   const isAccepted = idVerificationStatus === "ACCEPTED";
   const [nicNumber, setNicNumber] = useState("");
-  const [identityFrontImage, setIdentityFrontImage] = useState<File | null>(null);
+  const [identityFrontImage, setIdentityFrontImage] = useState<File | null>(
+    null,
+  );
   const [selfieImage, setSelfieImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isQueued, setIsQueued] = useState(false);
@@ -1024,7 +1044,7 @@ function AccountVerificationCard({
       const response = await verifyParticipantNic(
         nicNumber.trim(),
         identityFrontImage,
-        selfieImage
+        selfieImage,
       );
 
       setIsQueued(true);
@@ -1244,7 +1264,7 @@ function ProfileTabContent({
   formValues: ProfileFormValues;
   onFieldChange: <K extends keyof ProfileFormValues>(
     field: K,
-    value: ProfileFormValues[K]
+    value: ProfileFormValues[K],
   ) => void;
   onSave: () => void;
   isSaving: boolean;
@@ -1273,7 +1293,7 @@ export default function ParticipantSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("Profile");
   const userRole = getStoredUserRole();
   const [data, setData] = useState<ParticipantProfileSettingsResponse | null>(
-    null
+    null,
   );
   const [formValues, setFormValues] = useState<ProfileFormValues | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -1289,7 +1309,7 @@ export default function ParticipantSettingsPage() {
         if (isMounted) {
           window.localStorage.setItem(
             PARTICIPANT_VERIFICATION_STATUS_KEY,
-            response.accountOverview.verificationStatus
+            response.accountOverview.verificationStatus,
           );
           setData(response);
           setFormValues(createProfileFormValues(response.profile));
@@ -1301,7 +1321,7 @@ export default function ParticipantSettingsPage() {
           setError(
             requestError instanceof Error
               ? requestError.message
-              : "Failed to load settings"
+              : "Failed to load settings",
           );
         }
       })
@@ -1317,7 +1337,9 @@ export default function ParticipantSettingsPage() {
   }, []);
   const showVerificationTab = userRole !== "CREATOR";
   const resolvedActiveTab =
-    !showVerificationTab && activeTab === "Verification" ? "Profile" : activeTab;
+    !showVerificationTab && activeTab === "Verification"
+      ? "Profile"
+      : activeTab;
 
   if (isLoading) {
     return (
@@ -1349,9 +1371,11 @@ export default function ParticipantSettingsPage() {
 
   const handleFieldChange = <K extends keyof ProfileFormValues>(
     field: K,
-    value: ProfileFormValues[K]
+    value: ProfileFormValues[K],
   ) => {
-    setFormValues((current) => (current ? { ...current, [field]: value } : current));
+    setFormValues((current) =>
+      current ? { ...current, [field]: value } : current,
+    );
   };
 
   const handleSaveProfile = async () => {
@@ -1434,7 +1458,7 @@ export default function ParticipantSettingsPage() {
                 ...response.profile,
               },
             }
-          : current
+          : current,
       );
 
       toaster.create({
@@ -1471,7 +1495,11 @@ export default function ParticipantSettingsPage() {
               Settings
             </Text>
 
-            <Text fontSize={{ base: "sm", md: "lg" }} color="brand.mutedText" mt="3">
+            <Text
+              fontSize={{ base: "sm", md: "lg" }}
+              color="brand.mutedText"
+              mt="3"
+            >
               Manage your account, profile, and verification details.
             </Text>
           </Box>
