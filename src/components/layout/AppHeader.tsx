@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Badge,
   Box,
@@ -10,8 +11,19 @@ import {
   Image,
   Input,
   Text,
+  VStack,
 } from "@chakra-ui/react";
-import { FiBell, FiChevronDown, FiCommand, FiSearch } from "react-icons/fi";
+import { useRouter } from "next/navigation";
+import {
+  FiBell,
+  FiChevronDown,
+  FiCommand,
+  FiCreditCard,
+  FiLogOut,
+  FiSearch,
+  FiSettings,
+  FiUser,
+} from "react-icons/fi";
 
 import { getStoredUserRole } from "@/lib/userRole";
 
@@ -68,6 +80,10 @@ function getInitialHeaderUserInfo(): HeaderUserInfo {
     roleLabel = "Survey Participant";
   }
 
+  if (storedRole === "BOTH") {
+    roleLabel = "Survey User";
+  }
+
   return {
     userName,
     roleLabel,
@@ -76,7 +92,42 @@ function getInitialHeaderUserInfo(): HeaderUserInfo {
 }
 
 export default function AppHeader() {
+  const router = useRouter();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
   const { userName, roleLabel, profileImage } = getInitialHeaderUserInfo();
+
+  const goToProfile = () => {
+    const role = getStoredUserRole();
+
+    setIsProfileMenuOpen(false);
+
+    if (role === "CREATOR") {
+      router.push("/creator/settings");
+      return;
+    }
+
+    router.push("/settings");
+  };
+
+  const goToWallet = () => {
+    const role = getStoredUserRole();
+
+    setIsProfileMenuOpen(false);
+
+    if (role === "CREATOR") {
+      router.push("/creator/wallet");
+      return;
+    }
+
+    router.push("/wallet");
+  };
+
+  const handleLogout = () => {
+    setIsProfileMenuOpen(false);
+    localStorage.clear();
+    router.push("/login");
+  };
 
   return (
     <Flex
@@ -176,44 +227,168 @@ export default function AppHeader() {
           </Badge>
         </Box>
 
-        <HStack gap="3" cursor="pointer">
-          <Circle size="48px" overflow="hidden" bg="gray.100">
-            {profileImage ? (
-              <Image
-                src={profileImage}
-                alt={userName}
-                w="full"
-                h="full"
-                objectFit="cover"
-              />
-            ) : (
-              <Text fontWeight="bold" color="brand.primary">
-                {userName.charAt(0).toUpperCase()}
-              </Text>
-            )}
-          </Circle>
-
-          <Box display={{ base: "none", sm: "block" }}>
-            <Text
-              fontSize="sm"
-              fontWeight="bold"
-              color="brand.dark"
-              lineHeight="1.2"
+        <Box position="relative">
+          <HStack
+            gap="3"
+            cursor="pointer"
+            borderRadius="xl"
+            px="2"
+            py="1"
+            _hover={{ bg: "gray.50" }}
+            onClick={() => {
+              setIsProfileMenuOpen((previous) => !previous);
+            }}
+          >
+            <Circle
+              size="48px"
+              overflow="hidden"
+              bg="gray.100"
+              onClick={(event) => {
+                event.stopPropagation();
+                goToProfile();
+              }}
             >
-              {userName}
-            </Text>
-            <Text fontSize="xs" color="brand.mutedText">
-              {roleLabel}
-            </Text>
-          </Box>
+              {profileImage ? (
+                <Image
+                  src={profileImage}
+                  alt={userName}
+                  w="full"
+                  h="full"
+                  objectFit="cover"
+                />
+              ) : (
+                <Text fontWeight="bold" color="brand.primary">
+                  {userName.charAt(0).toUpperCase()}
+                </Text>
+              )}
+            </Circle>
 
-          <Icon
-            as={FiChevronDown}
-            boxSize="4"
-            color="brand.dark"
-            display={{ base: "none", sm: "block" }}
-          />
-        </HStack>
+            <Box
+              display={{ base: "none", sm: "block" }}
+              onClick={(event) => {
+                event.stopPropagation();
+                goToProfile();
+              }}
+            >
+              <Text
+                fontSize="sm"
+                fontWeight="bold"
+                color="brand.dark"
+                lineHeight="1.2"
+              >
+                {userName}
+              </Text>
+              <Text fontSize="xs" color="brand.mutedText">
+                {roleLabel}
+              </Text>
+            </Box>
+
+            <Icon
+              as={FiChevronDown}
+              boxSize="4"
+              color="brand.dark"
+              display={{ base: "none", sm: "block" }}
+            />
+          </HStack>
+
+          {isProfileMenuOpen && (
+            <Box
+              position="absolute"
+              top="58px"
+              right="0"
+              w="240px"
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.100"
+              borderRadius="xl"
+              boxShadow="0 16px 40px rgba(15, 23, 42, 0.12)"
+              p="2"
+              zIndex="50"
+            >
+              <VStack align="stretch" gap="1">
+                <HStack
+                  gap="3"
+                  px="3"
+                  py="3"
+                  borderRadius="lg"
+                  cursor="pointer"
+                  _hover={{ bg: "gray.50" }}
+                  onClick={goToProfile}
+                >
+                  <Icon as={FiUser} boxSize="4" color="brand.primary" />
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold">
+                      Profile
+                    </Text>
+                    <Text fontSize="xs" color="brand.mutedText">
+                      View your profile details
+                    </Text>
+                  </Box>
+                </HStack>
+
+                <HStack
+                  gap="3"
+                  px="3"
+                  py="3"
+                  borderRadius="lg"
+                  cursor="pointer"
+                  _hover={{ bg: "gray.50" }}
+                  onClick={goToProfile}
+                >
+                  <Icon as={FiSettings} boxSize="4" color="brand.primary" />
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold">
+                      Settings
+                    </Text>
+                    <Text fontSize="xs" color="brand.mutedText">
+                      Manage account settings
+                    </Text>
+                  </Box>
+                </HStack>
+
+                <HStack
+                  gap="3"
+                  px="3"
+                  py="3"
+                  borderRadius="lg"
+                  cursor="pointer"
+                  _hover={{ bg: "gray.50" }}
+                  onClick={goToWallet}
+                >
+                  <Icon as={FiCreditCard} boxSize="4" color="brand.primary" />
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold">
+                      Wallet
+                    </Text>
+                    <Text fontSize="xs" color="brand.mutedText">
+                      View earnings and withdrawals
+                    </Text>
+                  </Box>
+                </HStack>
+
+                <HStack
+                  gap="3"
+                  px="3"
+                  py="3"
+                  borderRadius="lg"
+                  cursor="pointer"
+                  _hover={{ bg: "red.50" }}
+                  onClick={handleLogout}
+                >
+                  <Icon as={FiLogOut} boxSize="4" color="red.500" />
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" color="red.500">
+                      Logout
+                    </Text>
+                    <Text fontSize="xs" color="red.400">
+                      Sign out from your account
+                    </Text>
+                  </Box>
+                </HStack>
+              </VStack>
+            </Box>
+          )}
+        </Box>
       </HStack>
     </Flex>
   );
